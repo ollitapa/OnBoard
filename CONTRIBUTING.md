@@ -24,7 +24,7 @@
 
 ### Code Style
 
-- **No code comments**: Avoid adding comments in code files
+- **Use documentation comments**: Add Swift documentation comments (`///`) for public APIs and complex logic
 - **Follow existing patterns**: Match the repository's existing style and architecture
 - **Small changes**: Make the smallest correct change that solves the problem
 
