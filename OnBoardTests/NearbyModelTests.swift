@@ -2,6 +2,7 @@ import Testing
 import Foundation
 @testable import OnBoard
 
+@MainActor
 struct NearbyModelTests {
 
     @Test func loadStopsSuccess() async throws {

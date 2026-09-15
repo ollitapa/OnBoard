@@ -62,6 +62,17 @@ struct MockNetwork: NetworkProtocol {
             self.httpMethod = request.httpMethod
             self.httpBody = request.httpBody
         }
+
+        /// Creates a TestableRequest from its captured fields.
+        /// - Parameters:
+        ///   - url: The URL of the request
+        ///   - httpMethod: The HTTP method (GET, POST, etc.)
+        ///   - httpBody: The request body data
+        init(url: URL?, httpMethod: String?, httpBody: Data?) {
+            self.url = url
+            self.httpMethod = httpMethod
+            self.httpBody = httpBody
+        }
     }
 
     /// Mutable storage shared by reference so that request recording made
