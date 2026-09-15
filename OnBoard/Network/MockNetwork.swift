@@ -86,32 +86,26 @@ struct MockNetwork: NetworkProtocol {
             var handlers: [(URLRequest) async throws -> (Data, URLResponse)?] = []
         }
 
-        private let mutex = Mutex(State())
+        private let state = Mutex(State())
 
         func record(_ request: TestableRequest) {
-            mutex.withLock { state in
-                state.testableRequests.append(request)
-            }
+            state.withLock { $0.testableRequests.append(request) }
         }
 
         func resetRequests() {
-            mutex.withLock { state in
-                state.testableRequests.removeAll()
-            }
+            state.withLock { $0.testableRequests.removeAll() }
         }
 
         func appendHandler(_ handler: @escaping (URLRequest) async throws -> (Data, URLResponse)?) {
-            mutex.withLock { state in
-                state.handlers.append(handler)
-            }
+            state.withLock { $0.handlers.append(handler) }
         }
 
         func snapshotRequests() -> [TestableRequest] {
-            mutex.withLock { state in state.testableRequests }
+            state.withLock { $0.testableRequests }
         }
 
         func snapshotHandlers() -> [(URLRequest) async throws -> (Data, URLResponse)?] {
-            mutex.withLock { state in state.handlers }
+            state.withLock { $0.handlers }
         }
     }
 
