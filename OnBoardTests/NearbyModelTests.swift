@@ -53,7 +53,7 @@ struct NearbyModelTests {
         await model.loadStops(network: mockNetwork)
 
         // Then
-        #expect(model.stops.isEmpty)
+        #expect(model.stops == [])
         #expect(model.failure == nil)
     }
 
@@ -68,7 +68,7 @@ struct NearbyModelTests {
         await model.loadStops(network: mockNetwork)
 
         // Then
-        #expect(model.stops.isEmpty)
+        #expect(model.stops == [])
         #expect(model.failure != nil)
     }
 
@@ -90,7 +90,7 @@ struct NearbyModelTests {
         await model.loadStops(network: mockNetwork)
 
         // Then
-        #expect(model.stops.isEmpty)
+        #expect(model.stops == [])
         #expect(model.failure != nil)
     }
 
