@@ -1,0 +1,37 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 27
+        run: |
+          sudo xcode-select -s "$(dirname $(dirname $(xcrun -f xcodebuild)))/"
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: List available schemes
+        run: xcodebuild -list -project OnBoard.xcodeproj
+
+      - name: Build for testing
+        run: |
+          xcodebuild build-for-testing \
+            -project OnBoard.xcodeproj \
+            -scheme OnBoard \
+            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest"
+
+      - name: Test
+        run: |
+          xcodebuild test-without-building \
+            -project OnBoard.xcodeproj \
+            -scheme OnBoard \
+            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest"
