@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Bus App — Storyboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#102A43;
+    --ink-soft:#334E68;
+    --mist:#829AB1;
+    --hairline:#BCCCDC;
+    --paper:#F0F4F8;
+    --panel:#FFFFFF;
+    --magenta:#7C1A87;
+    --magenta-deep:#4E0754;
+    --magenta-tint:#F5E1F7;
+    --green:#0F8613;
+    --green-tint:#E3F9E5;
+    --red:#CF1124;
+    --red-tint:#FFE3E3;
+    --yellow:#F0B429;
+    --yellow-tint:#FFF3C4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:#DCE4EC;
+    font-family:'Inter',sans-serif;
+    padding:32px 16px 60px;
+  }
+  .intro{
+    max-width:900px;
+    margin:0 auto 36px;
+  }
+  .intro .eyebrow-mark{
+    display:inline-block;
+    width:34px;height:34px;
+    background:var(--magenta-deep);
+    border-radius:8px;
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:'Archivo',sans-serif;
+    font-weight:800;
+    font-size:28px;
+    letter-spacing:-0.02em;
+    color:var(--ink);
+    margin:0 0 10px;
+  }
+  .intro p{
+    font-size:15px;
+    line-height:1.6;
+    color:var(--ink-soft);
+    max-width:560px;
+    margin:0;
+  }
+  .filmstrip{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:36px;
+    max-width:340px;
+    margin:0 auto;
+  }
+  .frame{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+    max-width:280px;
+    position:relative;
+  }
+  .frame:not(:last-child)::after{
+    content:"";
+    position:absolute;
+    bottom:-26px;
+    left:50%;
+    transform:translateX(-50%);
+    width:2px;
+    height:20px;
+    background:var(--mist);
+  }
+  .frame:not(:last-child)::before{
+    content:"";
+    position:absolute;
+    bottom:-30px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0;height:0;
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+    border-top:8px solid var(--mist);
+  }
+  .step-tag{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    color:var(--magenta);
+    margin-bottom:8px;
+  }
+  .step-title{
+    font-family:'Archivo',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    color:var(--ink);
+    margin-bottom:18px;
+    text-align:center;
+    min-height:20px;
+  }
+  .phone{
+    width:100%;
+    max-width:260px;
+    aspect-ratio:260/560;
+    background:var(--ink);
+    border-radius:34px;
+    padding:10px;
+    box-shadow:0 20px 40px -14px rgba(16,42,67,0.35);
+  }
+  .screen{
+    width:100%;
+    height:100%;
+    background:var(--paper);
+    border-radius:26px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  .statusbar{
+    height:26px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 16px;
+    font-size:11px;
+    font-weight:600;
+    color:var(--ink);
+    flex-shrink:0;
+  }
+
+  /* ---------- Screen 1: Home ---------- */
+  .home-header{
+    padding:4px 18px 14px;
+  }
+  .home-header .time{
+    font-family:'Archivo',sans-serif;
+    font-weight:800;
+    font-size:26px;
+    color:var(--ink);
+  }
+  .home-header .sub{
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .search-pill{
+    margin:0 18px 14px;
+    background:var(--panel);
+    border:1px solid var(--hairline);
+    border-radius:12px;
+    padding:10px 14px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .section-label{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;
+    font-size:11px;
+    color:var(--ink-soft);
+    padding:0 18px;
+    margin-bottom:8px;
+  }
+  .stop-row{
+    background:var(--panel);
+    margin:0 18px 8px;
+    border-radius:10px;
+    padding:11px 13px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-left:3px solid var(--magenta);
+  }
+  .stop-row .name{
+    font-weight:600;
+    font-size:13px;
+    color:var(--ink);
+  }
+  .stop-row .dist{
+    font-size:10px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .stop-row .chip{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    color:#0E7817;
+    background:var(--green-tint);
+    padding:4px 9px;
+    border-radius:7px;
+  }
+  .tabbar{
+    margin-top:auto;
+    display:flex;
+    justify-content:space-around;
+    padding:12px 0;
+    border-top:1px solid var(--hairline);
+    background:var(--panel);
+  }
+  .tabbar .dot{
+    width:20px;height:20px;
+    border-radius:6px;
+    background:var(--hairline);
+  }
+  .tabbar .dot.active{background:var(--magenta);}
+  .tab-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    flex:1;
+  }
+  .tab-item svg{
+    width:20px;height:20px;
+    fill:none;
+    stroke:var(--ink-soft);
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .tab-item .tab-label{
+    font-size:9px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+  .tab-item.active svg{stroke:var(--magenta);}
+  .tab-item.active .tab-label{color:var(--magenta);}
+  .tab-item.active .star-poly{fill:var(--magenta);}
+  .header-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .back-arrow{
+    width:18px;height:18px;
+    flex-shrink:0;
+    color:var(--ink);
+  }
+  .back-arrow svg{
+    width:100%;height:100%;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2.2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .board-header .back-arrow{color:#fff;}
+
+  /* ---------- Screen 2: Stop board ---------- */
+  .board-header{
+    background:var(--ink);
+    padding:16px 18px 14px;
+    flex-shrink:0;
+  }
+  .board-header .stop-name{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;
+    font-size:19px;
+    color:#fff;
+  }
+  .board-header .stop-meta{
+    font-size:11px;
+    color:var(--mist);
+    margin-top:3px;
+  }
+  .board-list{
+    flex:1;
+    overflow:hidden;
+  }
+  .dep-row{
+    display:flex;
+    align-items:center;
+    padding:18px 16px;
+    border-bottom:1px solid var(--hairline);
+    gap:13px;
+  }
+  .line-badge{
+    position:relative;
+    font-family:'Archivo',sans-serif;
+    font-weight:800;
+    font-size:15px;
+    color:#fff;
+    background:var(--magenta-deep);
+    min-width:42px;height:40px;
+    padding:0 6px;
+    border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .mode-blip{
+    position:absolute;
+    bottom:-5px;right:-5px;
+    width:19px;height:19px;
+    background:var(--paper);
+    border-radius:50%;
+    border:2px solid #fff;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .mode-blip svg{width:11px;height:11px;stroke:var(--ink-soft);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .dep-info{
+    flex:1;
+    min-width:0;
+  }
+  .dep-info .dest{
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--ink);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .status-pill{
+    display:inline-block;
+    margin-top:6px;
+    font-size:9.5px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+    line-height:1.4;
+  }
+  .status-pill.delay{color:#8D2B0B;background:var(--yellow-tint);}
+  .status-pill.cancelled{color:#AB091E;background:var(--red-tint);}
+  .dep-time{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:19px;
+    color:var(--ink);
+    text-align:right;
+    min-width:40px;
+    flex-shrink:0;
+  }
+  .dep-time.cancelled{
+    color:var(--ink-soft);
+    text-decoration:line-through;
+    font-weight:600;
+    font-size:15px;
+  }
+
+  /* ---------- Screen 3: Live trip ---------- */
+  .trip-header{
+    padding:16px 18px 10px;
+  }
+  .trip-header .route{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    color:var(--ink);
+  }
+  .trip-header .eta{
+    display:inline-block;
+    margin-top:6px;
+    font-size:11px;
+    font-weight:700;
+    color:#AB091E;
+    background:var(--red-tint);
+    padding:3px 9px;
+    border-radius:7px;
+  }
+  .track{
+    flex:1;
+    padding:6px 26px;
+    position:relative;
+  }
+  .track-line{
+    position:absolute;
+    left:36px;
+    top:10px;
+    bottom:10px;
+    width:3px;
+    background:var(--hairline);
+  }
+  .stop-node{
+    position:relative;
+    display:flex;
+    align-items:center;
+    height:58px;
+  }
+  .stop-node .dot{
+    width:11px;height:11px;
+    border-radius:50%;
+    background:var(--panel);
+    border:3px solid var(--mist);
+    z-index:1;
+    margin-right:14px;
+  }
+  .stop-node.passed .dot{border-color:var(--hairline);background:var(--hairline);}
+  .stop-node.current .dot{
+    width:15px;height:15px;
+    border-color:var(--magenta);
+    box-shadow:0 0 0 5px var(--magenta-tint);
+  }
+  .stop-node .label{
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .stop-node.passed .label{color:var(--ink-soft);font-weight:500;}
+  .stop-node .label small{
+    display:block;
+    font-weight:400;
+    font-size:10px;
+    color:var(--ink-soft);
+  }
+  .bus-marker{
+    position:absolute;
+    left:26px;
+    width:26px;height:26px;
+    background:var(--magenta);
+    border-radius:7px;
+    border:3px solid var(--paper);
+    z-index:2;
+  }
+
+  /* ---------- Screen 4: Search/Favourites ---------- */
+  .search-header{
+    padding:16px 18px 12px;
+  }
+  .search-header h2{
+    font-family:'Archivo',sans-serif;
+    font-size:17px;
+    font-weight:700;
+    color:var(--ink);
+    margin:0 0 10px;
+  }
+  .search-input{
+    background:var(--panel);
+    border:1.5px solid var(--magenta);
+    border-radius:11px;
+    padding:10px 14px;
+    font-size:12px;
+    color:var(--ink);
+  }
+  .fav-row{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:10px 18px;
+  }
+  .fav-row .star{
+    width:16px;height:16px;
+    background:var(--yellow);
+    border-radius:4px;
+    flex-shrink:0;
+  }
+  .fav-row .icon-box{
+    width:22px;height:22px;
+    border-radius:6px;
+    background:var(--hairline);
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .fav-row .icon-box svg{
+    width:12px;height:12px;
+    stroke:var(--ink-soft);
+    fill:none;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .fav-row .info .name{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .fav-row .info .lines{
+    font-size:10px;
+    color:var(--ink-soft);
+    margin-top:1px;
+  }
+  .empty-hint{
+    margin:6px 18px 0;
+    padding:14px;
+    border:1.5px dashed var(--hairline);
+    border-radius:10px;
+    font-size:11px;
+    color:var(--ink-soft);
+    text-align:center;
+  }
+
+  /* ---------- Location permission screens ---------- */
+  .permission-screen{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:28px 26px;
+  }
+  .permission-icon{
+    width:60px;height:60px;
+    border-radius:50%;
+    background:var(--magenta-tint);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:18px;
+  }
+  .permission-icon svg{
+    width:28px;height:28px;
+    stroke:var(--magenta);
+    fill:none;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .permission-screen h2{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    color:var(--ink);
+    margin:0 0 8px;
+  }
+  .permission-screen p{
+    font-size:12px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    margin:0;
+    max-width:200px;
+  }
+  .btn-primary{
+    margin-top:22px;
+    background:var(--magenta);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    padding:11px 28px;
+    border-radius:24px;
+  }
+  .btn-text{
+    margin-top:14px;
+    background:none;
+    color:var(--ink-soft);
+    font-weight:600;
+    font-size:12px;
+  }
+  .os-sheet{
+    position:absolute;
+    left:0;right:0;bottom:0;
+    background:var(--panel);
+    border-radius:20px 20px 0 0;
+    padding:14px 18px 20px;
+    box-shadow:0 -10px 26px rgba(16,42,67,0.18);
+  }
+  .os-sheet .sheet-handle{
+    width:34px;height:4px;
+    background:var(--hairline);
+    border-radius:2px;
+    margin:0 auto 12px;
+  }
+  .os-sheet .sheet-title{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    color:var(--ink);
+    text-align:center;
+    margin-bottom:4px;
+  }
+  .os-sheet .sheet-body{
+    font-size:10.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-bottom:12px;
+    line-height:1.45;
+  }
+  .os-sheet .sheet-option{
+    padding:11px 0;
+    text-align:center;
+    font-size:13px;
+    font-weight:600;
+    color:var(--magenta);
+    border-top:1px solid var(--hairline);
+  }
+  .os-sheet .sheet-option:first-of-type{border-top:none;}
+  .os-sheet .sheet-option.neutral{color:var(--ink-soft);font-weight:500;}
+
+  .caption{
+    max-width:340px;
+    margin:36px auto 0;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .caption-col{
+    width:100%;
+    padding:0;
+    font-size:12.5px;
+    line-height:1.55;
+    color:var(--ink-soft);
+  }
+  .caption-col b{color:var(--ink);}
+
+  .palette-strip{
+    max-width:340px;
+    margin:40px auto 0;
+    padding:20px 20px;
+    background:var(--panel);
+    border-radius:16px;
+    border:1px solid var(--hairline);
+  }
+  .palette-strip h3{
+    font-family:'Archivo',sans-serif;
+    font-size:14px;
+    font-weight:700;
+    color:var(--ink);
+    margin:0 0 14px;
+  }
+  .swatches{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .swatch{
+    width:calc(50% - 7px);
+  }
+  .swatch .chip-box{
+    height:52px;
+    border-radius:9px;
+    border:1px solid rgba(16,42,67,0.08);
+  }
+  .swatch .label{
+    font-size:10.5px;
+    font-weight:600;
+    color:var(--ink);
+    margin-top:6px;
+  }
+  .swatch .hex{
+    font-size:9.5px;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- Dark theme overrides ---------- */
+  .dark{
+    --d-bg:#102A43;
+    --d-panel:#243B53;
+    --d-text:#F0F4F8;
+    --d-text-soft:#D9E2EC;
+    --d-muted:#9FB3C8;
+    --d-hairline:#334E68;
+    --d-accent:#BB61C7;
+    --d-badge:#90279C;
+    --d-green:#91E697;
+    --d-green-bg:#07600E;
+    --d-yellow:#F7C948;
+    --d-yellow-bg:#8D2B0B;
+    --d-red:#F86A6A;
+    --d-red-bg:#610316;
+    --d-star:#F7C948;
+    background:var(--d-bg);
+    color:var(--d-text);
+  }
+  .dark .statusbar{color:var(--d-text);}
+  .dark .home-header .time{color:var(--d-text);}
+  .dark .home-header .sub{color:var(--d-muted);}
+  .dark .search-pill{background:var(--d-panel);border-color:var(--d-hairline);color:var(--d-muted);}
+  .dark .section-label{color:var(--d-text-soft);}
+  .dark .stop-row{background:var(--d-panel);border-left-color:var(--d-accent);}
+  .dark .stop-row .name{color:var(--d-text);}
+  .dark .stop-row .dist{color:var(--d-muted);}
+  .dark .stop-row .chip{color:var(--d-green);background:var(--d-green-bg);}
+  .dark .tabbar{background:var(--d-panel);border-color:var(--d-hairline);}
+  .dark .tabbar .dot{background:var(--d-hairline);}
+  .dark .tabbar .dot.active{background:var(--d-accent);}
+  .dark .tab-item svg{stroke:var(--d-muted);}
+  .dark .tab-item .tab-label{color:var(--d-muted);}
+  .dark .tab-item.active svg{stroke:#CE80D9;}
+  .dark .tab-item.active .tab-label{color:#ECBDF2;}
+  .dark .tab-item.active .star-poly{fill:#CE80D9;}
+  .dark .trip-header .back-arrow{color:var(--d-text);}
+  .dark .board-header{background:var(--d-bg);border-bottom:1px solid var(--d-hairline);}
+  .dark .board-header .stop-meta{color:var(--d-muted);}
+  .dark .dep-row{border-color:var(--d-hairline);}
+  .dark .dep-info .dest{color:var(--d-text);}
+  .dark .line-badge{background:var(--d-badge);}
+  .dark .mode-blip{background:var(--d-panel);border-color:var(--d-bg);}
+  .dark .mode-blip svg{stroke:var(--d-text-soft);}
+  .dark .status-pill.delay{color:var(--d-yellow);background:var(--d-yellow-bg);}
+  .dark .status-pill.cancelled{color:var(--d-red);background:var(--d-red-bg);}
+  .dark .dep-time{color:var(--d-text);}
+  .dark .dep-time.cancelled{color:var(--d-muted);}
+  .dark .trip-header .route{color:var(--d-text);}
+  .dark .trip-header .eta{color:var(--d-red);background:var(--d-red-bg);}
+  .dark .track-line{background:var(--d-hairline);}
+  .dark .stop-node .dot{background:var(--d-panel);border-color:var(--d-muted);}
+  .dark .stop-node.passed .dot{border-color:var(--d-hairline);background:var(--d-hairline);}
+  .dark .stop-node.current .dot{border-color:var(--d-accent);box-shadow:0 0 0 5px rgba(187,97,199,0.28);}
+  .dark .stop-node .label{color:var(--d-text);}
+  .dark .stop-node.passed .label{color:var(--d-muted);}
+  .dark .stop-node .label small{color:var(--d-muted);}
+  .dark .bus-marker{background:var(--d-accent);border-color:var(--d-bg);}
+  .dark .search-header h2{color:var(--d-text);}
+  .dark .search-input{background:var(--d-panel);border-color:var(--d-accent);color:var(--d-text);}
+  .dark .fav-row .star{background:var(--d-star);}
+  .dark .fav-row .icon-box{background:var(--d-hairline);}
+  .dark .fav-row .icon-box svg{stroke:var(--d-muted);}
+  .dark .fav-row .info .name{color:var(--d-text);}
+  .dark .fav-row .info .lines{color:var(--d-muted);}
+  .dark .empty-hint{border-color:var(--d-hairline);color:var(--d-muted);}
+  .dark .permission-icon{background:rgba(187,97,199,0.18);}
+  .dark .permission-icon svg{stroke:#CE80D9;}
+  .dark .permission-screen h2{color:var(--d-text);}
+  .dark .permission-screen p{color:var(--d-muted);}
+  .dark .btn-primary{background:var(--d-badge);color:#fff;}
+  .dark .btn-text{color:var(--d-muted);}
+  .dark .os-sheet{background:var(--d-panel);box-shadow:0 -10px 26px rgba(0,0,0,0.35);}
+  .dark .os-sheet .sheet-handle{background:var(--d-hairline);}
+  .dark .os-sheet .sheet-title{color:var(--d-text);}
+  .dark .os-sheet .sheet-body{color:var(--d-muted);}
+  .dark .os-sheet .sheet-option{color:#ECBDF2;border-top-color:var(--d-hairline);}
+  .dark .os-sheet .sheet-option.neutral{color:var(--d-muted);}
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <div class="eyebrow-mark"></div>
+    <h1>Nästa buss — a departure-board app</h1>
+    <p>Built on Trafiklab's Stop Lookup and Timetables APIs. The storyboard below follows one rider from opening the app to watching their bus arrive.</p>
+  </div>
+
+  <div class="filmstrip">
+
+    <!-- SCREEN 0A: LOCATION PERMISSION -->
+    <div class="frame">
+      <div class="step-tag">First launch</div>
+      <div class="step-title">Ask for location → before anything else</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="permission-screen">
+          <div class="permission-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.3"/></svg>
+          </div>
+          <h2>Hitta hållplatser nära dig</h2>
+          <p>Nästa buss använder din plats för att visa de närmaste hållplatserna direkt när du öppnar appen.</p>
+        </div>
+        <div class="os-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">”Nästa buss” vill använda din plats</div>
+          <div class="sheet-body">Vi visar hållplatser nära dig och uppdaterar avgångarna medan du reser.</div>
+          <div class="sheet-option">Tillåt när appen används</div>
+          <div class="sheet-option">Tillåt en gång</div>
+          <div class="sheet-option neutral">Tillåt inte</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 0B: LOCATION DENIED -->
+    <div class="frame">
+      <div class="step-tag">If denied</div>
+      <div class="step-title">No location → still usable, with a way to fix it</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="permission-screen">
+          <div class="permission-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/></svg>
+          </div>
+          <h2>Platstillgång är av</h2>
+          <p>Vi kan inte visa hållplatser nära dig. Sök manuellt eller slå på platstillgång i Inställningar.</p>
+          <div class="btn-primary">Öppna Inställningar</div>
+          <div class="btn-text">Sök manuellt istället</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 1: HOME -->
+    <div class="frame">
+      <div class="step-tag">Step 1</div>
+      <div class="step-title">Open app → nearby stops, ranked by distance</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="home-header">
+          <div class="time">Fredag 17:24</div>
+          <div class="sub">Din plats · Södermalm</div>
+        </div>
+        <div class="section-label">Närmaste hållplatser</div>
+        <div class="stop-row">
+          <div><div class="name">Medborgarplatsen</div><div class="dist">180 m</div></div>
+          <div class="chip">3 min</div>
+        </div>
+        <div class="stop-row">
+          <div><div class="name">Slussen</div><div class="dist">420 m</div></div>
+          <div class="chip">6 min</div>
+        </div>
+        <div class="stop-row">
+          <div><div class="name">Folkungagatan</div><div class="dist">550 m</div></div>
+          <div class="chip">9 min</div>
+        </div>
+        <div class="stop-row">
+          <div><div class="name">Skanstull</div><div class="dist">700 m</div></div>
+          <div class="chip">11 min</div>
+        </div>
+        <div class="tabbar">
+          <div class="tab-item active">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.2"/></svg>
+            <span class="tab-label">Nearby</span>
+          </div>
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><polygon class="star-poly" points="12,3 14.7,9.3 21.5,9.9 16.3,14.6 17.9,21.3 12,17.6 6.1,21.3 7.7,14.6 2.5,9.9 9.3,9.3"/></svg>
+            <span class="tab-label">Favourites</span>
+          </div>
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg>
+            <span class="tab-label">Search</span>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 2: STOP BOARD -->
+    <div class="frame">
+      <div class="step-tag">Step 2</div>
+      <div class="step-title">Tap a stop → live departure board</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar" style="background:var(--ink);"><span style="color:#fff;">9:41</span><span style="color:#fff;">●●●●</span></div>
+        <div class="board-header">
+          <div class="header-row">
+            <div class="back-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+            <div>
+              <div class="stop-name">Medborgarplatsen</div>
+              <div class="stop-meta">Läge C · uppdaterad just nu</div>
+            </div>
+          </div>
+        </div>
+        <div class="board-list">
+          <div class="dep-row">
+            <div class="line-badge">3
+              <div class="mode-blip"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="3"/><line x1="3" y1="11" x2="21" y2="11"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/></svg></div>
+            </div>
+            <div class="dep-info"><div class="dest">Karolinska sjukhuset</div></div>
+            <div class="dep-time">2 min</div>
+          </div>
+          <div class="dep-row">
+            <div class="line-badge">7
+              <div class="mode-blip"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="11" rx="2.5"/><line x1="4" y1="11" x2="20" y2="11"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="9" y1="2" x2="15" y2="2"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg></div>
+            </div>
+            <div class="dep-info"><div class="dest">Ropsten</div><span class="status-pill delay">+3 min</span></div>
+            <div class="dep-time">7 min</div>
+          </div>
+          <div class="dep-row">
+            <div class="line-badge">T14
+              <div class="mode-blip"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="4"/><path d="M7 16 V8 L12 13 L17 8 V16"/></svg></div>
+            </div>
+            <div class="dep-info"><div class="dest">Fruängen</div><span class="status-pill cancelled">Inställd</span></div>
+            <div class="dep-time cancelled">9 min</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 3: LIVE TRIP -->
+    <div class="frame">
+      <div class="step-tag">Step 3</div>
+      <div class="step-title">Tap a departure → track the bus stop by stop</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="trip-header">
+          <div class="header-row">
+            <div class="back-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+            <div>
+              <div class="route">Linje 55 → Ropsten</div>
+              <div class="eta">Försenad 3 min</div>
+            </div>
+          </div>
+        </div>
+        <div class="track">
+          <div class="track-line"></div>
+          <div class="stop-node passed"><div class="dot"></div><div class="label">Skanstull</div></div>
+          <div class="stop-node current">
+            <div class="bus-marker" style="top:66px;"></div>
+            <div class="dot"></div><div class="label">Medborgarplatsen<small>Bussen är här om 7 min</small></div>
+          </div>
+          <div class="stop-node"><div class="dot"></div><div class="label">Slussen</div></div>
+          <div class="stop-node"><div class="dot"></div><div class="label">Gamla stan</div></div>
+          <div class="stop-node"><div class="dot"></div><div class="label">Ropsten<small>Slutstation</small></div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 4: FAVOURITES -->
+    <div class="frame">
+      <div class="step-tag">Step 4</div>
+      <div class="step-title">Save a stop → skip the search next time</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="search-header">
+          <h2>Favoriter</h2>
+        </div>
+        <div class="fav-row">
+          <div class="star"></div>
+          <div class="info"><div class="name">Medborgarplatsen</div><div class="lines">Linje 2, 3, 55</div></div>
+        </div>
+        <div class="fav-row">
+          <div class="star"></div>
+          <div class="info"><div class="name">Odenplan</div><div class="lines">Linje 4, 42, 72</div></div>
+        </div>
+        <div class="empty-hint">Lägg till fler hållplatser genom att trycka på stjärnan på valfri hållplatssida.</div>
+        <div class="tabbar">
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.2"/></svg>
+            <span class="tab-label">Nearby</span>
+          </div>
+          <div class="tab-item active">
+            <svg viewBox="0 0 24 24"><polygon class="star-poly" points="12,3 14.7,9.3 21.5,9.9 16.3,14.6 17.9,21.3 12,17.6 6.1,21.3 7.7,14.6 2.5,9.9 9.3,9.3"/></svg>
+            <span class="tab-label">Favourites</span>
+          </div>
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg>
+            <span class="tab-label">Search</span>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 5: SEARCH -->
+    <div class="frame">
+      <div class="step-tag">Tab: Search</div>
+      <div class="step-title">Tap Search → its own full-screen view opens</div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="search-header">
+          <h2>Sök</h2>
+          <div class="search-input">Sök hållplats eller linje…</div>
+        </div>
+        <div class="section-label">Senaste sökningar</div>
+        <div class="fav-row">
+          <div class="icon-box"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <div class="info"><div class="name">Odenplan</div></div>
+        </div>
+        <div class="fav-row">
+          <div class="icon-box"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <div class="info"><div class="name">Slussen</div></div>
+        </div>
+        <div class="fav-row">
+          <div class="icon-box"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <div class="info"><div class="name">Linje 55</div></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.2"/></svg>
+            <span class="tab-label">Nearby</span>
+          </div>
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><polygon class="star-poly" points="12,3 14.7,9.3 21.5,9.9 16.3,14.6 17.9,21.3 12,17.6 6.1,21.3 7.7,14.6 2.5,9.9 9.3,9.3"/></svg>
+            <span class="tab-label">Favourites</span>
+          </div>
+          <div class="tab-item active">
+            <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg>
+            <span class="tab-label">Search</span>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="caption">
+    <div class="caption-col"><b>Distance-ranked, not alphabetical.</b> The whole point of "nearby" is that the rider shouldn't have to think — the closest relevant stop leads.</div>
+    <div class="caption-col"><b>Color carries status, not decoration.</b> Green means catch it, yellow means hurry, and the delay is stated in real minutes — never just a vague icon.</div>
+    <div class="caption-col"><b>The track is the whole story.</b> Passed stops fade, the live position shows on the line itself, so the rider never has to interpret a map pin.</div>
+    <div class="caption-col"><b>Favourites remove the search step</b> entirely for the handful of stops someone actually uses daily.</div>
+    <div class="caption-col"><b>Search lives on its own tab.</b> Tapping it opens a focused, full-screen view with recent searches ready — no search box cluttering the other screens.</div>
+  </div>
+
+  <div class="palette-strip">
+    <h3>Palette in use</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="chip-box" style="background:#102A43;"></div><div class="label">Ink</div><div class="hex">#102A43</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#F0F4F8;"></div><div class="label">Paper</div><div class="hex">#F0F4F8</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#7C1A87;"></div><div class="label">Magenta (brand)</div><div class="hex">#7C1A87</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#0F8613;"></div><div class="label">Green (on time)</div><div class="hex">#0F8613</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#F0B429;"></div><div class="label">Yellow (delayed)</div><div class="hex">#F0B429</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#CF1124;"></div><div class="label">Red (cancelled)</div><div class="hex">#CF1124</div></div>
+    </div>
+  </div>
+
+  <div class="intro" style="margin-top:64px;">
+    <div class="eyebrow-mark" style="background:#BB61C7;"></div>
+    <h1>Dark mode</h1>
+    <p>Same five screens, same logic — just inverted onto the dark end of the neutral ramp, with brighter accent and status colors so contrast holds up at night.</p>
+  </div>
+
+  <div class="filmstrip">
+
+    <!-- DARK SCREEN 0A: LOCATION PERMISSION -->
+    <div class="frame">
+      <div class="step-tag">First launch</div>
+      <div class="step-title">Ask for location → before anything else</div>
+      <div class="phone"><div class="screen dark">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="permission-screen">
+          <div class="permission-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.3"/></svg>
+          </div>
+          <h2>Hitta hållplatser nära dig</h2>
+          <p>Nästa buss använder din plats för att visa de närmaste hållplatserna direkt när du öppnar appen.</p>
+        </div>
+        <div class="os-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">”Nästa buss” vill använda din plats</div>
+          <div class="sheet-body">Vi visar hållplatser nära dig och uppdaterar avgångarna medan du reser.</div>
+          <div class="sheet-option">Tillåt när appen används</div>
+          <div class="sheet-option">Tillåt en gång</div>
+          <div class="sheet-option neutral">Tillåt inte</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- DARK SCREEN 0B: LOCATION DENIED -->
+    <div class="frame">
+      <div class="step-tag">If denied</div>
+      <div class="step-title">No location → still usable, with a way to fix it</div>
+      <div class="phone"><div class="screen dark">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="permission-screen">
+          <div class="permission-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/></svg>
+          </div>
+          <h2>Platstillgång är av</h2>
+          <p>Vi kan inte visa hållplatser nära dig. Sök manuellt eller slå på platstillgång i Inställningar.</p>
+          <div class="btn-primary">Öppna Inställningar</div>
+          <div class="btn-text">Sök manuellt istället</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- DARK SCREEN 1: HOME -->
+    <div class="frame">
+      <div class="step-tag">Step 1</div>
+      <div class="step-title">Open app → nearby stops, ranked by distance</div>
+      <div class="phone"><div class="screen dark">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="home-header">
+          <div class="time">Fredag 17:24</div>
+          <div class="sub">Din plats · Södermalm</div>
+        </div>
+        <div class="section-label">Närmaste hållplatser</div>
+        <div class="stop-row">
+          <div><div class="name">Medborgarplatsen</div><div class="dist">180 m</div></div>
+          <div class="chip">3 min</div>
+        </div>
+        <div class="stop-row">
+          <div><div class="name">Slussen</div><div class="dist">420 m</div></div>
+          <div class="chip">6 min</div>
+        </div>
+        <div class="stop-row">
+          <div><div class="name">Folkungagatan</div><div class="dist">550 m</div></div>
+          <div class="chip">9 min</div>
+        </div>
+        <div class="stop-row">
+          <div><div class="name">Skanstull</div><div class="dist">700 m</div></div>
+          <div class="chip">11 min</div>
+        </div>
+        <div class="tabbar">
+          <div class="tab-item active">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.2"/></svg>
+            <span class="tab-label">Nearby</span>
+          </div>
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><polygon class="star-poly" points="12,3 14.7,9.3 21.5,9.9 16.3,14.6 17.9,21.3 12,17.6 6.1,21.3 7.7,14.6 2.5,9.9 9.3,9.3"/></svg>
+            <span class="tab-label">Favourites</span>
+          </div>
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg>
+            <span class="tab-label">Search</span>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- DARK SCREEN 2: STOP BOARD -->
+    <div class="frame">
+      <div class="step-tag">Step 2</div>
+      <div class="step-title">Tap a stop → live departure board</div>
+      <div class="phone"><div class="screen dark">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="board-header">
+          <div class="header-row">
+            <div class="back-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+            <div>
+              <div class="stop-name">Medborgarplatsen</div>
+              <div class="stop-meta">Läge C · uppdaterad just nu</div>
+            </div>
+          </div>
+        </div>
+        <div class="board-list">
+          <div class="dep-row">
+            <div class="line-badge">3
+              <div class="mode-blip"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="3"/><line x1="3" y1="11" x2="21" y2="11"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/></svg></div>
+            </div>
+            <div class="dep-info"><div class="dest">Karolinska sjukhuset</div></div>
+            <div class="dep-time">2 min</div>
+          </div>
+          <div class="dep-row">
+            <div class="line-badge">7
+              <div class="mode-blip"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="11" rx="2.5"/><line x1="4" y1="11" x2="20" y2="11"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="9" y1="2" x2="15" y2="2"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg></div>
+            </div>
+            <div class="dep-info"><div class="dest">Ropsten</div><span class="status-pill delay">+3 min</span></div>
+            <div class="dep-time">7 min</div>
+          </div>
+          <div class="dep-row">
+            <div class="line-badge">T14
+              <div class="mode-blip"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="4"/><path d="M7 16 V8 L12 13 L17 8 V16"/></svg></div>
+            </div>
+            <div class="dep-info"><div class="dest">Fruängen</div><span class="status-pill cancelled">Inställd</span></div>
+            <div class="dep-time cancelled">9 min</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- DARK SCREEN 3: LIVE TRIP -->
+    <div class="frame">
+      <div class="step-tag">Step 3</div>
+      <div class="step-title">Tap a departure → track the bus stop by stop</div>
+      <div class="phone"><div class="screen dark">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="trip-header">
+          <div class="header-row">
+            <div class="back-arrow"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+            <div>
+              <div class="route">Linje 55 → Ropsten</div>
+              <div class="eta">Försenad 3 min</div>
+            </div>
+          </div>
+        </div>
+        <div class="track">
+          <div class="track-line"></div>
+          <div class="stop-node passed"><div class="dot"></div><div class="label">Skanstull</div></div>
+          <div class="stop-node current">
+            <div class="bus-marker" style="top:66px;"></div>
+            <div class="dot"></div><div class="label">Medborgarplatsen<small>Bussen är här om 7 min</small></div>
+          </div>
+          <div class="stop-node"><div class="dot"></div><div class="label">Slussen</div></div>
+          <div class="stop-node"><div class="dot"></div><div class="label">Gamla stan</div></div>
+          <div class="stop-node"><div class="dot"></div><div class="label">Ropsten<small>Slutstation</small></div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- DARK SCREEN 4: FAVOURITES -->
+    <div class="frame">
+      <div class="step-tag">Step 4</div>
+      <div class="step-title">Save a stop → skip the search next time</div>
+      <div class="phone"><div class="screen dark">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="search-header">
+          <h2>Favoriter</h2>
+        </div>
+        <div class="fav-row">
+          <div class="star"></div>
+          <div class="info"><div class="name">Medborgarplatsen</div><div class="lines">Linje 2, 3, 55</div></div>
+        </div>
+        <div class="fav-row">
+          <div class="star"></div>
+          <div class="info"><div class="name">Odenplan</div><div class="lines">Linje 4, 42, 72</div></div>
+        </div>
+        <div class="empty-hint">Lägg till fler hållplatser genom att trycka på stjärnan på valfri hållplatssida.</div>
+        <div class="tabbar">
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.2"/></svg>
+            <span class="tab-label">Nearby</span>
+          </div>
+          <div class="tab-item active">
+            <svg viewBox="0 0 24 24"><polygon class="star-poly" points="12,3 14.7,9.3 21.5,9.9 16.3,14.6 17.9,21.3 12,17.6 6.1,21.3 7.7,14.6 2.5,9.9 9.3,9.3"/></svg>
+            <span class="tab-label">Favourites</span>
+          </div>
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg>
+            <span class="tab-label">Search</span>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SCREEN 5: SEARCH -->
+    <div class="frame">
+      <div class="step-tag">Tab: Search</div>
+      <div class="step-title">Tap Search → its own full-screen view opens</div>
+      <div class="phone"><div class="screen dark">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="search-header">
+          <h2>Sök</h2>
+          <div class="search-input">Sök hållplats eller linje…</div>
+        </div>
+        <div class="section-label">Senaste sökningar</div>
+        <div class="fav-row">
+          <div class="icon-box"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <div class="info"><div class="name">Odenplan</div></div>
+        </div>
+        <div class="fav-row">
+          <div class="icon-box"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <div class="info"><div class="name">Slussen</div></div>
+        </div>
+        <div class="fav-row">
+          <div class="icon-box"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <div class="info"><div class="name">Linje 55</div></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.2"/></svg>
+            <span class="tab-label">Nearby</span>
+          </div>
+          <div class="tab-item">
+            <svg viewBox="0 0 24 24"><polygon class="star-poly" points="12,3 14.7,9.3 21.5,9.9 16.3,14.6 17.9,21.3 12,17.6 6.1,21.3 7.7,14.6 2.5,9.9 9.3,9.3"/></svg>
+            <span class="tab-label">Favourites</span>
+          </div>
+          <div class="tab-item active">
+            <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="21" y2="21"/></svg>
+            <span class="tab-label">Search</span>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="palette-strip">
+    <h3>Dark palette in use</h3>
+    <div class="swatches">
+      <div class="swatch"><div class="chip-box" style="background:#102A43;"></div><div class="label">Background</div><div class="hex">#102A43</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#243B53;"></div><div class="label">Panel</div><div class="hex">#243B53</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#BB61C7;"></div><div class="label">Accent (brand)</div><div class="hex">#BB61C7</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#51CA58;"></div><div class="label">Green (on time)</div><div class="hex">#51CA58</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#F7C948;"></div><div class="label">Yellow (delayed)</div><div class="hex">#F7C948</div></div>
+      <div class="swatch"><div class="chip-box" style="background:#F86A6A;"></div><div class="label">Red (cancelled)</div><div class="hex">#F86A6A</div></div>
+    </div>
+  </div>
+
+</body>
+</html>
