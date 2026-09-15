@@ -64,22 +64,32 @@ struct MockNetwork: NetworkProtocol {
         }
     }
 
-    /// All requests that have been made through this mock, for verification
-    var testableRequests: [TestableRequest] = []
+    /// Mutable storage shared by reference so that request recording made
+    /// inside the non-mutating `data(for:)` protocol method stays visible
+    /// to the test that owns the mock.
+    @MainActor
+    private final class Storage: @unchecked Sendable {
+        var testableRequests: [TestableRequest] = []
+        var handlers: [(URLRequest) async throws -> (Data, URLResponse)?] = []
+    }
 
-    /// Array of handlers that will be called in order to provide mock responses
-    var handlers: [(URLRequest) async throws -> (Data, URLResponse)?] = []
+    private let storage = Storage()
+
+    /// All requests that have been made through this mock, for verification
+    var testableRequests: [TestableRequest] {
+        storage.testableRequests
+    }
 
     /// Clears all tracked requests, useful for resetting between tests
     mutating func reset() {
-        testableRequests.removeAll()
+        storage.testableRequests.removeAll()
     }
 
     /// Registers a handler to provide mock responses.
     /// Handlers are called in the order they were registered.
     /// - Parameter handler: A closure that takes a URLRequest and returns an optional (Data, URLResponse) tuple
     mutating func registerHandler(_ handler: @escaping (URLRequest) async throws -> (Data, URLResponse)?) {
-        handlers.append(handler)
+        storage.handlers.append(handler)
     }
 
     /// Fetches data for a given URLRequest, recording the request and checking handlers.
@@ -87,9 +97,9 @@ struct MockNetwork: NetworkProtocol {
     /// - Returns: A tuple containing the data and URLResponse from the first matching handler
     /// - Throws: NoResponseConfigured if no handler returns a response
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        testableRequests.append(TestableRequest(request: request))
+        storage.testableRequests.append(TestableRequest(request: request))
 
-        for handler in handlers {
+        for handler in storage.handlers {
             if let response = try await handler(request) {
                 return response
             }
