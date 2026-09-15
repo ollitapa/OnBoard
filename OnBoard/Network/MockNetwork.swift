@@ -1,8 +1,9 @@
 import Foundation
+import Synchronization
 
 /// Mock implementation of NetworkProtocol for testing.
-/// Runs on MainActor to safely update UI from tests.
-@MainActor
+/// State is guarded by a mutex so the mock can be used safely from any
+/// actor without being pinned to the main actor.
 struct MockNetwork: NetworkProtocol {
     /// Creates a response tuple with the given data and response.
     /// - Parameters:
@@ -75,32 +76,62 @@ struct MockNetwork: NetworkProtocol {
         }
     }
 
-    /// Mutable storage shared by reference so that request recording made
-    /// inside the non-mutating `data(for:)` protocol method stays visible
-    /// to the test that owns the mock.
-    @MainActor
+    /// Mutable storage shared by reference and guarded by a mutex so that
+    /// request recording made inside the non-mutating `data(for:)` protocol
+    /// method stays visible to the test that owns the mock, without pinning
+    /// the mock to the main actor.
     private final class Storage: @unchecked Sendable {
-        var testableRequests: [TestableRequest] = []
-        var handlers: [(URLRequest) async throws -> (Data, URLResponse)?] = []
+        private struct State: @unchecked Sendable {
+            var testableRequests: [TestableRequest] = []
+            var handlers: [(URLRequest) async throws -> (Data, URLResponse)?] = []
+        }
+
+        private let mutex = Mutex(State())
+
+        func record(_ request: TestableRequest) {
+            mutex.withLock { state in
+                state.testableRequests.append(request)
+            }
+        }
+
+        func resetRequests() {
+            mutex.withLock { state in
+                state.testableRequests.removeAll()
+            }
+        }
+
+        func appendHandler(_ handler: @escaping (URLRequest) async throws -> (Data, URLResponse)?) {
+            mutex.withLock { state in
+                state.handlers.append(handler)
+            }
+        }
+
+        func snapshotRequests() -> [TestableRequest] {
+            mutex.withLock { state in state.testableRequests }
+        }
+
+        func snapshotHandlers() -> [(URLRequest) async throws -> (Data, URLResponse)?] {
+            mutex.withLock { state in state.handlers }
+        }
     }
 
     private let storage = Storage()
 
     /// All requests that have been made through this mock, for verification
     var testableRequests: [TestableRequest] {
-        storage.testableRequests
+        storage.snapshotRequests()
     }
 
     /// Clears all tracked requests, useful for resetting between tests
     mutating func reset() {
-        storage.testableRequests.removeAll()
+        storage.resetRequests()
     }
 
     /// Registers a handler to provide mock responses.
     /// Handlers are called in the order they were registered.
     /// - Parameter handler: A closure that takes a URLRequest and returns an optional (Data, URLResponse) tuple
     mutating func registerHandler(_ handler: @escaping (URLRequest) async throws -> (Data, URLResponse)?) {
-        storage.handlers.append(handler)
+        storage.appendHandler(handler)
     }
 
     /// Fetches data for a given URLRequest, recording the request and checking handlers.
@@ -108,9 +139,9 @@ struct MockNetwork: NetworkProtocol {
     /// - Returns: A tuple containing the data and URLResponse from the first matching handler
     /// - Throws: NoResponseConfigured if no handler returns a response
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        storage.testableRequests.append(TestableRequest(request: request))
+        storage.record(TestableRequest(request: request))
 
-        for handler in storage.handlers {
+        for handler in storage.snapshotHandlers() {
             if let response = try await handler(request) {
                 return response
             }
