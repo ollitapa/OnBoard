@@ -30,11 +30,11 @@ jobs:
           xcodebuild build-for-testing \
             -project OnBoard.xcodeproj \
             -scheme OnBoard \
-            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest"
+            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest"
 
       - name: Test
         run: |
           xcodebuild test-without-building \
             -project OnBoard.xcodeproj \
             -scheme OnBoard \
-            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest"
+            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest"
