@@ -13,6 +13,7 @@ struct NearbyModelTests {
         
         var mockNetwork = MockNetwork()
         let expectedURL = URL(string: "https://api.example.com/stops/nearby")!
+        let expectedRequest = MockNetwork.TestableRequest(url: expectedURL, httpMethod: "GET", httpBody: nil)
         
         mockNetwork.registerHandler { request in
             if request.url == expectedURL && request.httpMethod == "GET" {
@@ -27,16 +28,11 @@ struct NearbyModelTests {
         await model.loadStops(network: mockNetwork)
 
         // Then
-        #expect(model.stops.count == 2)
-        #expect(model.stops[0].id == "1")
-        #expect(model.stops[0].name == "Central Station")
-        #expect(model.stops[1].id == "2")
-        #expect(model.stops[1].name == "Market Square")
+        #expect(model.stops == expectedStops)
         #expect(model.failure == nil)
         
         #expect(mockNetwork.testableRequests.count == 1)
-        #expect(mockNetwork.testableRequests[0].url == expectedURL)
-        #expect(mockNetwork.testableRequests[0].httpMethod == "GET")
+        #expect(mockNetwork.testableRequests[0] == expectedRequest)
     }
 
     @Test func loadStopsEmptyResponse() async throws {

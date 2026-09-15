@@ -28,7 +28,7 @@ struct MockNetwork: NetworkProtocol {
         return (data, response)
     }
 
-    struct TestableRequest {
+    struct TestableRequest: Equatable {
         var url: URL?
         var httpMethod: String?
         var httpBody: Data?
