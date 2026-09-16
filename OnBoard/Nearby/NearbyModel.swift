@@ -16,18 +16,20 @@ final class NearbyModel {
 
     var stops: [Stop] = []
 
-    private let nearbyURL = URL(string: "https://api.example.com/stops/nearby")!
-
     init() {}
 
-    func loadStops(network: some NetworkProtocol) async {
+    /// Loads nearby stops for the given coordinate via the Trafiklab API.
+    /// - Parameters:
+    ///   - network: The transport used to perform requests; the model builds a
+    ///     `Trafiklab` client from it so tests can inject a mock service.
+    ///   - latitude: WGS84 decimal degrees.
+    ///   - longitude: WGS84 decimal degrees.
+    func loadStops(network: some NetworkProtocol, latitude: Double = 0, longitude: Double = 0) async {
 
         do {
-            var request = URLRequest(url: nearbyURL)
-            request.httpMethod = "GET"
-            
-            let (data, _) = try await network.data(for: request)
-            stops = try JSONDecoder().decode([Stop].self, from: data)
+            let api = Trafiklab(network: network)
+            let response = try await api.nearbyStops(latitude: latitude, longitude: longitude)
+            stops = response.StopLocation.map(Stop.init)
             failure = nil
 
         } catch {
@@ -35,4 +37,15 @@ final class NearbyModel {
         }
     }
 
+}
+
+extension Stop {
+    /// Creates a `Stop` from a ResRobot `StopLocation`, using `extId` (the group id)
+    /// as the stable identifier and parsing the string coordinates ResRobot returns.
+    init(_ location: StopLocation) {
+        self.id = location.extId
+        self.name = location.name
+        self.latitude = Double(location.lat) ?? 0
+        self.longitude = Double(location.lon) ?? 0
+    }
 }
