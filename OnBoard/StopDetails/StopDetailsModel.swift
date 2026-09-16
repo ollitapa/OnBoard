@@ -28,7 +28,7 @@ final class StopDetailsModel {
     /// - Parameters:
     ///   - network: The transport used to perform requests; the model builds a
     ///     `Trafiklab` client from it so tests can inject a mock service.
-    ///   - areaId: The riksh\u00e5llplats/meta-stop id (group id, never a child stop id).
+    ///   - areaId: The rikshållplats/meta-stop id (group id, never a child stop id).
     func loadDepartures(network: some NetworkProtocol, areaId: String) async {
         isLoading = true
         defer { isLoading = false }

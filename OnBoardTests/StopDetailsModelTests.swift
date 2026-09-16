@@ -20,7 +20,7 @@ struct StopDetailsModelTests {
                 scheduled: "2099-01-01T12:05:00",
                 designation: "T14",
                 transportMode: "METRO",
-                direction: "Fr\u00e4ngen",
+                direction: "Frängen",
                 canceled: true
             )
         ]
@@ -91,10 +91,10 @@ struct StopDetailsModelTests {
         let departure = Self.departure(
             scheduled: "2099-01-01T12:00:00",
             designation: nil,
-            name: "Saltsj\u00f6banan",
+            name: "Saltsjöbanan",
             direction: "Destination"
         )
-        #expect(StopDetailsModel.lineLabel(for: departure) == "Saltsj\u00f6banan")
+        #expect(StopDetailsModel.lineLabel(for: departure) == "Saltsjöbanan")
     }
 
     @Test func lineLabelFallbackToPlaceholder() {
