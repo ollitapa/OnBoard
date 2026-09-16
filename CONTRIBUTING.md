@@ -28,6 +28,53 @@
 - **Follow existing patterns**: Match the repository's existing style and architecture
 - **Small changes**: Make the smallest correct change that solves the problem
 
+### SwiftUI Conventions
+
+These conventions keep view code consistent and avoid SwiftUI initialization pitfalls.
+
+- **Indentation**: 4 spaces. When a call or initializer doesn't fit on one line, put the opening delimiter on the first line and wrap each argument on its own line, indented 4 spaces from the start of the statement; place the closing delimiter on its own line aligned with the start of the statement. Apply the same wrapping to nested calls, array literals, and closures. For example:
+  ```swift
+  locationDelegate?.locationManager(
+      self,
+      didUpdateLocations: [
+          CLLocation(
+              coordinate: coordinate,
+              altitude: 0,
+              horizontalAccuracy: 5,
+              verticalAccuracy: 5,
+              timestamp: Date()
+          )
+      ]
+  )
+  ```
+  For an `init` whose parameters don't fit, wrap the same way:
+  ```swift
+  init(
+      authorizationStatus: CLAuthorizationStatus = .authorizedWhenInUse,
+      coordinate: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: 59.31, longitude: 18.07)
+  ) {
+      ...
+  }
+  ```
+
+- **Never create `State` manually**: Do not call `State(initialValue:)` or write to `_state` inside an `init`. Declare the `@State` property with its default value as an inline initializer (e.g. `@State private var model = Self.makeModel()`) and let SwiftUI own it. A type's `init` should only configure its *non*-`@State` stored properties; the `@State` value comes from its default expression, which may call a private `static` factory. This avoids SwiftUI re-initializing the state on each view update and keeps the init simple:
+  ```swift
+  struct MyModifier: ViewModifier {
+      @State private var model: Model = Self.makeModel()
+      var onManualSearch: () -> Void
+
+      init(onManualSearch: @escaping () -> Void = {}) {
+          // Only configure non-@State properties here; never touch `model`.
+          self.onManualSearch = onManualSearch
+      }
+
+      private static func makeModel() -> Model { ... }
+  }
+  ```
+  If a secondary init needs to supply a different model (e.g. for previews/tests), assign it to the `@State` property directly in that init rather than constructing `State`.
+
+- **User-facing text is English**: All in-app strings — view `Text`, `Button` titles, labels — are in English. The Trafiklab API is Swedish and its data (stop names, etc.) is surfaced as-is, but the app's own UI chrome stays English. The `NSLocationWhenInUseUsageDescription` Info.plist value is an exception: it is the *system* permission prompt, not in-app UI, so it may be localized to match the OS sheet.
+
 ## Project Structure
 
 ```
@@ -37,6 +84,8 @@ OnBoard/
 │   ├── NetworkDependency.swift
 │   ├── LiveNetwork.swift
 │   └── MockNetwork.swift
+├── Api/                  # Trafiklab API client and response models
+├── Location/             # Location permission flow and managers
 ├── Nearby/               # Nearby stops feature
 │   ├── NearbyModel.swift
 │   └── NearbyView.swift
