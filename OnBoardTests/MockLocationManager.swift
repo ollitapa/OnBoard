@@ -30,7 +30,7 @@ final class MockLocationManager: LocationManaging {
     private(set) var updatesRequests: [UpdatesRequest] = []
 
     /// The delegate the mock forwards callbacks to.
-    weak var delegate: (any LocationManagingDelegate)?
+    weak var locationDelegate: (any LocationManagingDelegate)?
 
     /// Creates a mock reporting the given status (default `.notDetermined`).
     init(authorizationStatus: CLAuthorizationStatus = .notDetermined) {
@@ -55,17 +55,17 @@ final class MockLocationManager: LocationManaging {
     /// the reported status so the model observes the new value.
     func simulateAuthorizationChange(_ status: CLAuthorizationStatus) {
         self.authorizationStatus = status
-        delegate?.locationManager(self, didChangeAuthorization: status)
+        locationDelegate?.locationManager(self, didChangeAuthorization: status)
     }
 
     /// Drives the `didUpdateLocations` callback onto the delegate.
     func simulateLocations(_ locations: [CLLocation]) {
-        delegate?.locationManager(self, didUpdateLocations: locations)
+        locationDelegate?.locationManager(self, didUpdateLocations: locations)
     }
 
     /// Drives the `didFailWithError` callback onto the delegate.
     func simulateFailure(_ error: some Error) {
-        delegate?.locationManager(self, didFailWithError: error)
+        locationDelegate?.locationManager(self, didFailWithError: error)
     }
 }
 

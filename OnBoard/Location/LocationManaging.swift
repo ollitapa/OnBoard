@@ -26,7 +26,7 @@ protocol LocationManaging: AnyObject {
     var authorizationStatus: CLAuthorizationStatus { get }
 
     /// The object receiving authorization and location callbacks.
-    var delegate: (any LocationManagingDelegate)? { get set }
+    var locationDelegate: (any LocationManagingDelegate)? { get set }
 
     /// Requests "when in use" authorization from the system.
     func requestWhenInUseAuthorization()
@@ -57,7 +57,7 @@ final class LiveLocationManager: NSObject, LocationManaging {
 
     var authorizationStatus: CLAuthorizationStatus { manager.authorizationStatus }
 
-    var delegate: (any LocationManagingDelegate)? {
+    var locationDelegate: (any LocationManagingDelegate)? {
         get { forwardingDelegate }
         set { forwardingDelegate = newValue }
     }

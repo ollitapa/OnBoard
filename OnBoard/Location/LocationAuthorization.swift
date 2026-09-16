@@ -48,7 +48,7 @@ final class LocationAuthorization: NSObject {
     override init() {
         self.manager = LiveLocationManager()
         super.init()
-        self.manager.delegate = self
+        self.manager.locationDelegate = self
         self.status = Self.state(from: manager.authorizationStatus)
     }
 
@@ -58,7 +58,7 @@ final class LocationAuthorization: NSObject {
     init(manager: any LocationManaging) {
         self.manager = manager
         super.init()
-        self.manager.delegate = self
+        self.manager.locationDelegate = self
         self.status = Self.state(from: manager.authorizationStatus)
     }
 
