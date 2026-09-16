@@ -33,19 +33,14 @@ struct NearbyView: View {
         .navigationTitle("Nearby Stops")
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: location?.coordinate != nil) { _, hasCoordinate in
-            guard hasCoordinate, let coordinate = location?.coordinate else { return }
-            Task { await loadStops(at: coordinate) }
-        }
-        .task {
-            if let coordinate = location?.coordinate {
-                await loadStops(at: coordinate)
-            }
+        .task(id: location?.coordinate) {
+            guard let coordinate = location?.coordinate else { return }
+            await loadStops(at: coordinate)
         }
     }
 
     /// Loads nearby stops for the current device coordinate via the Trafiklab API.
-    private func loadStops(at coordinate: CLLocationCoordinate2D) async {
+    private func loadStops(at coordinate: Coordinate) async {
         await model.loadStops(
             network: network,
             latitude: coordinate.latitude,
