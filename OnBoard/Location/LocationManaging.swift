@@ -57,6 +57,7 @@ final class LiveLocationManager: LocationManaging {
         manager.delegate = bridge
         self.manager = manager
         self.bridge = bridge
+        bridge.managingProvider = { [weak self] in self }
         bridge.forwardingDelegateProvider = { [weak self] in self?.forwardingDelegate }
     }
 
@@ -86,18 +87,26 @@ final class LiveLocationManager: LocationManaging {
 /// the other strongly (avoiding a retain cycle with the manager's `delegate`).
 private final class LocationManagerDelegateBridge: NSObject, CLLocationManagerDelegate {
 
+    /// Provides the owning manager (as `any LocationManaging`) without
+    /// retaining it, so delegate callbacks report the live manager rather than
+    /// this bridge.
+    var managingProvider: () -> (any LocationManaging)? = { nil }
+
     /// Provides the current forwarding delegate without retaining it.
     var forwardingDelegateProvider: () -> (any LocationManagingDelegate)? = { nil }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        forwardingDelegateProvider()?.locationManager(self, didChangeAuthorization: manager.authorizationStatus)
+        guard let managing = managingProvider() else { return }
+        forwardingDelegateProvider()?.locationManager(managing, didChangeAuthorization: manager.authorizationStatus)
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        forwardingDelegateProvider()?.locationManager(self, didUpdateLocations: locations)
+        guard let managing = managingProvider() else { return }
+        forwardingDelegateProvider()?.locationManager(managing, didUpdateLocations: locations)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
-        forwardingDelegateProvider()?.locationManager(self, didFailWithError: error)
+        guard let managing = managingProvider() else { return }
+        forwardingDelegateProvider()?.locationManager(managing, didFailWithError: error)
     }
 }

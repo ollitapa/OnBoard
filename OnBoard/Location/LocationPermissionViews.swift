@@ -41,9 +41,8 @@ struct LocationExplanationView: View {
             LocationButton(.currentLocation) {
                 onTap()
             }
+            .symbolVariant(.fill)
             .labelStyle(.titleAndIcon)
-            .locationButtonStyle(.filled)
-            .cornerRadius(12)
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
