@@ -27,6 +27,7 @@
 - **Use documentation comments**: Add Swift documentation comments (`///`) for public APIs and complex logic
 - **Follow existing patterns**: Match the repository's existing style and architecture
 - **Small changes**: Make the smallest correct change that solves the problem
+- **Prefer computed properties and extensions over static helper functions**: When a piece of logic answers a question *about a value* (e.g. a model's display label, delay minutes, or parsed date), model it as a computed property on that type, ideally in a `Type+Feature.swift` extension next to its consumer — never as a `static func foo(for: SomeType)` on an unrelated type. Call sites should read `departure.lineLabel`, not `StopDetailsModel.lineLabel(for: departure)`. The static "pass the value back in" form is a Java-style smell and hides the receiver. Reserve static functions for true factories (`init`s) or stateless utilities that don't have a natural receiver. When logic needs extra inputs beyond the receiver (e.g. a `now` date), keep those as method parameters on the extension rather than reaching into a model.
 
 ### SwiftUI Conventions
 

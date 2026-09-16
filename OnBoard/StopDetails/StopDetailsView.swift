@@ -75,7 +75,7 @@ private struct DepartureRow: View {
         HStack(alignment: .center, spacing: 13) {
             LineBadge(departure: departure)
             VStack(alignment: .leading, spacing: 6) {
-                Text(StopDetailsModel.destination(for: departure))
+                Text(departure.destination)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
@@ -97,7 +97,7 @@ private struct DepartureRow: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(Color.red.opacity(0.15), in: Capsule())
-        } else if let delay = StopDetailsModel.delayMinutes(for: departure) {
+        } else if let delay = departure.delayMinutes {
             Text(delayLabel(delay))
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(delay < 0 ? .green : .orange)
@@ -129,18 +129,15 @@ private struct DepartureRow: View {
     /// "2 min" when near, otherwise the wall-clock time HH:mm. Falls back to
     /// the raw scheduled string when no time can be parsed.
     private var countdownText: String {
-        let minutes = StopDetailsModel.minutesUntil(
-            departure: departure,
-            now: Date(),
-            timeZone: StopDetailsView.timeZone
-        )
-        if let minutes, minutes >= 0, minutes < 60 {
-            return minutes == 0 ? "Now" : "\(minutes) min"
-        }
-        if let date = StopDetailsModel.date(
-            from: departure.realtime ?? departure.scheduled,
-            timeZone: StopDetailsView.timeZone
-        ) {
+        if let date = departure.date {
+            let minutes = Calendar.current.dateComponents(
+                [.minute],
+                from: Date(),
+                to: date
+            ).minute
+            if let minutes, minutes >= 0, minutes < 60 {
+                return minutes == 0 ? "Now" : "\(minutes) min"
+            }
             return date.formatted(date: .omitted, time: .shortened)
         }
         return departure.scheduled
@@ -163,7 +160,7 @@ private struct LineBadge: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Text(StopDetailsModel.lineLabel(for: departure))
+            Text(departure.lineLabel)
                 .font(.callout.weight(.heavy))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
@@ -190,9 +187,9 @@ private struct LineBadge: View {
     }
 
     private var accessibilityLabel: String {
-        let line = StopDetailsModel.lineLabel(for: departure)
-        let dest = StopDetailsModel.destination(for: departure)
-        return [line, dest].filter { !$0.isEmpty }.joined(separator: " ")
+        [departure.lineLabel, departure.destination]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     /// Maps a Trafiklab `transport_mode` to a SF Symbol, matching the icons in
@@ -215,14 +212,6 @@ private struct LineBadge: View {
             return "questionmark"
         }
     }
-}
-
-// MARK: - Helpers
-
-extension StopDetailsView {
-
-    /// The time zone used to interpret and display departure times.
-    fileprivate static var timeZone: TimeZone { .current }
 }
 
 #Preview("Departures") {

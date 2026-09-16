@@ -84,7 +84,7 @@ struct StopDetailsModelTests {
             name: nil,
             direction: "Destination"
         )
-        #expect(StopDetailsModel.lineLabel(for: departure) == "3")
+        #expect(departure.lineLabel == "3")
     }
 
     @Test func lineLabelFallsBackToName() {
@@ -94,12 +94,25 @@ struct StopDetailsModelTests {
             name: "Saltsjöbanan",
             direction: "Destination"
         )
-        #expect(StopDetailsModel.lineLabel(for: departure) == "Saltsjöbanan")
+        #expect(departure.lineLabel == "Saltsjöbanan")
     }
 
     @Test func lineLabelFallbackToPlaceholder() {
         let departure = Self.departure(scheduled: "2099-01-01T12:00:00")
-        #expect(StopDetailsModel.lineLabel(for: departure) == "?")
+        #expect(departure.lineLabel == "?")
+    }
+
+    @Test func destinationUsesRouteDirection() {
+        let departure = Self.departure(
+            scheduled: "2099-01-01T12:00:00",
+            direction: "Karolinska sjukhuset"
+        )
+        #expect(departure.destination == "Karolinska sjukhuset")
+    }
+
+    @Test func destinationEmptyWithoutDirection() {
+        let departure = Self.departure(scheduled: "2099-01-01T12:00:00")
+        #expect(departure.destination == "")
     }
 
     @Test func delayMinutesNilWithoutRealtime() {
@@ -108,7 +121,7 @@ struct StopDetailsModelTests {
             isRealtime: false,
             delay: 180
         )
-        #expect(StopDetailsModel.delayMinutes(for: departure) == nil)
+        #expect(departure.delayMinutes == nil)
     }
 
     @Test func delayMinutesNilForZeroDelay() {
@@ -117,7 +130,7 @@ struct StopDetailsModelTests {
             isRealtime: true,
             delay: 0
         )
-        #expect(StopDetailsModel.delayMinutes(for: departure) == nil)
+        #expect(departure.delayMinutes == nil)
     }
 
     @Test func delayMinutesRoundsPositiveUp() {
@@ -126,7 +139,7 @@ struct StopDetailsModelTests {
             isRealtime: true,
             delay: 181
         )
-        #expect(StopDetailsModel.delayMinutes(for: departure) == 4)
+        #expect(departure.delayMinutes == 4)
     }
 
     @Test func delayMinutesRoundsNegativeDown() {
@@ -135,7 +148,7 @@ struct StopDetailsModelTests {
             isRealtime: true,
             delay: -181
         )
-        #expect(StopDetailsModel.delayMinutes(for: departure) == -4)
+        #expect(departure.delayMinutes == -4)
     }
 
     // MARK: - Helpers
