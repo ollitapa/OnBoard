@@ -41,18 +41,23 @@ protocol LocationManaging: AnyObject {
 /// Live conformance that forwards every call to a real `CLLocationManager`.
 ///
 /// `CLLocationManagerDelegate` callbacks are bridged onto
-/// ``LocationManagingDelegate`` so the rest of the app depends only on the
-/// protocol. The bridge is a class so it can be retained as the manager's
-/// `delegate` while also holding the ``LocationManagingDelegate`` it forwards
-/// to.
-final class LiveLocationManager: NSObject, LocationManaging {
+/// ``LocationManagingDelegate`` by an internal `NSObject` helper, so the rest
+/// of the app depends only on the protocol. `LiveLocationManager` itself is a
+/// plain `final class` (not `NSObject`); only the helper needs `NSObject` to
+/// satisfy `CLLocationManagerDelegate`'s `NSObjectProtocol` requirement.
+final class LiveLocationManager: LocationManaging {
 
-    private let manager = CLLocationManager()
+    private let manager: CLLocationManager
+    private let bridge: LocationManagerDelegateBridge
     private weak var forwardingDelegate: (any LocationManagingDelegate)?
 
     init() {
-        super.init()
-        manager.delegate = self
+        let manager = CLLocationManager()
+        let bridge = LocationManagerDelegateBridge()
+        manager.delegate = bridge
+        self.manager = manager
+        self.bridge = bridge
+        bridge.forwardingDelegateProvider = { [weak self] in self?.forwardingDelegate }
     }
 
     var authorizationStatus: CLAuthorizationStatus { manager.authorizationStatus }
@@ -75,17 +80,24 @@ final class LiveLocationManager: NSObject, LocationManaging {
     }
 }
 
-extension LiveLocationManager: CLLocationManagerDelegate {
+/// The `NSObject` adapter that satisfies `CLLocationManagerDelegate` and
+/// forwards its callbacks onto ``LocationManagingDelegate``. It reaches back
+/// to its owning ``LiveLocationManager`` through a closure so neither holds
+/// the other strongly (avoiding a retain cycle with the manager's `delegate`).
+private final class LocationManagerDelegateBridge: NSObject, CLLocationManagerDelegate {
+
+    /// Provides the current forwarding delegate without retaining it.
+    var forwardingDelegateProvider: () -> (any LocationManagingDelegate)? = { nil }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        forwardingDelegate?.locationManager(self, didChangeAuthorization: manager.authorizationStatus)
+        forwardingDelegateProvider()?.locationManager(self, didChangeAuthorization: manager.authorizationStatus)
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        forwardingDelegate?.locationManager(self, didUpdateLocations: locations)
+        forwardingDelegateProvider()?.locationManager(self, didUpdateLocations: locations)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
-        forwardingDelegate?.locationManager(self, didFailWithError: error)
+        forwardingDelegateProvider()?.locationManager(self, didFailWithError: error)
     }
 }
