@@ -38,14 +38,24 @@ protocol LocationManaging: AnyObject {
     func stopUpdatingLocation()
 }
 
+/// Delegate of ``LocationManagerDelegateBridge``: receives the CoreLocation
+/// events the bridge forwards, re-typed against the owning ``LocationManaging``.
+/// `LiveLocationManager` conforms to this so the bridge can hand callbacks
+/// back to it via a simple `weak` reference instead of closures.
+private protocol LocationManagerBridgeDelegate: AnyObject {
+    func bridge(_ bridge: LocationManagerDelegateBridge, didChangeAuthorization status: CLAuthorizationStatus)
+    func bridge(_ bridge: LocationManagerDelegateBridge, didUpdateLocations locations: [CLLocation])
+    func bridge(_ bridge: LocationManagerDelegateBridge, didFailWithError error: any Error)
+}
+
 /// Live conformance that forwards every call to a real `CLLocationManager`.
 ///
 /// `CLLocationManagerDelegate` callbacks are bridged onto
-/// ``LocationManagingDelegate`` by an internal `NSObject` helper, so the rest
-/// of the app depends only on the protocol. `LiveLocationManager` itself is a
-/// plain `final class` (not `NSObject`); only the helper needs `NSObject` to
-/// satisfy `CLLocationManagerDelegate`'s `NSObjectProtocol` requirement.
-final class LiveLocationManager: LocationManaging {
+/// ``LocationManagingDelegate`` by an internal `NSObject` helper that owns the
+/// `CLLocationManager`'s `delegate`. `LiveLocationManager` itself is a plain
+/// `final class` (not `NSObject`); it is the bridge's delegate via
+/// ``LocationManagerBridgeDelegate``, reached through a `weak` reference.
+final class LiveLocationManager: LocationManaging, LocationManagerBridgeDelegate {
 
     private let manager: CLLocationManager
     private let bridge: LocationManagerDelegateBridge
@@ -57,8 +67,7 @@ final class LiveLocationManager: LocationManaging {
         manager.delegate = bridge
         self.manager = manager
         self.bridge = bridge
-        bridge.managingProvider = { [weak self] in self }
-        bridge.forwardingDelegateProvider = { [weak self] in self?.forwardingDelegate }
+        bridge.bridgeDelegate = self
     }
 
     var authorizationStatus: CLAuthorizationStatus { manager.authorizationStatus }
@@ -79,34 +88,41 @@ final class LiveLocationManager: LocationManaging {
     func stopUpdatingLocation() {
         manager.stopUpdatingLocation()
     }
+
+    // MARK: LocationManagerBridgeDelegate
+
+    func bridge(_ bridge: LocationManagerDelegateBridge, didChangeAuthorization status: CLAuthorizationStatus) {
+        forwardingDelegate?.locationManager(self, didChangeAuthorization: status)
+    }
+
+    func bridge(_ bridge: LocationManagerDelegateBridge, didUpdateLocations locations: [CLLocation]) {
+        forwardingDelegate?.locationManager(self, didUpdateLocations: locations)
+    }
+
+    func bridge(_ bridge: LocationManagerDelegateBridge, didFailWithError error: any Error) {
+        forwardingDelegate?.locationManager(self, didFailWithError: error)
+    }
 }
 
 /// The `NSObject` adapter that satisfies `CLLocationManagerDelegate` and
-/// forwards its callbacks onto ``LocationManagingDelegate``. It reaches back
-/// to its owning ``LiveLocationManager`` through a closure so neither holds
-/// the other strongly (avoiding a retain cycle with the manager's `delegate`).
+/// forwards its callbacks to its ``LocationManagerBridgeDelegate`` (the owning
+/// ``LiveLocationManager``) via a `weak` reference, avoiding a retain cycle
+/// with the `CLLocationManager`'s `delegate`.
 private final class LocationManagerDelegateBridge: NSObject, CLLocationManagerDelegate {
 
-    /// Provides the owning manager (as `any LocationManaging`) without
-    /// retaining it, so delegate callbacks report the live manager rather than
-    /// this bridge.
-    var managingProvider: () -> (any LocationManaging)? = { nil }
-
-    /// Provides the current forwarding delegate without retaining it.
-    var forwardingDelegateProvider: () -> (any LocationManagingDelegate)? = { nil }
+    /// The owning manager, held weakly to avoid a retain cycle with the
+    /// `CLLocationManager`'s `delegate` (which retains this bridge).
+    weak var bridgeDelegate: (any LocationManagerBridgeDelegate)?
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        guard let managing = managingProvider() else { return }
-        forwardingDelegateProvider()?.locationManager(managing, didChangeAuthorization: manager.authorizationStatus)
+        bridgeDelegate?.bridge(self, didChangeAuthorization: manager.authorizationStatus)
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let managing = managingProvider() else { return }
-        forwardingDelegateProvider()?.locationManager(managing, didUpdateLocations: locations)
+        bridgeDelegate?.bridge(self, didUpdateLocations: locations)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
-        guard let managing = managingProvider() else { return }
-        forwardingDelegateProvider()?.locationManager(managing, didFailWithError: error)
+        bridgeDelegate?.bridge(self, didFailWithError: error)
     }
 }
