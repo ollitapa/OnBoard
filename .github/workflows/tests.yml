@@ -1,0 +1,42 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: List available schemes
+        run: xcodebuild -list -project OnBoard.xcodeproj
+
+      - name: Build for testing
+        run: |
+          set -o pipefail && xcodebuild build-for-testing \
+            -project OnBoard.xcodeproj \
+            -scheme OnBoard \
+            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest" \
+            | xcbeautify --renderer github-actions
+
+      - name: Test
+        run: |
+          set -o pipefail && xcodebuild test-without-building \
+            -project OnBoard.xcodeproj \
+            -scheme OnBoard \
+            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest" \
+            | xcbeautify --renderer github-actions

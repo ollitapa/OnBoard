@@ -23,7 +23,15 @@ struct MainView: View {
             }
         }
         .tabViewSearchActivation(.searchTabSelection)
-        .environment(\.network, LiveNetwork())
+        .environment(\.network, Self.makeNetwork())
+    }
+
+    private static func makeNetwork() -> any NetworkProtocol {
+        if CommandLine.arguments.contains(mockNetworkLaunchArgument) {
+            mockNetwork()
+        } else {
+            LiveNetwork()
+        }
     }
 }
 
