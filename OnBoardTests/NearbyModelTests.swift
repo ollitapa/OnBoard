@@ -2,6 +2,7 @@ import Testing
 import Foundation
 @testable import OnBoard
 
+@MainActor
 struct NearbyModelTests {
 
     @Test func loadStopsSuccess() async throws {
@@ -59,7 +60,7 @@ struct NearbyModelTests {
 
     @Test func loadStopsNetworkError() async throws {
         // Given
-        var mockNetwork = MockNetwork()
+        let mockNetwork = MockNetwork()
         // No handlers registered, will throw NoResponseConfigured
         
         let model = NearbyModel()
@@ -79,7 +80,7 @@ struct NearbyModelTests {
         
         mockNetwork.registerHandler { request in
             if request.url == expectedURL && request.httpMethod == "GET" {
-                return MockNetwork.makeResponse(json: ["invalid": "json"])
+                return MockNetwork.makeResponse(json: #"{"invalid":"json"}"#, statusCode: 200)
             }
             return nil
         }
