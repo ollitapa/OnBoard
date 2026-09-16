@@ -40,12 +40,13 @@ struct LocationPermissionsModifier: ViewModifier {
     /// launch, otherwise a real `CLLocationManager`-backed model.
     private static func makeModel() -> LocationAuthorization {
         if CommandLine.arguments.contains(skipLocationPermissionLaunchArgument) {
-            let manager = MockLocationManager(authorizationStatus: .authorizedWhenInUse)
+            // Pre-authorized with a fixed coordinate so the Nearby tab renders
+            // stops in UI tests where real CoreLocation permission can't be
+            // granted. Drives the real startUpdating code path; the manager
+            // delivers its coordinate once updates start.
+            let manager = PreauthorizedLocationManager(authorizationStatus: .authorizedWhenInUse)
             let model = LocationAuthorization(manager: manager)
-            // Drive the real code path: start updates (gated on the granted
-            // status) then deliver a fixed coordinate so Nearby renders stops.
             model.startUpdating()
-            manager.simulateLocations([CLLocation(latitude: 59.31, longitude: 18.07)])
             return model
         }
         return LocationAuthorization()
