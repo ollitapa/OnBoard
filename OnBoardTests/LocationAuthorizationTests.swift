@@ -123,7 +123,7 @@ struct LocationAuthorizationTests {
 
     // MARK: - Coordinate updates
 
-    @Test func locationUpdatesPublishLastCoordinate() {
+    @Test func locationUpdatesPublishLastCoordinate() throws {
         // Given
         let manager = MockLocationManager(authorizationStatus: .authorizedWhenInUse)
         let model = LocationAuthorization(manager: manager)
@@ -142,7 +142,7 @@ struct LocationAuthorizationTests {
         #expect(model.failure == nil)
     }
 
-    @Test func locationUpdatesOverwritePreviousCoordinate() {
+    @Test func locationUpdatesOverwritePreviousCoordinate() throws {
         // Given
         let manager = MockLocationManager(authorizationStatus: .authorizedWhenInUse)
         let model = LocationAuthorization(manager: manager)
