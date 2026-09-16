@@ -33,14 +33,9 @@ struct NearbyView: View {
         .navigationTitle("Nearby Stops")
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: location?.coordinate != nil) { _, hasCoordinate in
-            guard hasCoordinate, let coordinate = location?.coordinate else { return }
-            Task { await loadStops(at: coordinate) }
-        }
-        .task {
-            if let coordinate = location?.coordinate {
-                await loadStops(at: coordinate)
-            }
+        .task(id: location?.coordinate) {
+            guard let coordinate = location?.coordinate else { return }
+            await loadStops(at: coordinate)
         }
     }
 
