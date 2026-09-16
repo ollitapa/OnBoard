@@ -19,18 +19,23 @@ struct NearbyView: View {
                 ProgressView()
             } else {
                 List(model.stops) { stop in
-                    VStack(alignment: .leading) {
-                        Text(stop.name)
-                            .font(.headline)
-                        Text("ID: \(stop.id)")
-                            .font(.subheadline)
-                        Text("Lat: \(stop.latitude), Lon: \(stop.longitude)")
-                            .font(.caption)
+                    NavigationLink(value: stop) {
+                        VStack(alignment: .leading) {
+                            Text(stop.name)
+                                .font(.headline)
+                            Text("ID: \(stop.id)")
+                                .font(.subheadline)
+                            Text("Lat: \(stop.latitude), Lon: \(stop.longitude)")
+                                .font(.caption)
+                        }
                     }
                 }
             }
         }
         .navigationTitle("Nearby Stops")
+        .navigationDestination(for: Stop.self) { stop in
+            StopDetailsView(stopId: stop.id, stopName: stop.name)
+        }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: location?.coordinate != nil) { _, hasCoordinate in

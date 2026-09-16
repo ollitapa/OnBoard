@@ -53,12 +53,18 @@ struct MockNearbyServer: NetworkProtocol {
 let mockNetworkLaunchArgument = "--mock-network"
 
 /// Builds the `CombinedNetwork` used when `--mock-network` is passed at
-/// launch, composing a `MockTrafiklabService` over the ResRobot base URL so
-/// the nearby view (which calls `Trafiklab.nearbyStops`) is served canned
-/// stops instead of making real network requests.
+/// launch, composing a `MockTrafiklabService` over both the ResRobot and
+/// Trafiklab realtime base URLs so the nearby view (ResRobot
+/// `location.nearbystops`) and the stop details view (realtime
+/// `departures/{areaId}`) are served canned data instead of making real
+/// network requests.
 func mockNetwork() -> some NetworkProtocol {
     let server = MockTrafiklabService()
     return CombinedNetwork(routes: [
-        .init(baseURL: server.baseURL, network: server)
+        .init(baseURL: server.baseURL, network: server),
+        .init(
+            baseURL: URL(string: "https://realtime-api.trafiklab.se")!,
+            network: server
+        )
     ], fallback: LiveNetwork())
 }

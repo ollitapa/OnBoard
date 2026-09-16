@@ -4,10 +4,12 @@ import Foundation
 /// endpoints described in `Designs/API-Instructions.md`.
 ///
 /// Mirrors `MockNearbyServer`: it responds to the ResRobot nearby-stops path
-/// with a JSON-encoded `NearbyStopsResponse`, and throws `NoResponseConfigured`
-/// for anything else. Matching is by URL path suffix so the request's query
-/// parameters (including the API key) don't affect the response, which keeps
-/// the mock usable from tests where `Bundle.main` has no key configured.
+/// with a JSON-encoded `NearbyStopsResponse` and to the Trafiklab Timetables
+/// departures path with a JSON-encoded `DeparturesResponse`, and throws
+/// `NoResponseConfigured` for anything else. Matching is by URL path suffix so
+/// the request's query parameters (including the API key) don't affect the
+/// response, which keeps the mock usable from tests where `Bundle.main` has
+/// no key configured.
 ///
 /// Use it directly as the network injected into a view model, or wrap it in a
 /// `CombinedNetwork` route to mix it with other mock servers (as the app's
@@ -20,16 +22,22 @@ struct MockTrafiklabService: NetworkProtocol {
     /// The nearby stops returned from the nearby-stops endpoint.
     let nearbyStops: [StopLocation]
 
+    /// The departures returned from the Timetables departures endpoint.
+    let departures: [CallAtLocation]
+
     /// Creates a mock Trafiklab service.
     /// - Parameters:
     ///   - baseURL: The base URL this server responds for.
     ///   - nearbyStops: The stops to return from the nearby endpoint.
+    ///   - departures: The departures to return from the departures endpoint.
     init(
         baseURL: URL = URL(string: "https://api.resrobot.se")!,
-        nearbyStops: [StopLocation] = MockTrafiklabService.defaultNearbyStops
+        nearbyStops: [StopLocation] = MockTrafiklabService.defaultNearbyStops,
+        departures: [CallAtLocation] = []
     ) {
         self.baseURL = baseURL
         self.nearbyStops = nearbyStops
+        self.departures = departures
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
@@ -37,6 +45,23 @@ struct MockTrafiklabService: NetworkProtocol {
 
         if request.httpMethod == "GET", url.path.hasSuffix("location.nearbystops") {
             let payload = NearbyStopsResponse(StopLocation: nearbyStops)
+            let data = try JSONEncoder().encode(payload)
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (data, response)
+        }
+
+        if request.httpMethod == "GET", url.path.contains("/departures/") {
+            let payload = DeparturesResponse(
+                timestamp: "2099-01-01T12:00:00",
+                query: TimetableQuery(queryTime: "2099-01-01T12:00:00", query: nil),
+                stops: [],
+                departures: departures
+            )
             let data = try JSONEncoder().encode(payload)
             let response = HTTPURLResponse(
                 url: url,

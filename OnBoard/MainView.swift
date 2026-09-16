@@ -13,10 +13,12 @@ struct MainView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("Nearby", systemImage: "location.fill", value: .nearby) {
-                NearbyView()
-                    .locationPermissions {
-                        selectedTab = .search
-                    }
+                NavigationStack {
+                    NearbyView()
+                }
+                .locationPermissions {
+                    selectedTab = .search
+                }
             }
             Tab("Favorites", systemImage: "star.fill", value: .favorites) {
                 FavoritesView()
