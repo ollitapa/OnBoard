@@ -35,7 +35,7 @@ final class LocationAuthorization {
 
     /// The most recent WGS84 coordinate, or `nil` while permission is pending
     /// or no fix is available yet.
-    private(set) var coordinate: CLLocationCoordinate2D?
+    private(set) var coordinate: Coordinate?
 
     /// The most recent location error, surfaced for diagnostics.
     private(set) var failure: String?
@@ -76,17 +76,6 @@ final class LocationAuthorization {
     }
 }
 
-extension CLLocationCoordinate2D: @retroactive Equatable, @retroactive Hashable {
-    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
-        lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
-    }
-
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(latitude)
-        hasher.combine(longitude)
-    }
-}
-
 extension CLAuthorizationStatus {
 
     /// Maps a `CLAuthorizationStatus` onto the app's authorization state.
@@ -123,7 +112,7 @@ extension LocationAuthorization: LocationManagerDelegate {
         didUpdateLocations locations: [CLLocation]
     ) {
         MainActor.assumeIsolated {
-            self.coordinate = locations.last?.coordinate
+            self.coordinate = locations.last?.coordinate.map(Coordinate.init)
             self.failure = nil
         }
     }
