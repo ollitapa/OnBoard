@@ -16,7 +16,7 @@ import CoreLocation
 /// https://developer.apple.com/documentation/corelocationui/locationbutton.
 struct LocationPermissionsModifier: ViewModifier {
 
-    @State private var model: LocationAuthorization
+    @State private var model: LocationAuthorization = Self.makeModel()
 
     /// Called when the user taps "Sök manuellt istället" in the denied view,
     /// so the app can switch to the search tab.
@@ -30,8 +30,6 @@ struct LocationPermissionsModifier: ViewModifier {
     /// - Parameter onManualSearch: Invoked when the user chooses manual search
     ///   from the denied view.
     init(onManualSearch: @escaping () -> Void = {}) {
-        let model = Self.makeModel()
-        self._model = State(initialValue: model)
         self.onManualSearch = onManualSearch
     }
 
@@ -44,7 +42,7 @@ struct LocationPermissionsModifier: ViewModifier {
             // stops in UI tests where real CoreLocation permission can't be
             // granted. Drives the real startUpdating code path; the manager
             // delivers its coordinate once updates start.
-            let manager = PreauthorizedLocationManager(authorizationStatus: .authorizedWhenInUse)
+            let manager = FixedLocationManager(authorizationStatus: .authorizedWhenInUse)
             let model = LocationAuthorization(manager: manager)
             model.startUpdating()
             return model
@@ -54,8 +52,8 @@ struct LocationPermissionsModifier: ViewModifier {
 
     /// Creates the modifier backed by the given model, for previews and tests.
     init(model: LocationAuthorization, onManualSearch: @escaping () -> Void = {}) {
-        self._model = State(initialValue: model)
         self.onManualSearch = onManualSearch
+        self.model = model
     }
 
     func body(content: Content) -> some View {

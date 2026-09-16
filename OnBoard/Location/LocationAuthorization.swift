@@ -24,7 +24,7 @@ enum LocationAuthorizationState: Equatable, Sendable {
 ///
 /// Owns a `CLLocationManager`, requests authorization on demand (triggered by
 /// the `LocationButton` in the permission view), and streams `CLLocation`
-/// updates into ``coordinate``. Tests inject a ``LocationManaging`` mock so the
+/// updates into ``coordinate``. Tests inject a ``LocationManager`` mock so the
 /// authorization lifecycle can be exercised without CoreLocation.
 @MainActor
 @Observable
@@ -40,18 +40,18 @@ final class LocationAuthorization {
     /// The most recent location error, surfaced for diagnostics.
     private(set) var failure: String?
 
-    private let manager: any LocationManaging
+    private let manager: any LocationManager
 
     /// Creates a model backed by the given manager.
-    /// - Parameter manager: A `LocationManaging` instance. Defaults to a
+    /// - Parameter manager: A `LocationManager` instance. Defaults to a
     ///   `LiveLocationManager` that bridges a real `CLLocationManager` so the
     ///   manager's `CLLocationManagerDelegate` callbacks are forwarded onto
-    ///   ``LocationManagingDelegate``. Tests pass a mock to drive the
+    ///   ``LocationManagerDelegate``. Tests pass a mock to drive the
     ///   authorization lifecycle deterministically.
-    init(manager: any LocationManaging = LiveLocationManager()) {
+    init(manager: any LocationManager = LiveLocationManager()) {
         self.manager = manager
         manager.locationDelegate = self
-        self.status = Self.state(from: manager.authorizationStatus)
+        self.status = manager.authorizationStatus.state
     }
 
     /// Requests authorization from the system. Call this from the
@@ -74,41 +74,53 @@ final class LocationAuthorization {
     func stopUpdating() {
         manager.stopUpdatingLocation()
     }
+}
+
+extension CLAuthorizationStatus {
 
     /// Maps a `CLAuthorizationStatus` onto the app's authorization state.
-    private static func state(from status: CLAuthorizationStatus) -> LocationAuthorizationState {
-        switch status {
+    var state: LocationAuthorizationState {
+        return switch self {
         case .notDetermined:
-            return .notDetermined
+            .notDetermined
         case .restricted, .denied:
-            return .denied
+            .denied
         case .authorizedAlways:
-            return .authorizedAlways
+            .authorizedAlways
         case .authorizedWhenInUse:
-            return .authorizedWhenInUse
+            .authorizedWhenInUse
         @unknown default:
-            return .denied
+            .denied
         }
     }
 }
 
-extension LocationAuthorization: LocationManagingDelegate {
+extension LocationAuthorization: LocationManagerDelegate {
 
-    nonisolated func locationManager(_ manager: any LocationManaging, didChangeAuthorization status: CLAuthorizationStatus) {
+    nonisolated func locationManager(
+        _ manager: any LocationManager,
+        didChangeAuthorization status: CLAuthorizationStatus
+    ) {
         MainActor.assumeIsolated {
-            self.status = Self.state(from: status)
+            self.status = status.state
             self.startUpdating()
         }
     }
 
-    nonisolated func locationManager(_ manager: any LocationManaging, didUpdateLocations locations: [CLLocation]) {
+    nonisolated func locationManager(
+        _ manager: any LocationManager,
+        didUpdateLocations locations: [CLLocation]
+    ) {
         MainActor.assumeIsolated {
             self.coordinate = locations.last?.coordinate
             self.failure = nil
         }
     }
 
-    nonisolated func locationManager(_ manager: any LocationManaging, didFailWithError error: any Error) {
+    nonisolated func locationManager(
+        _ manager: any LocationManager,
+        didFailWithError error: any Error
+    ) {
         MainActor.assumeIsolated {
             self.failure = String(describing: error)
         }

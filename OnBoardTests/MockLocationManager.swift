@@ -2,13 +2,13 @@ import Foundation
 import CoreLocation
 @testable import OnBoard
 
-/// A mock `LocationManaging` for driving a ``LocationAuthorization`` model in
+/// A mock `LocationManager` for driving a ``LocationAuthorization`` model in
 /// tests without CoreLocation.
 ///
 /// Records the calls made against it and lets a test drive the delegate
 /// callbacks (`didChangeAuthorization`, `didUpdateLocations`, `didFail`)
 /// deterministically. Mirrors the recording style of `MockNetwork`.
-final class MockLocationManager: LocationManaging {
+final class MockLocationManager: LocationManager {
 
     /// A request captured from `requestWhenInUseAuthorization`.
     struct AuthorizationRequest: Equatable {
@@ -30,7 +30,7 @@ final class MockLocationManager: LocationManaging {
     private(set) var updatesRequests: [UpdatesRequest] = []
 
     /// The delegate the mock forwards callbacks to.
-    weak var locationDelegate: (any LocationManagingDelegate)?
+    weak var locationDelegate: (any LocationManagerDelegate)?
 
     /// Creates a mock reporting the given status (default `.notDetermined`).
     init(authorizationStatus: CLAuthorizationStatus = .notDetermined) {
