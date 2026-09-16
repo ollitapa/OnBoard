@@ -18,7 +18,7 @@ struct CombinedNetworkTests {
             func value() -> Bool { handled }
         }
         let probe = Probe()
-        let other = MockNetwork()
+        var other = MockNetwork()
         other.registerHandler { _ in
             await probe.mark()
             return MockNetwork.makeResponse(json: "{}")
