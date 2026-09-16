@@ -42,7 +42,7 @@ protocol LocationManaging: AnyObject {
 /// events the bridge forwards, re-typed against the owning ``LocationManaging``.
 /// `LiveLocationManager` conforms to this so the bridge can hand callbacks
 /// back to it via a simple `weak` reference instead of closures.
-private protocol LocationManagerBridgeDelegate: AnyObject {
+fileprivate protocol LocationManagerBridgeDelegate: AnyObject {
     func bridge(_ bridge: LocationManagerDelegateBridge, didChangeAuthorization status: CLAuthorizationStatus)
     func bridge(_ bridge: LocationManagerDelegateBridge, didUpdateLocations locations: [CLLocation])
     func bridge(_ bridge: LocationManagerDelegateBridge, didFailWithError error: any Error)
@@ -91,15 +91,15 @@ final class LiveLocationManager: LocationManaging, LocationManagerBridgeDelegate
 
     // MARK: LocationManagerBridgeDelegate
 
-    func bridge(_ bridge: LocationManagerDelegateBridge, didChangeAuthorization status: CLAuthorizationStatus) {
+    fileprivate func bridge(_ bridge: LocationManagerDelegateBridge, didChangeAuthorization status: CLAuthorizationStatus) {
         forwardingDelegate?.locationManager(self, didChangeAuthorization: status)
     }
 
-    func bridge(_ bridge: LocationManagerDelegateBridge, didUpdateLocations locations: [CLLocation]) {
+    fileprivate func bridge(_ bridge: LocationManagerDelegateBridge, didUpdateLocations locations: [CLLocation]) {
         forwardingDelegate?.locationManager(self, didUpdateLocations: locations)
     }
 
-    func bridge(_ bridge: LocationManagerDelegateBridge, didFailWithError error: any Error) {
+    fileprivate func bridge(_ bridge: LocationManagerDelegateBridge, didFailWithError error: any Error) {
         forwardingDelegate?.locationManager(self, didFailWithError: error)
     }
 }
@@ -108,7 +108,7 @@ final class LiveLocationManager: LocationManaging, LocationManagerBridgeDelegate
 /// forwards its callbacks to its ``LocationManagerBridgeDelegate`` (the owning
 /// ``LiveLocationManager``) via a `weak` reference, avoiding a retain cycle
 /// with the `CLLocationManager`'s `delegate`.
-private final class LocationManagerDelegateBridge: NSObject, CLLocationManagerDelegate {
+fileprivate final class LocationManagerDelegateBridge: NSObject, CLLocationManagerDelegate {
 
     /// The owning manager, held weakly to avoid a retain cycle with the
     /// `CLLocationManager`'s `delegate` (which retains this bridge).
