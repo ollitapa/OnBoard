@@ -22,12 +22,33 @@ struct LocationPermissionsModifier: ViewModifier {
     /// so the app can switch to the search tab.
     var onManualSearch: () -> Void
 
-    /// Creates the modifier backed by a real `CLLocationManager`.
+    /// Creates the modifier backed by a real `CLLocationManager`, or — when
+    /// the `--skip-location-permission` launch argument is present — a mock
+    /// manager that is pre-authorized with a fixed coordinate. The latter
+    /// keeps the Nearby tab usable in UI tests where the simulator can't
+    /// grant real location permission, mirroring the `--mock-network` harness.
     /// - Parameter onManualSearch: Invoked when the user chooses manual search
     ///   from the denied view.
     init(onManualSearch: @escaping () -> Void = {}) {
-        self._model = State(initialValue: LocationAuthorization())
+        let model = Self.makeModel()
+        self._model = State(initialValue: model)
         self.onManualSearch = onManualSearch
+    }
+
+    /// Builds the model for the default init: a mock pre-authorized with a
+    /// fixed coordinate when `--skip-location-permission` is passed at
+    /// launch, otherwise a real `CLLocationManager`-backed model.
+    private static func makeModel() -> LocationAuthorization {
+        if CommandLine.arguments.contains(skipLocationPermissionLaunchArgument) {
+            let manager = MockLocationManager(authorizationStatus: .authorizedWhenInUse)
+            let model = LocationAuthorization(manager: manager)
+            // Drive the real code path: start updates (gated on the granted
+            // status) then deliver a fixed coordinate so Nearby renders stops.
+            model.startUpdating()
+            manager.simulateLocations([CLLocation(latitude: 59.31, longitude: 18.07)])
+            return model
+        }
+        return LocationAuthorization()
     }
 
     /// Creates the modifier backed by the given model, for previews and tests.
@@ -63,6 +84,12 @@ struct LocationPermissionsModifier: ViewModifier {
         UIApplication.shared.open(url)
     }
 }
+
+/// Launch argument that makes `.locationPermissions` skip the system
+/// permission flow and pre-authorize a fixed coordinate, so the Nearby tab
+/// renders stops in UI tests where the simulator can't grant real location
+/// permission. Mirrors the `--mock-network` harness.
+let skipLocationPermissionLaunchArgument = "--skip-location-permission"
 
 extension View {
 

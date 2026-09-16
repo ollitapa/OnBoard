@@ -22,8 +22,11 @@ final class OnBoardUITests: XCTestCase {
         // Launch the app with the mock network so the nearby view is served
         // canned stops instead of making real network requests. The
         // argument matches `mockNetworkLaunchArgument` in the app target.
+        // `--skip-location-permission` pre-authorizes a fixed coordinate so the
+        // location permission gate doesn't cover the nearby tab in the simulator
+        // (where real CoreLocation permission can't be granted).
         let app = XCUIApplication()
-        app.launchArguments = ["--mock-network"]
+        app.launchArguments = ["--mock-network", "--skip-location-permission"]
         app.launch()
 
         // The nearby tab is selected by default and renders the stop names
