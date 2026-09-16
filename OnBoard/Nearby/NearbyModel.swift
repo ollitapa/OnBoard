@@ -24,7 +24,7 @@ final class NearbyModel {
     ///     `Trafiklab` client from it so tests can inject a mock service.
     ///   - latitude: WGS84 decimal degrees.
     ///   - longitude: WGS84 decimal degrees.
-    func loadStops(network: some NetworkProtocol, latitude: Double = 0, longitude: Double = 0) async {
+    func loadStops(network: some NetworkProtocol, latitude: Double, longitude: Double) async {
 
         do {
             let api = Trafiklab(network: network)

@@ -67,7 +67,7 @@ struct Trafiklab {
         radius: Int = 1000
     ) async throws -> NearbyStopsResponse {
         let endpoint = Self.resrobotBase.appendingPathComponent("location.nearbystops")
-        guard var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false) else { throw TrafiklabError.invalidURL }
+        guard var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false) else { throw TrafiklabInvalidURL() }
         components.queryItems = [
             URLQueryItem(name: "originCoordLat", value: String(latitude)),
             URLQueryItem(name: "originCoordLong", value: String(longitude)),
@@ -76,7 +76,7 @@ struct Trafiklab {
             URLQueryItem(name: "maxNo", value: String(maxResults)),
             URLQueryItem(name: "r", value: String(radius))
         ]
-        guard let url = components.url else { throw TrafiklabError.invalidURL }
+        guard let url = components.url else { throw TrafiklabInvalidURL() }
         let request = URLRequest(url: url)
         return try await decode(request)
     }
@@ -132,10 +132,10 @@ struct Trafiklab {
     private func realtimeRequest(path: String) throws -> URLRequest {
         guard let url = URL(string: path, relativeTo: Self.realtimeBase),
               var components = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
-            throw TrafiklabError.invalidURL
+            throw TrafiklabInvalidURL()
         }
         components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "key", value: realtimeKey)]
-        guard let resolved = components.url else { throw TrafiklabError.invalidURL }
+        guard let resolved = components.url else { throw TrafiklabInvalidURL() }
         return URLRequest(url: resolved)
     }
 
@@ -152,10 +152,8 @@ struct Trafiklab {
 }
 
 /// Errors thrown by `Trafiklab`.
-enum TrafiklabError: Error {
-    /// A request URL could not be constructed.
-    case invalidURL
-}
+struct TrafiklabInvalidURL: Error { }
+
 
 // MARK: - Response models
 

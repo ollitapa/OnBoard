@@ -31,7 +31,8 @@ struct NearbyView: View {
         .navigationTitle("Nearby Stops")
         .padding()
         .task {
-            await model.loadStops(network: network)
+            // TODO: Get real cordinates from device location
+            await model.loadStops(network: network, latitude: 0, longitude: 0)
         }
     }
 }
