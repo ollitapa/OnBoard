@@ -27,14 +27,16 @@ jobs:
 
       - name: Build for testing
         run: |
-          xcodebuild build-for-testing \
+          set -o pipefail && xcodebuild build-for-testing \
             -project OnBoard.xcodeproj \
             -scheme OnBoard \
-            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest"
+            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest" \
+            | xcbeautify --renderer github-actions
 
       - name: Test
         run: |
-          xcodebuild test-without-building \
+          set -o pipefail && xcodebuild test-without-building \
             -project OnBoard.xcodeproj \
             -scheme OnBoard \
-            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest"
+            -destination "platform=iOS Simulator,name=iPhone 17,OS=latest" \
+            | xcbeautify --renderer github-actions
