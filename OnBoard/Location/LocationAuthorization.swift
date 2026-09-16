@@ -28,7 +28,7 @@ enum LocationAuthorizationState: Equatable, Sendable {
 /// authorization lifecycle can be exercised without CoreLocation.
 @MainActor
 @Observable
-final class LocationAuthorization: NSObject {
+final class LocationAuthorization {
 
     /// The current authorization state.
     private(set) var status: LocationAuthorizationState = .notDetermined
@@ -42,23 +42,15 @@ final class LocationAuthorization: NSObject {
 
     private let manager: any LocationManaging
 
-    /// Creates a model backed by a real `CLLocationManager`, bridged through
-    /// `LiveLocationManager` so the manager's `CLLocationManagerDelegate`
-    /// callbacks are forwarded onto ``LocationManagingDelegate``.
-    override init() {
-        self.manager = LiveLocationManager()
-        super.init()
-        self.manager.locationDelegate = self
-        self.status = Self.state(from: manager.authorizationStatus)
-    }
-
-    /// Creates a model backed by the given manager. Use this in tests to
-    /// inject a mock that drives the authorization lifecycle deterministically.
-    /// - Parameter manager: A `LocationManaging` instance (real or mock).
-    init(manager: any LocationManaging) {
+    /// Creates a model backed by the given manager.
+    /// - Parameter manager: A `LocationManaging` instance. Defaults to a
+    ///   `LiveLocationManager` that bridges a real `CLLocationManager` so the
+    ///   manager's `CLLocationManagerDelegate` callbacks are forwarded onto
+    ///   ``LocationManagingDelegate``. Tests pass a mock to drive the
+    ///   authorization lifecycle deterministically.
+    init(manager: any LocationManaging = LiveLocationManager()) {
         self.manager = manager
-        super.init()
-        self.manager.locationDelegate = self
+        manager.locationDelegate = self
         self.status = Self.state(from: manager.authorizationStatus)
     }
 
