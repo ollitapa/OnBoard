@@ -14,6 +14,9 @@ struct MainView: View {
         TabView(selection: $selectedTab) {
             Tab("Nearby", systemImage: "location.fill", value: .nearby) {
                 NearbyView()
+                    .locationPermissions {
+                        selectedTab = .search
+                    }
             }
             Tab("Favorites", systemImage: "star.fill", value: .favorites) {
                 FavoritesView()
