@@ -18,8 +18,8 @@ struct LocationPermissionsModifier: ViewModifier {
 
     @State private var model: LocationAuthorization = Self.makeModel()
 
-    /// Called when the user taps "Sök manuellt istället" in the denied view,
-    /// so the app can switch to the search tab.
+    /// Called when the user taps "Search manually instead" in the denied
+    /// view, so the app can switch to the search tab.
     var onManualSearch: () -> Void
 
     /// Creates the modifier backed by a real `CLLocationManager`, or — when
@@ -95,8 +95,8 @@ extension View {
     /// Gates this view behind the location permission flow.
     ///
     /// Shows the explanation view until the user responds to the system prompt,
-    /// then the content once authorized — or the "Platstillgång är av" view if
-    /// denied. The ``LocationAuthorization`` model is published into the
+    /// then the content once authorized — or the "Location access is off" view
+    /// if denied. The ``LocationAuthorization`` model is published into the
     /// environment so descendants can read the current coordinate via
     /// `@Environment(\.locationAuthorization)`.
     /// - Parameter onManualSearch: Invoked when the user chooses manual search

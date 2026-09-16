@@ -4,7 +4,7 @@ import CoreLocationUI
 /// The "explanation view" shown before the system location prompt.
 ///
 /// Matches the "SCREEN 0A" design in `Designs/storyboard.html`: a location
-/// icon, the headline `Hitta hållplatser nära dig`, a body explaining why the
+/// icon, the headline "Find stops near you", a body explaining why the
 /// app wants location, and a single ``LocationButton`` that triggers the
 /// system permission prompt.
 ///
@@ -28,12 +28,12 @@ struct LocationExplanationView: View {
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
 
-            Text("Hitta hållplatser nära dig")
+            Text("Find stops near you")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
 
-            Text("Nästa buss använder din plats för att visa de närmaste hållplatserna direkt när du öppnar appen.")
+            Text("Next Bus uses your location to show the nearest stops as soon as you open the app.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -56,10 +56,10 @@ struct LocationExplanationView: View {
 /// fall back to manual search.
 struct LocationDeniedView: View {
 
-    /// Triggered by the "Öppna Inställningar" button.
+    /// Triggered by the "Open Settings" button.
     var onOpenSettings: () -> Void = {}
 
-    /// Triggered by the "Sök manuellt istället" button.
+    /// Triggered by the "Search manually instead" button.
     var onManualSearch: () -> Void = {}
 
     var body: some View {
@@ -71,21 +71,21 @@ struct LocationDeniedView: View {
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
 
-            Text("Platstillgång är av")
+            Text("Location access is off")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
 
-            Text("Vi kan inte visa hållplatser nära dig. Sök manuellt eller slå på platstillgång i Inställningar.")
+            Text("We can't show stops near you. Search manually or turn on location access in Settings.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            Button("Öppna Inställningar", action: onOpenSettings)
+            Button("Open Settings", action: onOpenSettings)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
 
-            Button("Sök manuellt istället", action: onManualSearch)
+            Button("Search manually instead", action: onManualSearch)
                 .buttonStyle(.borderless)
                 .controlSize(.large)
         }
