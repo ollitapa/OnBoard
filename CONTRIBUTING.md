@@ -33,6 +33,7 @@
 
 These conventions keep view code consistent and avoid SwiftUI initialization pitfalls.
 
+- **Extract views as structs, not computed `some View` properties**: Do not break a view into smaller pieces with `private var something: some View { ... }`. Each computed property returns an opaque, type-erased-to-the-caller view whose value depends on the enclosing view's whole state, so SwiftUI re-evaluates and re-renders it whenever the parent re-renders — defeating the diffing that structs get for free. Instead, make an actual `View` struct that takes only the data it needs as stored properties (e.g. `private struct DeparturesList: View { let departures: [CallAtLocation] ... }`). Structs give SwiftUI a stable identity and let it skip re-rendering a subtree whose inputs haven't changed. Reserve computed properties for non-view values (plain `String`, `Int`, `Bool`, model objects); the only `some View` computed property in a `View` should be its `body`.
 - **Indentation**: 4 spaces. When a call or initializer doesn't fit on one line, put the opening delimiter on the first line and wrap each argument on its own line, indented 4 spaces from the start of the statement; place the closing delimiter on its own line aligned with the start of the statement. Apply the same wrapping to nested calls, array literals, and closures. For example:
   ```swift
   locationDelegate?.locationManager(

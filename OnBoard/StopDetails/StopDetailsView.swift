@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Stop board screen ("Step 2 \u2014 Tap a stop \u2192 live departure board" in
+/// The Stop board screen ("Step 2 — Tap a stop → live departure board" in
 /// `Designs/storyboard.html`).
 ///
 /// Shows a dark header with the stop name and an "updated just now" meta line,
@@ -41,7 +41,7 @@ struct StopDetailsView: View {
                     )
                 }
             } else {
-                departuresList
+                DeparturesList(departures: model.departures)
             }
         }
         .navigationTitle(stopName)
@@ -50,10 +50,18 @@ struct StopDetailsView: View {
             await model.loadDepartures(network: network, areaId: stopId)
         }
     }
+}
 
-    private var departuresList: some View {
+// MARK: - Departures list
+
+/// The plain list of departure rows for the Stop board.
+private struct DeparturesList: View {
+
+    let departures: [CallAtLocation]
+
+    var body: some View {
         List {
-            ForEach(model.departures) { departure in
+            ForEach(departures) { departure in
                 DepartureRow(departure: departure)
                     .listRowSeparator(.visible)
                     .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
@@ -80,16 +88,24 @@ private struct DepartureRow: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                statusPill
+                StatusPill(departure: departure)
             }
             Spacer(minLength: 8)
-            countdown
+            Countdown(departure: departure)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
 
-    @ViewBuilder
-    private var statusPill: some View {
+// MARK: - Status pill
+
+/// The delay or cancelled status pill under a departure's destination,
+/// matching the storyboard's `status-pill`.
+private struct StatusPill: View {
+
+    let departure: CallAtLocation
+
+    var body: some View {
         if departure.canceled == true {
             Text("Cancelled")
                 .font(.caption2.weight(.bold))
@@ -98,7 +114,7 @@ private struct DepartureRow: View {
                 .padding(.vertical, 2)
                 .background(Color.red.opacity(0.15), in: Capsule())
         } else if let delay = departure.delayMinutes {
-            Text(delayLabel(delay))
+            Text(Self.delayLabel(delay))
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(delay < 0 ? .green : .orange)
                 .padding(.horizontal, 8)
@@ -110,15 +126,29 @@ private struct DepartureRow: View {
         }
     }
 
-    @ViewBuilder
-    private var countdown: some View {
+    /// Formats a signed delay value as "+3 min" / "-2 min".
+    static func delayLabel(_ minutes: Int) -> String {
+        let sign = minutes >= 0 ? "+" : ""
+        return "\(sign)\(minutes) min"
+    }
+}
+
+// MARK: - Countdown
+
+/// The right-aligned departure countdown: "2 min" when near, the wall-clock
+/// time HH:mm otherwise, or a strikethrough "Cancelled" for canceled trips.
+private struct Countdown: View {
+
+    let departure: CallAtLocation
+
+    var body: some View {
         if departure.canceled == true {
             Text("Cancelled")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .strikethrough()
         } else {
-            Text(countdownText)
+            Text(Self.text(for: departure))
                 .font(.title3.weight(.bold))
                 .foregroundStyle(.primary)
                 .monospacedDigit()
@@ -128,7 +158,7 @@ private struct DepartureRow: View {
 
     /// "2 min" when near, otherwise the wall-clock time HH:mm. Falls back to
     /// the raw scheduled string when no time can be parsed.
-    private var countdownText: String {
+    static func text(for departure: CallAtLocation) -> String {
         if let date = departure.date {
             let minutes = Calendar.current.dateComponents(
                 [.minute],
@@ -141,12 +171,6 @@ private struct DepartureRow: View {
             return date.formatted(date: .omitted, time: .shortened)
         }
         return departure.scheduled
-    }
-
-    /// Formats a signed delay value as "+3 min" / "-2 min".
-    private func delayLabel(_ minutes: Int) -> String {
-        let sign = minutes >= 0 ? "+" : ""
-        return "\(sign)\(minutes) min"
     }
 }
 
@@ -166,15 +190,30 @@ private struct LineBadge: View {
                 .padding(.horizontal, 6)
                 .frame(minWidth: 42, minHeight: 40)
                 .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 11))
-            modeBlip
+            ModeBlip(mode: departure.route?.transport_mode)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(Self.accessibilityLabel(for: departure))
     }
 
-    @ViewBuilder
-    private var modeBlip: some View {
-        if let mode = departure.route?.transport_mode {
+    /// Combines the line label and destination into a single accessibility label.
+    static func accessibilityLabel(for departure: CallAtLocation) -> String {
+        [departure.lineLabel, departure.destination]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+}
+
+// MARK: - Mode blip
+
+/// The small transport-mode icon overlapping a `LineBadge`'s corner,
+/// matching the storyboard's `mode-blip`.
+private struct ModeBlip: View {
+
+    let mode: String?
+
+    var body: some View {
+        if let mode {
             Image(systemName: Self.modeIcon(for: mode))
                 .font(.system(size: 8, weight: .bold))
                 .foregroundStyle(.primary)
@@ -184,12 +223,6 @@ private struct LineBadge: View {
                 .overlay(Circle().strokeBorder(.background, lineWidth: 2))
                 .offset(x: 5, y: 5)
         }
-    }
-
-    private var accessibilityLabel: String {
-        [departure.lineLabel, departure.destination]
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
     }
 
     /// Maps a Trafiklab `transport_mode` to a SF Symbol, matching the icons in
