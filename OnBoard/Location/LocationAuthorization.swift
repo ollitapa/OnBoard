@@ -112,7 +112,7 @@ extension LocationAuthorization: LocationManagerDelegate {
         didUpdateLocations locations: [CLLocation]
     ) {
         MainActor.assumeIsolated {
-            self.coordinate = locations.last?.coordinate.map(Coordinate.init)
+            self.coordinate = (locations.last?.coordinate).map(Coordinate.init)
             self.failure = nil
         }
     }
