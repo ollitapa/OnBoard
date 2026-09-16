@@ -5,22 +5,14 @@ import Synchronization
 /// State is guarded by a mutex so the mock can be used safely from any
 /// actor without being pinned to the main actor.
 struct MockNetwork: NetworkProtocol {
-    /// Creates a response tuple with the given data and response.
-    /// - Parameters:
-    ///   - data: The data to return
-    ///   - response: The URLResponse to return (defaults to empty HTTPURLResponse)
-    /// - Returns: A tuple of (Data, URLResponse) for use in handlers
-    static func makeResponse(data: Data, response: URLResponse = HTTPURLResponse()) -> (Data, URLResponse) {
-        (data, response)
-    }
 
-    /// Creates a response tuple from a JSON dictionary.
+    /// Creates a response tuple from an Encodable value.
     /// - Parameters:
-    ///   - json: The JSON dictionary to encode
+    ///   - value: The Encodable value to encode as JSON
     ///   - statusCode: The HTTP status code for the response (defaults to 200)
     /// - Returns: A tuple of (Data, URLResponse) for use in handlers
-    static func makeResponse(json: [String: Any], statusCode: Int = 200) -> (Data, URLResponse) {
-        let data = try! JSONSerialization.data(withJSONObject: json)
+    static func makeResponse(json: String, statusCode: Int = 200) -> (Data, URLResponse) {
+        let data = Data(json.utf8)
         let response = HTTPURLResponse(
             url: URL(string: "https://example.com")!,
             statusCode: statusCode,
@@ -29,7 +21,6 @@ struct MockNetwork: NetworkProtocol {
         )!
         return (data, response)
     }
-
     /// Creates a response tuple from an Encodable value.
     /// - Parameters:
     ///   - value: The Encodable value to encode as JSON
@@ -48,7 +39,7 @@ struct MockNetwork: NetworkProtocol {
 
     /// A request structure that can be compared for testing purposes.
     /// Captures the essential parts of a URLRequest for verification.
-    struct TestableRequest: Equatable {
+    struct TestableRequest: Equatable, Sendable {
         /// The URL of the request
         var url: URL?
         /// The HTTP method (GET, POST, etc.)
@@ -80,10 +71,10 @@ struct MockNetwork: NetworkProtocol {
     /// request recording made inside the non-mutating `data(for:)` protocol
     /// method stays visible to the test that owns the mock, without pinning
     /// the mock to the main actor.
-    private final class Storage: @unchecked Sendable {
-        private struct State: @unchecked Sendable {
+    private final class Storage: Sendable {
+        private struct State: Sendable {
             var testableRequests: [TestableRequest] = []
-            var handlers: [(URLRequest) async throws -> (Data, URLResponse)?] = []
+            var handlers: [@Sendable (URLRequest) async throws  -> (Data, URLResponse)?] = []
         }
 
         private let state = Mutex(State())
@@ -96,7 +87,7 @@ struct MockNetwork: NetworkProtocol {
             state.withLock { $0.testableRequests.removeAll() }
         }
 
-        func appendHandler(_ handler: @escaping (URLRequest) async throws -> (Data, URLResponse)?) {
+        func appendHandler(_ handler: @Sendable @escaping  (URLRequest) async throws -> (Data, URLResponse)?) {
             state.withLock { $0.handlers.append(handler) }
         }
 
@@ -104,7 +95,7 @@ struct MockNetwork: NetworkProtocol {
             state.withLock { $0.testableRequests }
         }
 
-        func snapshotHandlers() -> [(URLRequest) async throws -> (Data, URLResponse)?] {
+        func snapshotHandlers() -> [@Sendable (URLRequest) async throws -> (Data, URLResponse)?] {
             state.withLock { $0.handlers }
         }
     }
@@ -124,7 +115,7 @@ struct MockNetwork: NetworkProtocol {
     /// Registers a handler to provide mock responses.
     /// Handlers are called in the order they were registered.
     /// - Parameter handler: A closure that takes a URLRequest and returns an optional (Data, URLResponse) tuple
-    mutating func registerHandler(_ handler: @escaping (URLRequest) async throws -> (Data, URLResponse)?) {
+    mutating func registerHandler(_ handler: @Sendable @escaping (URLRequest) async throws -> (Data, URLResponse)?) {
         storage.appendHandler(handler)
     }
 
