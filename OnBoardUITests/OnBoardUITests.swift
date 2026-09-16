@@ -26,13 +26,14 @@ final class OnBoardUITests: XCTestCase {
         app.launchArguments = ["--mock-network"]
         app.launch()
 
-        // The nearby tab is selected by default and renders the stop names.
-        let centralStation = app.staticTexts["Central Station"]
-        let marketSquare = app.staticTexts["Market Square"]
+        // The nearby tab is selected by default and renders the stop names
+        // served by `MockTrafiklabService.defaultNearbyStops`.
+        let firstStop = app.staticTexts["Medborgarplatsen"]
+        let secondStop = app.staticTexts["Slussen"]
 
-        XCTAssertTrue(centralStation.waitForExistence(timeout: 10),
+        XCTAssertTrue(firstStop.waitForExistence(timeout: 10),
                      "Expected the first mock stop to appear in the nearby list.")
-        XCTAssertTrue(marketSquare.exists,
+        XCTAssertTrue(secondStop.exists,
                      "Expected the second mock stop to appear in the nearby list.")
     }
 }

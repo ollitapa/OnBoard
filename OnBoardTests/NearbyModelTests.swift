@@ -7,51 +7,35 @@ struct NearbyModelTests {
 
     @Test func loadStopsSuccess() async throws {
         // Given
+        let stopLocations = [
+            StopLocation(rawId: "1", extId: "1", name: "Central Station",
+                         lat: "60.1756", lon: "24.9420", dist: 120, weight: 50, products: 0),
+            StopLocation(rawId: "2", extId: "2", name: "Market Square",
+                         lat: "60.1699", lon: "24.9384", dist: 300, weight: 40, products: 0)
+        ]
         let expectedStops = [
             Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420),
             Stop(id: "2", name: "Market Square", latitude: 60.1699, longitude: 24.9384)
         ]
-        
-        var mockNetwork = MockNetwork()
-        let expectedURL = URL(string: "https://api.example.com/stops/nearby")!
-        let expectedRequest = MockNetwork.TestableRequest(url: expectedURL, httpMethod: "GET", httpBody: nil)
-        
-        mockNetwork.registerHandler { request in
-            if request.url == expectedURL && request.httpMethod == "GET" {
-                return MockNetwork.makeJSONResponse(expectedStops)
-            }
-            return nil
-        }
-        
+        let network = MockTrafiklabService(nearbyStops: stopLocations)
+
         let model = NearbyModel()
 
         // When
-        await model.loadStops(network: mockNetwork)
+        await model.loadStops(network: network, latitude: 59.31, longitude: 18.07)
 
         // Then
         #expect(model.stops == expectedStops)
         #expect(model.failure == nil)
-        
-        #expect(mockNetwork.testableRequests.count == 1)
-        #expect(mockNetwork.testableRequests[0] == expectedRequest)
     }
 
     @Test func loadStopsEmptyResponse() async throws {
         // Given
-        var mockNetwork = MockNetwork()
-        let expectedURL = URL(string: "https://api.example.com/stops/nearby")!
-        
-        mockNetwork.registerHandler { request in
-            if request.url == expectedURL && request.httpMethod == "GET" {
-                return MockNetwork.makeJSONResponse([Stop]())
-            }
-            return nil
-        }
-        
+        let network = MockTrafiklabService(nearbyStops: [])
         let model = NearbyModel()
 
         // When
-        await model.loadStops(network: mockNetwork)
+        await model.loadStops(network: network, latitude: 59.31, longitude: 18.07)
 
         // Then
         #expect(model.stops == [])
@@ -59,14 +43,13 @@ struct NearbyModelTests {
     }
 
     @Test func loadStopsNetworkError() async throws {
-        // Given
-        let mockNetwork = MockNetwork()
-        // No handlers registered, will throw NoResponseConfigured
-        
+        // Given: a network with no handlers throws NoResponseConfigured, which
+        // surfaces as a failure rather than an empty success.
+        let network = MockNetwork()
         let model = NearbyModel()
 
         // When
-        await model.loadStops(network: mockNetwork)
+        await model.loadStops(network: network, latitude: 59.31, longitude: 18.07)
 
         // Then
         #expect(model.stops == [])
@@ -74,21 +57,18 @@ struct NearbyModelTests {
     }
 
     @Test func loadStopsInvalidJSON() async throws {
-        // Given
-        var mockNetwork = MockNetwork()
-        let expectedURL = URL(string: "https://api.example.com/stops/nearby")!
-        
-        mockNetwork.registerHandler { request in
-            if request.url == expectedURL && request.httpMethod == "GET" {
+        // Given: a handler that returns non-matching JSON for the nearby path.
+        var network = MockNetwork()
+        network.registerHandler { request in
+            if request.url?.path.hasSuffix("location.nearbystops") == true {
                 return MockNetwork.makeResponse(json: #"{"invalid":"json"}"#, statusCode: 200)
             }
             return nil
         }
-        
         let model = NearbyModel()
 
         // When
-        await model.loadStops(network: mockNetwork)
+        await model.loadStops(network: network, latitude: 59.31, longitude: 18.07)
 
         // Then
         #expect(model.stops == [])
