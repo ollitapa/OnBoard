@@ -169,9 +169,12 @@ struct FavoritesModelTests {
     }
 
     @Test func toggleRollsBackOnSaveError() async {
-        let model = FavoritesModel(fileStorage: ThrowingFavoriteStorage(allowRead: true))
+        // Given: a store whose first save succeeds but whose second save throws.
+        let storage = FailAfterFirstSaveStorage()
+        let model = FavoritesModel(fileStorage: storage)
         await model.toggle("1", name: "Slussen", lines: ["4"])
-        // When: the save throws, so the in-memory list rolls back.
+        // When: the second save throws, so the in-memory list rolls back to the
+        // state after the first (successful) save.
         await model.toggle("2", name: "Odenplan", lines: ["4"])
         // Then
         #expect(model.favorites == [Favorite(id: "1", name: "Slussen", lines: ["4"])])
@@ -179,13 +182,6 @@ struct FavoritesModelTests {
     }
 
     // MARK: - Equality / identity
-
-    @Test func favoritesEqualByIdOnly() {
-        let a = Favorite(id: "1", name: "Slussen", lines: ["4"])
-        let b = Favorite(id: "1", name: "Medborgarplatsen", lines: ["3"])
-        #expect(a == b)
-        #expect(a.hashValue == b.hashValue)
-    }
 
     @Test func favoritesNotEqualByDifferentId() {
         let a = Favorite(id: "1")
@@ -208,26 +204,41 @@ struct FavoritesModelTests {
 
 // MARK: - Helpers
 
-/// A `AsyncStorage<Data, String>` that throws on every operation, optionally
-/// allowing reads so a first favorite can be saved before a failing write
-/// tests the rollback path.
+/// A `AsyncStorage<Data, String>` that throws on every read, used to test the
+/// load-failure path.
 private struct ThrowingFavoriteStorage: AsyncStorage {
     typealias Value = Data
     typealias Id = String
 
-    let allowRead: Bool
-
-    init(allowRead: Bool = false) {
-        self.allowRead = allowRead
-    }
-
     func value(for id: Id) async throws -> Data? {
-        guard allowRead else { throw StorageError() }
-        return nil
+        throw StorageError()
     }
 
     func saveValue(_ value: Data?, for id: Id) async throws {
         throw StorageError()
+    }
+
+    private struct StorageError: Error {}
+}
+
+/// A `AsyncStorage<Data, String>` whose first `saveValue` succeeds and every
+/// subsequent one throws, so the first favourite persists and a later save
+/// failure exercises the model's rollback path. "First" is derived from
+/// whether the store already holds data, so the helper needs no mutable
+/// counter (keeping it a `Sendable` value type).
+private struct FailAfterFirstSaveStorage: AsyncStorage {
+    typealias Value = Data
+    typealias Id = String
+
+    private let memory = MemoryStorage<Data, String>()
+
+    func value(for id: Id) async throws -> Data? {
+        memory.value(for: id)
+    }
+
+    func saveValue(_ value: Data?, for id: Id) async throws {
+        guard memory.value(for: id) == nil else { throw StorageError() }
+        memory.saveValue(value, for: id)
     }
 
     private struct StorageError: Error {}

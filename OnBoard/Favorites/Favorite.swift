@@ -11,10 +11,10 @@ struct StoredFavorites: Codable, Sendable, Hashable {
 /// Captures just enough to render a favourites row and re-open the stop's
 /// live departure board: the stop's group id (used for `Trafiklab.departures`
 /// and as the row identity), its name, and the line labels seen when it was
-/// saved (shown as the row subtitle). Equality and hashing are by `id` only,
-/// so a favourite is uniquely identified by its stop regardless of the lines
-/// captured at save time, which lets the star toggle and `contains` check by
-/// stop id.
+/// saved (shown as the row subtitle). Uniqueness by stop id is enforced by the
+/// model (which looks up favourites by id with a predicate rather than via
+/// `==`), not by a custom `Equatable`/`Hashable` — those are synthesized to
+/// compare the whole value.
 struct Favorite: Codable, Identifiable, Sendable, Hashable {
     /// The stop group id (Trafiklab `extId`), used to open the departure board.
     var id: String

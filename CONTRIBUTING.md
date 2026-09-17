@@ -6,7 +6,7 @@
 
 - **Prefer `== []` over `isEmpty`** for array comparisons in tests. This provides better error debugging as the test framework can show the actual vs expected values.
 
-- **Use Equatable conformance** for model types to enable full object comparison in tests rather than comparing individual properties.
+- **Use Equatable conformance** for model types to enable full object comparison in tests rather than comparing individual properties. Rely on the **synthesized** (memberwise) `Equatable`/`Hashable` conformance — almost never write a custom `==` or `hash(into:)`. If you need exclusivity or lookup based on only an `id`, don't express that by overriding `==` to compare `id` alone (which makes equality inconsistent with hashing and the whole value); instead model the collection as a `Dictionary<id, value>` keyed by that id, or find entries with a predicate (`favorites.firstIndex { $0.id == stopId }`). Keep the type's identity (`Identifiable`'s `id`) and its value equality as separate concerns.
 
 - **Mock dependencies** using the dependency injection pattern. The project uses environment values for dependencies like `NetworkProtocol`.
 
