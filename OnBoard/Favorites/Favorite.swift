@@ -1,5 +1,10 @@
 import Foundation
 
+/// Structure of favourites stored in the memory.
+struct StoredFavorites: Codable, Sendable, Hashable {
+    var favorites: [Favorite]
+}
+
 /// A stop saved to the Favourites tab ("Step 4 — Save a stop → skip the
 /// search next time" in `Designs/storyboard.html`).
 ///
