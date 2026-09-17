@@ -68,3 +68,9 @@ func mockModelContainer() -> ModelContainer {
 
     return container
 }
+
+@MainActor
+func emptyModelContainer() -> ModelContainer {
+    let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+    return try! ModelContainer(for: StoredFavorites.self, configurations: configuration)
+}

@@ -268,7 +268,7 @@ private struct ModeBlip: View {
 /// on the board are captured into the favourite so the row shows a "Lines …"
 /// subtitle.
 private struct FavoriteToggle: View {
-    @Environment(\.modelContext) var modelContex
+    @Environment(\.modelContext) var modelContext
     let stopId: String
     let stopName: String
     let departures: [CallAtLocation]
@@ -280,7 +280,7 @@ private struct FavoriteToggle: View {
                 stopId,
                 name: stopName,
                 lines: departures.lineLabels,
-                context: modelContex
+                context: modelContext
             )
         } label: {
             Image(systemName: model.contains(stopId) ? "star.fill" : "star")
@@ -291,12 +291,14 @@ private struct FavoriteToggle: View {
 }
 
 #Preview("Departures") {
+    @Previewable @State var model = FavoritesModel()
     NavigationStack {
         StopDetailsView(
             stopId: "740000001",
             stopName: "Medborgarplatsen"
         )
     }
-    .environment(\.network, MockNetwork())
-    .environment(FavoritesModel())
+    .environment(\.network, MockTrafiklabService())
+    .environment(model)
+    .modelContainer(mockModelContainer())
 }

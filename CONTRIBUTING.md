@@ -6,13 +6,13 @@
 
 - **Prefer `== []` over `isEmpty`** for array comparisons in tests. This provides better error debugging as the test framework can show the actual vs expected values.
 
-- **Use Equatable conformance** for model types to enable full object comparison in tests rather than comparing individual properties. Rely on the **synthesized** (memberwise) `Equatable`/`Hashable` conformance — almost never write a custom `==` or `hash(into:)`. If you need exclusivity or lookup based on only an `id`, don't express that by overriding `==` to compare `id` alone (which makes equality inconsistent with hashing and the whole value); instead model the collection as a `Dictionary<id, value>` keyed by that id, or find entries with a predicate (`favorites.firstIndex { $0.id == stopId }`). Keep the type's identity (`Identifiable`'s `id`) and its value equality as separate concerns.
+- **Use Equatable conformance** for model types to enable full object comparison in tests rather than comparing individual properties. Rely on the **synthesized** (memberwise) `Equatable`/`Hashable` conformance — almost never write a custom `==` or `hash(into:)`. If you need exclusivity or lookup based on only an `id`, don't express that by overriding `==` to compare `id` alone (which makes equality inconsistent with hashing and the whole value); instead model the collection as a `Dictionary<id, value>` keyed by that id, or find entries with a predicate (`favorites.firstIndex { $0.id == stopId }`). Keep the type's identity (`Identifiable`'s `id`) and its value equality as separate concerns. **Exception: SwiftData `@Model` classes** — the `@Model` macro synthesizes `Equatable`/`Hashable` as **object identity**, not memberwise, so two equal-by-field models are not `==`. For `@Model` types, compare a value snapshot (e.g. a `(id, name, lines)` tuple) in `#expect`, not the model object.
 
 - **Mock dependencies** using the dependency injection pattern. The project injects `NetworkProtocol` and `@Observable` models through the SwiftUI environment (see Network Layer and Observable Models).
 
 - **Prefer feature-specific service mocks over a bare `MockNetwork`**: `MockTrafiklabService` (and the older `MockNearbyServer`) serve canned, `Codable`-round-trippable responses for the real endpoint paths the app calls, so a model's full encode→decode path is exercised. Reach for the bare `MockNetwork` (handler registration) only when a test needs to assert on a specific request shape or feed invalid JSON (`loadStopsInvalidJSON`, `loadDeparturesInvalidJSON`). A preview that wires a `MockNetwork()` with **no handlers** into a screen whose `.task` loads data will surface `NoResponseConfigured` as a failure string, not a working preview — use `MockTrafiklabService` (or `mockNetwork()`) for previews that need data.
 
-- **Preview/test helper functions live in the app target**: `mockNetwork()`, `previewLocationAuthorization()`, and `mockFavoritesModel()` are top-level functions in the app target (not the test target) because previews and the `--mock-network`/`--skip-location-permission` launch-argument harness both call them. Add a new one alongside its dependency when a preview needs pre-configured state.
+- **Preview/test helper functions live in the app target**: `mockNetwork()`, `previewLocationAuthorization()`, `mockModelContainer()`, and `emptyModelContainer()` are top-level functions in the app target (not the test target) because previews and the `--mock-network`/`--skip-location-permission` launch-argument harness both call them. Add a new one alongside its dependency when a preview needs pre-configured state.
 
 - **Test helpers**: Use the static helper methods on `MockNetwork` for creating test responses:
   - `MockNetwork.makeResponse(json:statusCode:)` - for raw JSON strings
@@ -27,20 +27,21 @@
 
 ### Storage Layer
 
-The app persists state through the `AsyncStorage<Value, Id>` protocol (`OnBoard/Storage/`), the storage analogue of `NetworkProtocol`: a single `value(for:)` / `saveValue(_:for:)` interface with `MemoryStorage`, `FileStorage`, `CombinedStorage`, and `CodableStorage` conformers. Follow the same conventions as the network layer.
+The app persists state with SwiftData (`@Model` classes plus a `ModelContainer`/`ModelContext`), the storage analogue of the network layer: the `ModelContainer` is built once by the app entry point (`MyApp`) and injected into the SwiftUI environment with `.modelContainer(container)`; views read the context with `@Environment(\.modelContext)` and hand it to their model's load/mutate methods. The custom `AsyncStorage` framework that preceded it has been removed.
 
-- **Storage is a dependency, not a global**: A model that persists state takes a raw `AsyncStorage<Data, String>` (the `FileStorage`-shaped primitive) in its `init` and does its own JSON encode/decode of the value it stores via `.codable(for:)`, depending only on the same storage primitive the rest of the app uses. The model's `init` stays otherwise empty; the view that *owns* the model builds the store (e.g. `liveFavoritesStorage()` = file-backed store `.combined(with:)` an in-memory cache) and passes it in. Do not hand the model a pre-decoded value type or a domain-specific storage typealias — that couples the storage layer to one feature.
-- **Wrap a file store with a memory cache**: Build a live store as `MemoryStorage<Value, Id>().combined(with: FileStorage(...))` (or `.codable(for:)` on top) so repeated reads don't hit disk. `combined(with:)` reads the cache first and back-fills/promotes from the backing store; writes push to both and roll the backing store back on a cache write failure.
-- **Make `AsyncStorage` conformers `Sendable`**: The protocol is `Sendable` (mirroring `NetworkProtocol`), so a `@MainActor` model can hold `any AsyncStorage<...>` and `await` its methods under Swift 6 without a region-isolation data-race warning. Value-type conformers (`MemoryStorage`, `FileStorage`, `CombinedStorage`, `CodableStorage`) get `Sendable` for free; new conformers must be `Sendable` too.
-- **Tests/previews pass an in-memory store**: `MemoryStorage<Data, String>()` satisfies `some AsyncStorage<Data, String>` and is synchronous, so preview/test setup can `storage.saveValue(..., for: id)` inline (no `Task`) before constructing the model.
-- **Roll back on a write failure**: When a persist call can fail, capture the prior in-memory state, mutate, attempt the write, and on failure restore the prior state and surface the error in a `failure: String?` rather than leaving the view and the store out of sync. Use a `FailAfterFirstSaveStorage`-style helper (first save succeeds, later saves throw) to exercise this path; a store that throws on *every* save also rolls back the very first change, so it can't test the rollback-after-success case.
+- **Storage is a dependency, not a global**: The `@MainActor @Observable` view model is storage-agnostic: it takes no store in `init` and receives the `ModelContext` as a parameter on each load/mutate method (`loadFavorites(context:)`, `toggle(_:name:lines:context:)`), so it depends only on the SwiftData store injected into the environment. The app entry point owns and builds the `ModelContainer`; previews/tests inject an in-memory container. Do not reach for a singleton context or a global container inside a model.
+- **One aggregate root per feature**: Persist a feature's collection as a single `@Model` aggregate (e.g. `StoredFavorites` holds the `[Favorite]` relationship with `@Relationship(deleteRule: .cascade)`), not as many independent rows the model must round-trip. `FavoritesModel.loadFavorites` fetches the one `StoredFavorites` and the view mutates its `favorites` array; deleting the aggregate cascades to all its favourites. A `@Model` can itself own `@Model` relationships — use that instead of encoding nested value blobs.
+- **`@Model` gives identity, not value equality**: The `@Model` macro synthesizes `Identifiable`, `Hashable`, `Observable`, and `PersistentModel`, and SwiftData's default `Hashable`/`Equatable` is **object identity**, not memberwise comparison. So never compare two `@Model` instances with `==` to check their fields (two equal-by-field favourites are not `==`). In tests, compare a value snapshot (`favorite.id`, `favorite.name`, `favorite.lines`) or a `(id, name, lines)` tuple. This is why the repo's "synthesized `Equatable`" convention (see Testing) applies to plain value types, not to `@Model` classes.
+- **The model creates the aggregate on demand**: If a feature's aggregate may not exist yet (first launch), the mutate method inserts one on the first write rather than requiring the caller to seed it. `FavoritesModel.toggle` creates and inserts a `StoredFavorites` when none is loaded; `remove` is a no-op when the aggregate is `nil`. Don't `fatalError` on a missing aggregate.
+- **Sort in the model, persist from the caller**: Keep display invariants (e.g. favourites sorted by name) in the model — `toggle` re-sorts after each add so the view never sees unsorted data. The model mutates the context but does not own the save lifecycle; the caller saves the `ModelContext` when it wants the change to outlive the run. (The live app relies on SwiftData autosave; tests call `context.save()` explicitly.)
+- **Tests/previews use an in-memory container**: `ModelConfiguration(isStoredInMemoryOnly: true)` gives a throwaway `ModelContainer`/`ModelContext` per test. Helpers `mockModelContainer()` and `emptyModelContainer()` (app target, next to the `@Model`) build a seeded/empty container for previews; tests build their own in a `makeContext()` helper.
 
 ### Observable Models
 
 App state is held in `@MainActor @Observable final class` models (`NearbyModel`, `StopDetailsModel`, `FavoritesModel`), each owning one screen's load lifecycle and surfacing transport/storage errors as a `failure: String?` rather than throwing.
 
-- **The view owns its model**: The top-level view (`MainView`) owns a shared model in `@State` (built by a private `static` factory) and publishes it into the environment so every screen that mutates the same state reads one instance. A model is never a singleton or a global; whoever needs to share it constructs it once and injects it.
-- **One model per screen for screen-local state**: A screen's model is constructed with `@State var model = SomeModel()` inside that screen's view and built from the environment's injected dependencies (network, storage) at load time. The model's `init` takes no dependencies; load methods receive them (`loadStops(network:latitude:longitude:)`, `loadDepartures(network:areaId:)`) so tests inject a mock directly. A *shared* model (e.g. favourites, used by two screens) is owned by the parent and read from `@Environment(Model.self)` instead.
+- **The view owns its model**: The top-level view (`MainView`) owns a shared model in `@State` (e.g. `@State var favoritesModel = FavoritesModel()`) and publishes it into the environment so every screen that mutates the same state reads one instance. A model is never a singleton or a global; whoever needs to share it constructs it once and injects it.
+- **One model per screen for screen-local state**: A screen's model is constructed with `@State var model = SomeModel()` inside that screen's view and built from the environment's injected dependencies (network, `ModelContext`) at load time. The model's `init` takes no dependencies; load/mutate methods receive them (`loadStops(network:latitude:longitude:)`, `loadDepartures(network:areaId:)`, `loadFavorites(context:)`) so tests inject a mock/context directly. A *shared* model (e.g. favourites, used by two screens) is owned by the parent and read from `@Environment(Model.self)` instead.
 - **Inject `@Observable` models via `@Environment(Model.self)`**: Publish an `@Observable` model with `.environment(model)` and read it with `@Environment(Model.self)`. Do not register it as a custom `@Entry` on `EnvironmentValues` and read `@Environment(\.customKey)` — that adds an optional layer the view then has to unwrap (`if let model { ... } else { ProgressView() }`), and it's a step away from the canonical `@Observable` injection. `@Environment(Model.self)` is non-optional and fails loudly if the model is missing, which is what you want for a required dependency.
 - **Don't launch a `Task` from a `static` model factory**: A `static func makeModel() -> Model` should construct and return the model only. Trigger the initial load from the owning view's `.task { await model.load() }` modifier, which SwiftUI ties to the view's lifetime and re-runs on the right actor. A `Task { await model.load() }` fired from the factory escapes SwiftUI's lifecycle, can run before the view is on screen, and (when the factory is also used by a preview) leaves the load unowned.
 
@@ -97,26 +98,21 @@ These conventions keep view code consistent and avoid SwiftUI initialization pit
   ```
   If a secondary init needs to supply a different model (e.g. for previews/tests), assign it to the `@State` property directly in that init rather than constructing `State`.
 
-  For a top-level view that owns several shared dependencies as `@State` (e.g. `MainView`'s `network`, `locationModel`, `favoritesModel`), give each one a default inline initializer driven by launch arguments (the `--mock-network` / `--skip-location-permission` UI-test harness), keep `init()` empty, and add one secondary `init` that previews/tests use to override **all** the `@State` dependencies at once. Don't split this into multiple secondary inits that each override a subset and leave the rest at the default — that produces combinations (e.g. a real `LiveNetwork` paired with a pre-authorized location model) that are nonsensical for a preview and force the view to handle `nil`/mismatched state. One explicit-everything init keeps the production path and the preview/test path clearly separated:
+  The app entry point (`MyApp`), not the root view, owns the shared dependencies as `@State` (`network`, `locationModel`, `modelContainer`) and injects them into the environment on the root view. The root view (`MainView`) therefore has an empty `init()` and reads every dependency from the environment (`@Environment(\.network)`, `@Environment(LocationAuthorization.self)`, `@Environment(\.modelContext)`, `@Environment(FavoritesModel.self)`). This keeps the production wiring in one place and lets `MainView` be constructed with no arguments in previews.
+
+- **Use `@Previewable @State` to inject dependencies into previews**: A preview that needs to supply environment dependencies (network, location model, `ModelContainer`, an `@Observable` model) declares them with `@Previewable @State var x = …` at the top of the `#Preview` block, then publishes them onto the view with `.environment(\.network, x)`, `.environment(x)`, `.modelContainer(x)`. **Do not** instead give the view a secondary `init(network:locationModel:favoritesModel:)` just so the preview can pass values through `@State` — that default `@State` initializer expression (`Self.makeNetwork()`) still *runs* in the preview process, and when it falls back to `LiveNetwork()` (no `--mock-network` launch arg in previews) the screen's `.task` fires a real request that fails (e.g. an empty-API-key ResRobot call returns an HTML error page → `DecodingError.dataCorrupted` / "Unexpected character '<'"). `@Previewable @State` makes the preview the source of truth and lets the view stay construction-free:
   ```swift
-  struct MainView: View {
-      @State var network: any NetworkProtocol = Self.makeNetwork()
-      @State var locationModel: LocationAuthorization = Self.makeLocationAuthorization()
-      @State var favoritesModel: FavoritesModel = Self.makeFavoritesModel()
-
-      init() { }
-
-      init(
-          network: any NetworkProtocol,
-          locationModel: LocationAuthorization,
-          favoritesModel: FavoritesModel
-      ) {
-          self.network = network
-          self.locationModel = locationModel
-          self.favoritesModel = favoritesModel
-      }
+  #Preview {
+      @Previewable @State var network: NetworkProtocol = mockNetwork()
+      @Previewable @State var locationModel = previewLocationAuthorization()
+      @Previewable @State var modelContainer: ModelContainer = mockModelContainer()
+      MainView()
+          .environment(\.network, network)
+          .environment(locationModel)
+          .modelContainer(modelContainer)
   }
   ```
+  This is also why a preview that needs a `@Environment(\.modelContext)` (any view with `@Environment(\.modelContext)`) **must** get a `.modelContainer(...)` — a `@Model`-reading view traps at runtime if no container is in the environment.
 
 - **User-facing text is English**: All in-app strings — view `Text`, `Button` titles, labels — are in English. The Trafiklab API is Swedish and its data (stop names, etc.) is surfaced as-is, but the app's own UI chrome stays English. The `NSLocationWhenInUseUsageDescription` Info.plist value is an exception: it is the *system* permission prompt, not in-app UI, so it may be localized to match the OS sheet.
 
@@ -129,14 +125,13 @@ OnBoard/
 │   ├── NetworkDependency.swift
 │   ├── LiveNetwork.swift
 │   ├── MockNetwork.swift
-│   └── MockNearbyServer.swift  # mockNetwork(), previewLocationAuthorization(), mockFavoritesModel()
-├── Storage/              # AsyncStorage layer (Memory/File/Combined/Codable)
+│   └── MockNearbyServer.swift  # mockNetwork(), previewLocationAuthorization()
 ├── Api/                  # Trafiklab API client, response models, MockTrafiklabService
 ├── Location/             # Location permission flow and managers
 ├── Nearby/               # Nearby stops feature
 │   ├── NearbyModel.swift
 │   └── NearbyView.swift
-├── Favorites/            # Favorite stops feature (Favorite, FavoritesModel, FavoritesView, live store)
+├── Favorites/            # Favorite stops feature (SwiftData @Model Favorite/StoredFavorites, FavoritesModel, FavoritesView, mock/empty containers)
 ├── Search/               # Search feature
 └── StopDetails/          # Stop board feature (model, view, CallAtLocation presentation/favorites helpers)
 

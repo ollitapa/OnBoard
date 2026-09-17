@@ -8,7 +8,7 @@ import SwiftData
 /// the stop name, and a "Lines …" subtitle, plus a dashed empty hint when no
 /// stops are saved. Tapping a row opens the stop's live departure board
 /// (``StopDetailsView``). The view is driven by ``FavoritesModel`` and reads
-/// its shared model from the SwiftUI environment (`@Environment(\.favoritesModel)`),
+/// its shared model from the SwiftUI environment (`@Environment(FavoritesModel.self)`),
 /// so the Stop board's star toggle and this tab mutate the same list.
 struct FavoritesView: View {
     @Environment(FavoritesModel.self) private var favoritesModel
@@ -125,8 +125,11 @@ private struct FavoritesEmptyHint: View {
 }
 
 #Preview("Empty") {
+    @Previewable @State var model = FavoritesModel()
+
     NavigationStack {
         FavoritesView()
     }
-    .environment(FavoritesModel())
+    .environment(model)
+    .modelContainer(emptyModelContainer())
 }
