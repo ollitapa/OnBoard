@@ -36,7 +36,6 @@ struct NearbyView: View {
         .navigationDestination(for: Stop.self) { stop in
             StopDetailsView(stopId: stop.id, stopName: stop.name)
         }
-        .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: location?.coordinate != nil) { _, hasCoordinate in
             guard hasCoordinate, let coordinate = location?.coordinate else { return }
