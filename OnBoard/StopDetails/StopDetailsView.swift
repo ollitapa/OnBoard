@@ -20,6 +20,8 @@ struct StopDetailsView: View {
 
     @Environment(\.network) private var network
 
+    @Environment(\.favoritesModel) private var favoritesModel
+
     @State private var model = StopDetailsModel()
 
     var body: some View {
@@ -46,6 +48,18 @@ struct StopDetailsView: View {
         }
         .navigationTitle(stopName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if let favoritesModel {
+                    FavoriteToggle(
+                        stopId: stopId,
+                        stopName: stopName,
+                        departures: model.departures,
+                        model: favoritesModel
+                    )
+                }
+            }
+        }
         .task {
             await model.loadDepartures(network: network, areaId: stopId)
         }
@@ -247,6 +261,32 @@ private struct ModeBlip: View {
     }
 }
 
+// MARK: - Favorite toggle
+
+/// The toolbar star on the Stop board that saves/removes the current stop as a
+/// favourite, matching the storyboard's "tap the star on any stop page". The
+/// filled state reflects the shared ``FavoritesModel``; the line labels seen
+/// on the board are captured into the favourite so the row shows a "Lines …"
+/// subtitle.
+private struct FavoriteToggle: View {
+    let stopId: String
+    let stopName: String
+    let departures: [CallAtLocation]
+    let model: FavoritesModel
+
+    var body: some View {
+        Button {
+            Task {
+                await model.toggle(stopId, name: stopName, lines: departures.lineLabels)
+            }
+        } label: {
+            Image(systemName: model.contains(stopId) ? "star.fill" : "star")
+                .foregroundStyle(model.contains(stopId) ? .yellow : .secondary)
+                .accessibilityLabel(model.contains(stopId) ? "Remove favourite" : "Add favourite")
+        }
+    }
+}
+
 #Preview("Departures") {
     NavigationStack {
         StopDetailsView(
@@ -255,4 +295,5 @@ private struct ModeBlip: View {
         )
     }
     .environment(\.network, MockNetwork())
+    .environment(\.favoritesModel, FavoritesModel(storage: InMemoryFavoriteStorage()))
 }
