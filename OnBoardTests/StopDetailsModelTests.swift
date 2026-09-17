@@ -47,8 +47,14 @@ struct StopDetailsModelTests {
 
     @Test func loadDeparturesForUnknownAreaIdIsEmpty() async throws {
         // Given: an area id with no configured departures returns an empty
-        // list rather than throwing, matching the real API's empty window.
-        let network = MockTrafiklabService(departuresByAreaId: ["740000001": departures])
+        // list rather than throwing, matching the real API's empty window —
+        // even when a different area id does have departures configured.
+        let known = Self.departure(
+            scheduled: "2099-01-01T12:00:00",
+            designation: "3",
+            direction: "Karolinska sjukhuset"
+        )
+        let network = MockTrafiklabService(departuresByAreaId: ["740000001": [known]])
         let model = StopDetailsModel()
         // When
         await model.loadDepartures(network: network, areaId: "740000999")
