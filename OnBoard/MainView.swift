@@ -63,7 +63,7 @@ struct MainView: View {
         if let locationModel {
             return NearbyPermissionModifier(model: locationModel) { selectedTab = .search }
         }
-        return NearbyPermissionModifier { selectedTab = .search }
+        return NearbyPermissionModifier(model: nil) { selectedTab = .search }
     }
 
     private static func makeNetwork() -> any NetworkProtocol {
@@ -80,6 +80,11 @@ struct MainView: View {
 private struct NearbyPermissionModifier: ViewModifier {
     let model: LocationAuthorization?
     let onManualSearch: () -> Void
+
+    init(model: LocationAuthorization? = nil, onManualSearch: @escaping () -> Void) {
+        self.model = model
+        self.onManualSearch = onManualSearch
+    }
 
     func body(content: Content) -> some View {
         if let model {
