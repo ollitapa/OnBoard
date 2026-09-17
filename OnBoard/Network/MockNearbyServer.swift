@@ -49,10 +49,6 @@ struct MockNearbyServer: NetworkProtocol {
     ]
 }
 
-/// Launch argument used by UI tests to substitute a mock network for the
-/// production `LiveNetwork`. See `mockNetwork()`.
-let mockNetworkLaunchArgument = "--mock-network"
-
 /// Builds the `CombinedNetwork` used when `--mock-network` is passed at
 /// launch, composing a `MockTrafiklabService` over both the ResRobot and
 /// Trafiklab realtime base URLs so the nearby view (ResRobot
@@ -70,12 +66,6 @@ func mockNetwork() -> some NetworkProtocol {
         )
     ], fallback: LiveNetwork())
 }
-
-/// Launch argument that makes `.locationPermissions` skip the system
-/// permission flow and pre-authorize a fixed coordinate, so the Nearby tab
-/// renders stops in UI tests where the simulator can't grant real location
-/// permission. Mirrors the `--mock-network` harness.
-let skipLocationPermissionLaunchArgument = "--skip-location-permission"
 
 /// Builds a pre-authorized `LocationAuthorization` delivering a fixed
 /// Stockholm coordinate, for previews and tests that need the Nearby tab to
