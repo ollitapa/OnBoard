@@ -49,6 +49,9 @@ struct StopDetailsView: View {
         }
         .navigationTitle(stopName)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: RouteDetails.self) { route in
+            RouteDetailsView(route: route)
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 FavoriteToggle(
@@ -67,7 +70,9 @@ struct StopDetailsView: View {
 
 // MARK: - Departures list
 
-/// The plain list of departure rows for the Stop board.
+/// The plain list of departure rows for the Stop board. A departure with a
+/// `trip` reference is tappable and pushes the Live Trip screen
+/// (``RouteDetailsView``); a departure without one renders as a plain row.
 private struct DeparturesList: View {
 
     let departures: [CallAtLocation]
@@ -75,10 +80,16 @@ private struct DeparturesList: View {
     var body: some View {
         List {
             ForEach(departures) { departure in
-                DepartureRow(departure: departure)
-                    .listRowSeparator(.visible)
-                    .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+                if let route = departure.routeDetails {
+                    NavigationLink(value: route) {
+                        DepartureRow(departure: departure)
+                    }
+                } else {
+                    DepartureRow(departure: departure)
+                }
             }
+            .listRowSeparator(.visible)
+            .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
         }
         .listStyle(.plain)
     }
