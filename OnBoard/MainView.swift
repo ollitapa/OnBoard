@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreLocation
 
 enum Tabs: String, Hashable {
     case nearby
@@ -95,99 +94,9 @@ private struct NearbyPermissionModifier: ViewModifier {
     }
 }
 
-// MARK: - Preview
-
-extension MainView {
-
-    /// A mock network serving the default nearby stops plus per-stop
-    /// departures keyed by their area ids, so the Stop board screen renders
-    /// real rows in the preview. `Folkungagatan` has no departures configured,
-    /// so its board shows the empty state.
-    static func previewNetwork() -> some NetworkProtocol {
-        MockTrafiklabService(
-            departuresByAreaId: [
-                "740000001": previewDepartures,
-                "740000002": previewDepartures
-            ]
-        )
-    }
-
-    /// A pre-authorized location model delivering a fixed Stockholm coordinate,
-    /// so the Nearby tab renders its stops in the preview without a permission
-    /// prompt.
-    @MainActor
-    static func previewLocationModel() -> LocationAuthorization {
-        let manager = FixedLocationManager(
-            authorizationStatus: .authorizedWhenInUse,
-            coordinate: CLLocationCoordinate2D(latitude: 59.31, longitude: 18.07)
-        )
-        let model = LocationAuthorization(manager: manager)
-        model.startUpdating()
-        return model
-    }
-
-    /// A handful of departures exercising the row variants: an on-time bus, a
-    /// delayed tram, and a cancelled metro.
-    static var previewDepartures: [CallAtLocation] {
-        [
-            CallAtLocation(
-                scheduled: Self.futureTimestamp(minutesFromNow: 2),
-                realtime: Self.futureTimestamp(minutesFromNow: 2),
-                delay: 0,
-                canceled: false,
-                is_realtime: true,
-                route: Route(designation: "3", transport_mode: "BUS", direction: "Karolinska sjukhuset", name: nil),
-                agency: nil,
-                trip: nil,
-                stop: nil,
-                scheduled_platform: nil,
-                realtime_platform: nil,
-                alerts: nil
-            ),
-            CallAtLocation(
-                scheduled: Self.futureTimestamp(minutesFromNow: 5),
-                realtime: Self.futureTimestamp(minutesFromNow: 8),
-                delay: 180,
-                canceled: false,
-                is_realtime: true,
-                route: Route(designation: "7", transport_mode: "TRAM", direction: "Ropsten", name: nil),
-                agency: nil,
-                trip: nil,
-                stop: nil,
-                scheduled_platform: nil,
-                realtime_platform: nil,
-                alerts: nil
-            ),
-            CallAtLocation(
-                scheduled: Self.futureTimestamp(minutesFromNow: 9),
-                realtime: nil,
-                delay: nil,
-                canceled: true,
-                is_realtime: false,
-                route: Route(designation: "T14", transport_mode: "METRO", direction: "Fruängen", name: nil),
-                agency: nil,
-                trip: nil,
-                stop: nil,
-                scheduled_platform: nil,
-                realtime_platform: nil,
-                alerts: nil
-            )
-        ]
-    }
-
-    /// Formats a timestamp `minutesFromNow` minutes ahead as the Trafiklab
-    /// realtime format `YYYY-MM-DDTHH:mm:ss` in the current time zone.
-    static func futureTimestamp(minutesFromNow: Int) -> String {
-        let date = Date().addingTimeInterval(TimeInterval(minutesFromNow) * 60)
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.string(from: date)
-    }
-}
-
 #Preview {
     MainView(
-        network: MainView.previewNetwork(),
-        locationModel: MainView.previewLocationModel()
+        network: mockNetwork(),
+        locationModel: previewLocationAuthorization()
     )
 }

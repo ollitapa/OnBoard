@@ -25,6 +25,8 @@ struct MockTrafiklabService: NetworkProtocol {
     /// The departures returned from the Timetables departures endpoint, keyed
     /// by the area id in the request path (`/departures/{areaId}`). An area id
     /// with no entry returns an empty departures list, matching the real API.
+    /// Defaults to ``defaultDeparturesByAreaId`` so previews, the `--mock-network`
+    /// UI-test harness, and unit tests all share one canned dataset.
     let departuresByAreaId: [String: [CallAtLocation]]
 
     /// Creates a mock Trafiklab service.
@@ -36,7 +38,7 @@ struct MockTrafiklabService: NetworkProtocol {
     init(
         baseURL: URL = URL(string: "https://api.resrobot.se")!,
         nearbyStops: [StopLocation] = MockTrafiklabService.defaultNearbyStops,
-        departuresByAreaId: [String: [CallAtLocation]] = [:]
+        departuresByAreaId: [String: [CallAtLocation]] = MockTrafiklabService.defaultDeparturesByAreaId
     ) {
         self.baseURL = baseURL
         self.nearbyStops = nearbyStops
@@ -126,4 +128,74 @@ struct MockTrafiklabService: NetworkProtocol {
             products: 1024
         )
     ]
+
+    /// The default departures served per area id, keyed to ``defaultNearbyStops``
+    /// by their `extId`. The first two stops share the sample rows; the third
+    /// (`Folkungagatan`) is intentionally absent so its board shows the empty
+    /// state. A computed property so the relative timestamps stay fresh.
+    static var defaultDeparturesByAreaId: [String: [CallAtLocation]] {
+        let rows = sampleDepartures
+        return [
+            "740000001": rows,
+            "740000002": rows
+        ]
+    }
+
+    /// A handful of departures exercising the row variants the Stop board
+    /// renders: an on-time bus, a delayed tram, and a cancelled metro.
+    static var sampleDepartures: [CallAtLocation] {
+        [
+            CallAtLocation(
+                scheduled: Self.futureTimestamp(minutesFromNow: 2),
+                realtime: Self.futureTimestamp(minutesFromNow: 2),
+                delay: 0,
+                canceled: false,
+                is_realtime: true,
+                route: Route(designation: "3", transport_mode: "BUS", direction: "Karolinska sjukhuset", name: nil),
+                agency: nil,
+                trip: nil,
+                stop: nil,
+                scheduled_platform: nil,
+                realtime_platform: nil,
+                alerts: nil
+            ),
+            CallAtLocation(
+                scheduled: Self.futureTimestamp(minutesFromNow: 5),
+                realtime: Self.futureTimestamp(minutesFromNow: 8),
+                delay: 180,
+                canceled: false,
+                is_realtime: true,
+                route: Route(designation: "7", transport_mode: "TRAM", direction: "Ropsten", name: nil),
+                agency: nil,
+                trip: nil,
+                stop: nil,
+                scheduled_platform: nil,
+                realtime_platform: nil,
+                alerts: nil
+            ),
+            CallAtLocation(
+                scheduled: Self.futureTimestamp(minutesFromNow: 9),
+                realtime: nil,
+                delay: nil,
+                canceled: true,
+                is_realtime: false,
+                route: Route(designation: "T14", transport_mode: "METRO", direction: "Fruängen", name: nil),
+                agency: nil,
+                trip: nil,
+                stop: nil,
+                scheduled_platform: nil,
+                realtime_platform: nil,
+                alerts: nil
+            )
+        ]
+    }
+
+    /// Formats a timestamp `minutesFromNow` minutes ahead as the Trafiklab
+    /// realtime format `YYYY-MM-DDTHH:mm:ss` in the current time zone.
+    static func futureTimestamp(minutesFromNow: Int) -> String {
+        let date = Date().addingTimeInterval(TimeInterval(minutesFromNow) * 60)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.string(from: date)
+    }
 }

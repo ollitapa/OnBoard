@@ -6,36 +6,22 @@ import Foundation
 struct StopDetailsModelTests {
 
     @Test func loadDeparturesSuccess() async throws {
-        // Given
-        let departures = [
-            Self.departure(
-                tripId: "trip-1",
-                scheduled: "2099-01-01T12:00:00",
-                designation: "3",
-                transportMode: "BUS",
-                direction: "Karolinska sjukhuset"
-            ),
-            Self.departure(
-                tripId: "trip-2",
-                scheduled: "2099-01-01T12:05:00",
-                designation: "T14",
-                transportMode: "METRO",
-                direction: "Frängen",
-                canceled: true
-            )
-        ]
-        let network = MockTrafiklabService(departuresByAreaId: ["740000001": departures])
+        // Given: the default mock serves the shared sample departures for the
+        // first nearby stop's area id. Capture them once so the comparison
+        // isn't affected by the sample's relative timestamps being re-evaluated.
+        let expected = MockTrafiklabService.sampleDepartures
+        let network = MockTrafiklabService(departuresByAreaId: ["740000001": expected])
         let model = StopDetailsModel()
         // When
         await model.loadDepartures(network: network, areaId: "740000001")
         // Then
-        #expect(model.departures == departures)
+        #expect(model.departures == expected)
         #expect(model.failure == nil)
         #expect(model.isLoading == false)
     }
 
     @Test func loadDeparturesEmptyResponse() async throws {
-        // Given
+        // Given: an area id explicitly configured with no departures.
         let network = MockTrafiklabService(departuresByAreaId: ["740000001": []])
         let model = StopDetailsModel()
         // When
@@ -46,15 +32,10 @@ struct StopDetailsModelTests {
     }
 
     @Test func loadDeparturesForUnknownAreaIdIsEmpty() async throws {
-        // Given: an area id with no configured departures returns an empty
-        // list rather than throwing, matching the real API's empty window —
-        // even when a different area id does have departures configured.
-        let known = Self.departure(
-            scheduled: "2099-01-01T12:00:00",
-            designation: "3",
-            direction: "Karolinska sjukhuset"
-        )
-        let network = MockTrafiklabService(departuresByAreaId: ["740000001": [known]])
+        // Given: the default mock has departures for some area ids; an area id
+        // with no entry returns an empty list rather than throwing, matching the
+        // real API's empty window.
+        let network = MockTrafiklabService()
         let model = StopDetailsModel()
         // When
         await model.loadDepartures(network: network, areaId: "740000999")
