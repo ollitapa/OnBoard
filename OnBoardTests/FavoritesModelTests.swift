@@ -28,7 +28,7 @@ struct FavoritesModelTests {
         model.loadFavorites(context: context)
         // Then
         #expect(model.favorites.map(\.snapshot) == [
-            ("1", "Medborgarplatsen", ["3", "7"])
+            FavoriteSnapshot(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])
         ])
         #expect(model.failure == nil)
     }
@@ -79,7 +79,7 @@ struct FavoritesModelTests {
         model.toggle("1", name: "Medborgarplatsen", lines: ["3", "7"], context: context)
         // Then
         #expect(model.favorites.map(\.snapshot) == [
-            ("1", "Medborgarplatsen", ["3", "7"])
+            FavoriteSnapshot(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])
         ])
         #expect(model.failure == nil)
     }
@@ -93,7 +93,7 @@ struct FavoritesModelTests {
         model.toggle("1", name: "Medborgarplatsen", lines: ["3"], context: context)
         // Then
         #expect(model.favorites.map(\.snapshot) == [
-            ("2", "Slussen", ["4"])
+            FavoriteSnapshot(id: "2", name: "Slussen", lines: ["4"])
         ])
     }
 
@@ -117,7 +117,7 @@ struct FavoritesModelTests {
         model.toggle("1", name: "Medborgarplatsen", lines: ["3", "7"], context: context)
         // Then
         #expect(model.favorites.map(\.snapshot) == [
-            ("1", "Medborgarplatsen", ["3", "7"])
+            FavoriteSnapshot(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])
         ])
     }
 
@@ -142,7 +142,7 @@ struct FavoritesModelTests {
         model.remove("999", context: context)
         // Then
         #expect(model.favorites.map(\.snapshot) == [
-            ("1", "Slussen", ["4"])
+            FavoriteSnapshot(id: "1", name: "Slussen", lines: ["4"])
         ])
     }
 
@@ -155,7 +155,7 @@ struct FavoritesModelTests {
         model.remove("1", context: context)
         // Then
         #expect(model.favorites.map(\.snapshot) == [
-            ("2", "Odenplan", ["4"])
+            FavoriteSnapshot(id: "2", name: "Odenplan", lines: ["4"])
         ])
     }
 
@@ -179,7 +179,7 @@ struct FavoritesModelTests {
         let reader = FavoritesModel()
         reader.loadFavorites(context: context)
         #expect(reader.favorites.map(\.snapshot) == [
-            ("1", "Medborgarplatsen", ["3", "7"])
+            FavoriteSnapshot(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])
         ])
     }
 
@@ -195,7 +195,7 @@ struct FavoritesModelTests {
         let reader = FavoritesModel()
         reader.loadFavorites(context: context)
         #expect(reader.favorites.map(\.snapshot) == [
-            ("2", "Odenplan", ["4"])
+            FavoriteSnapshot(id: "2", name: "Odenplan", lines: ["4"])
         ])
     }
 
@@ -209,7 +209,7 @@ struct FavoritesModelTests {
         let reader = FavoritesModel()
         reader.loadFavorites(context: context)
         #expect(reader.favorites.map(\.snapshot) == [
-            ("1", "Slussen", ["4"])
+            FavoriteSnapshot(id: "1", name: "Slussen", lines: ["4"])
         ])
     }
 
@@ -232,7 +232,7 @@ private extension FavoritesModelTests {
     /// Builds an in-memory `ModelContext` for `StoredFavorites`, optionally
     /// seeded with one `StoredFavorites` holding the given favourites. SwiftData
     /// models are reference types with no value `==`, so tests compare a
-    /// `Favorite`'s `(id, name, lines)` snapshot rather than the model itself.
+    /// `Favorite`'s `FavoriteSnapshot` rather than the model itself.
     func makeContext(seed favorites: [Favorite] = []) throws -> ModelContext {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
@@ -252,8 +252,17 @@ private extension FavoritesModelTests {
 private extension Favorite {
     /// A value snapshot of the favourite's persisted fields, for `==`-based
     /// expectations. `Favorite` is a SwiftData `@Model` (reference identity), so
-    /// tests compare this tuple instead of the model object.
-    var snapshot: (String, String, [String]) {
-        (id, name, lines)
+    /// tests compare this value instead of the model object.
+    var snapshot: FavoriteSnapshot {
+        FavoriteSnapshot(id: id, name: name, lines: lines)
     }
+}
+
+/// A value-type snapshot of a `Favorite`, so favourites can be compared in
+/// tests. Swift tuples don't conform to `Equatable`, so this struct stands in
+/// for the `(id, name, lines)` triple.
+struct FavoriteSnapshot: Equatable {
+    let id: String
+    let name: String
+    let lines: [String]
 }
