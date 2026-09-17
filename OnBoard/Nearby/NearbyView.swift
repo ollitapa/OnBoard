@@ -5,7 +5,7 @@ struct NearbyView: View {
 
     // Dependencies
     @Environment(\.network) var network
-    @Environment(\.locationAuthorization) private var location
+    @Environment(LocationAuthorization.self) private var location
 
     // Model
     @State var model = NearbyModel()
@@ -37,8 +37,8 @@ struct NearbyView: View {
             StopDetailsView(stopId: stop.id, stopName: stop.name)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .task(id: location?.coordinate) {
-            guard let coordinate = location?.coordinate else { return }
+        .task(id: location.coordinate) {
+            guard let coordinate = location.coordinate else { return }
             await model.loadStops(
                 network: network,
                 latitude: coordinate.latitude,

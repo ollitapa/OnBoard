@@ -26,7 +26,7 @@ final class FavoritesModel {
 
     /// The raw `Data` store the favourites list is encoded into. Held by
     /// reference so a `@MainActor` model can keep it across load/save calls.
-    private let fileStorage: any AsyncStorage<Data, String>
+    private let fileStorage: any AsyncStorage<StoredFavorites, String>
     /// The single id the whole list is stored under.
     private let storageId = "favorites"
 
@@ -36,6 +36,8 @@ final class FavoritesModel {
     ///   favourites survive between launches; tests pass an in-memory store.
     init(fileStorage: some AsyncStorage<Data, String>) {
         self.fileStorage = fileStorage
+            .combined(with: MemoryStorage())
+            .codable(for: StoredFavorites.self)
     }
 
     /// Loads the saved favourites from the store into ``favorites``.
@@ -43,14 +45,10 @@ final class FavoritesModel {
         isLoading = true
         defer { isLoading = false }
         do {
-            if let data = try await fileStorage.value(for: storageId) {
-                favorites = try JSONDecoder().decode([Favorite].self, from: data)
-            } else {
-                favorites = []
-            }
-            failure = nil
+            favorites = try await fileStorage.value(for: storageId)?.favorites ?? []
         } catch {
             favorites = []
+            try? await fileStorage.saveValue(nil, for: storageId)
             failure = String(describing: error)
         }
     }
@@ -103,8 +101,7 @@ final class FavoritesModel {
     /// list never drifts ahead of the persisted one.
     private func persist(previous: [Favorite]) async {
         do {
-            let data = try JSONEncoder().encode(favorites)
-            try await fileStorage.saveValue(data, for: storageId)
+            try await fileStorage.saveValue(StoredFavorites(favorites: favorites), for: storageId)
             failure = nil
         } catch {
             favorites = previous

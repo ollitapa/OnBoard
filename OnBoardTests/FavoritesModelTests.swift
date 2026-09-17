@@ -19,7 +19,11 @@ struct FavoritesModelTests {
     @Test func loadFavoritesReadsPersistedList() async throws {
         let storage = MemoryStorage<Data, String>()
         storage.saveValue(
-            try JSONEncoder().encode([Favorite(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])]),
+            try JSONEncoder().encode(StoredFavorites(
+                favorites: [
+                    Favorite(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])
+                ]
+            )),
             for: "favorites"
         )
         let model = FavoritesModel(fileStorage: storage)

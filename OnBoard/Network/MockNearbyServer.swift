@@ -71,6 +71,12 @@ func mockNetwork() -> some NetworkProtocol {
     ], fallback: LiveNetwork())
 }
 
+/// Launch argument that makes `.locationPermissions` skip the system
+/// permission flow and pre-authorize a fixed coordinate, so the Nearby tab
+/// renders stops in UI tests where the simulator can't grant real location
+/// permission. Mirrors the `--mock-network` harness.
+let skipLocationPermissionLaunchArgument = "--skip-location-permission"
+
 /// Builds a pre-authorized `LocationAuthorization` delivering a fixed
 /// Stockholm coordinate, for previews and tests that need the Nearby tab to
 /// render its stops without a real CoreLocation permission prompt. Mirrors the
@@ -84,4 +90,9 @@ func previewLocationAuthorization() -> LocationAuthorization {
     let model = LocationAuthorization(manager: manager)
     model.startUpdating()
     return model
+}
+
+@MainActor
+func mockFavoritesModel() -> FavoritesModel {
+    return FavoritesModel(fileStorage: MemoryStorage())
 }

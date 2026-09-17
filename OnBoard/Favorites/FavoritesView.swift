@@ -10,17 +10,11 @@ import SwiftUI
 /// its shared model from the SwiftUI environment (`@Environment(\.favoritesModel)`),
 /// so the Stop board's star toggle and this tab mutate the same list.
 struct FavoritesView: View {
-    @Environment(\.favoritesModel) private var favoritesModel
+    @Environment(FavoritesModel.self) private var favoritesModel
 
     var body: some View {
-        Group {
-            if let model = favoritesModel {
-                FavoritesContent(model: model)
-            } else {
-                ProgressView()
-            }
-        }
-        .navigationTitle("Favourites")
+        FavoritesContent(model: favoritesModel)
+            .navigationTitle("Favourites")
     }
 }
 
@@ -121,22 +115,22 @@ private struct FavoritesEmptyHint: View {
 #Preview("Favourites") {
     let storage = MemoryStorage<Data, String>()
     try! storage.saveValue(
-        try JSONEncoder().encode([
+        try JSONEncoder().encode(StoredFavorites(favorites: [
             Favorite(id: "740000001", name: "Medborgarplatsen", lines: ["2", "3", "55"]),
             Favorite(id: "740000002", name: "Odenplan", lines: ["4", "42", "72"])
-        ]),
+        ])),
         for: "favorites"
     )
     let model = FavoritesModel(fileStorage: storage)
     return NavigationStack {
         FavoritesView()
-            .environment(\.favoritesModel, model)
+            .environment(model)
     }
 }
 
 #Preview("Empty") {
     NavigationStack {
         FavoritesView()
-            .environment(\.favoritesModel, FavoritesModel(fileStorage: MemoryStorage<Data, String>()))
+            .environment(FavoritesModel(fileStorage: MemoryStorage<Data, String>()))
     }
 }

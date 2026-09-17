@@ -20,7 +20,7 @@ struct StopDetailsView: View {
 
     @Environment(\.network) private var network
 
-    @Environment(\.favoritesModel) private var favoritesModel
+    @Environment(FavoritesModel.self) private var favoritesModel
 
     @State private var model = StopDetailsModel()
 
@@ -50,14 +50,12 @@ struct StopDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if let favoritesModel {
-                    FavoriteToggle(
-                        stopId: stopId,
-                        stopName: stopName,
-                        departures: model.departures,
-                        model: favoritesModel
-                    )
-                }
+                FavoriteToggle(
+                    stopId: stopId,
+                    stopName: stopName,
+                    departures: model.departures,
+                    model: favoritesModel
+                )
             }
         }
         .task {
@@ -295,5 +293,5 @@ private struct FavoriteToggle: View {
         )
     }
     .environment(\.network, MockNetwork())
-    .environment(\.favoritesModel, FavoritesModel(fileStorage: MemoryStorage<Data, String>()))
+    .environment(FavoritesModel(fileStorage: MemoryStorage<Data, String>()))
 }
