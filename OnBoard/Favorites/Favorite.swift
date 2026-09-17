@@ -10,7 +10,7 @@ import Foundation
 /// so a favourite is uniquely identified by its stop regardless of the lines
 /// captured at save time, which lets the star toggle and `contains` check by
 /// stop id.
-struct Favorite: Codable, Identifiable, Sendable {
+struct Favorite: Codable, Identifiable, Sendable, Hashable {
     /// The stop group id (Trafiklab `extId`), used to open the departure board.
     var id: String
     /// The stop name shown in the row and the board header.
@@ -22,18 +22,6 @@ struct Favorite: Codable, Identifiable, Sendable {
         self.id = id
         self.name = name
         self.lines = lines
-    }
-}
-
-extension Favorite: Equatable {
-    static func == (lhs: Favorite, rhs: Favorite) -> Bool {
-        lhs.id == rhs.id
-    }
-}
-
-extension Favorite: Hashable {
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
     }
 }
 

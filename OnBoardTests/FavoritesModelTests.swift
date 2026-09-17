@@ -18,7 +18,7 @@ struct FavoritesModelTests {
 
     @Test func loadFavoritesReadsPersistedList() async throws {
         let storage = MemoryStorage<Data, String>()
-        try await storage.saveValue(
+        storage.saveValue(
             try JSONEncoder().encode([Favorite(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])]),
             for: "favorites"
         )
@@ -42,7 +42,7 @@ struct FavoritesModelTests {
 
     @Test func loadFavoritesSurfacesDecodeError() async throws {
         let storage = MemoryStorage<Data, String>()
-        try await storage.saveValue(Data("not-json".utf8), for: "favorites")
+        storage.saveValue(Data("not-json".utf8), for: "favorites")
         let model = FavoritesModel(fileStorage: storage)
         // When
         await model.loadFavorites()
