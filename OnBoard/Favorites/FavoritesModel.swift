@@ -25,7 +25,7 @@ final class FavoritesModel {
     /// The backing store for the persisted favourites list. Held by reference
     /// so a `@MainActor` model can keep it across the load/save calls without
     /// copying it into `@State`.
-    private let storage: any FavoriteStorage
+    private let storage: FavoriteStorage
     /// The single id the whole list is stored under.
     private let storageId = "favorites"
 
@@ -33,7 +33,7 @@ final class FavoritesModel {
     /// - Parameter storage: The ``FavoriteStorage`` used to persist the
     ///   favourites list. Defaults to a live file-backed store so the app
     ///   survives between launches; tests pass an in-memory store.
-    init(storage: any FavoriteStorage) {
+    init(storage: FavoriteStorage) {
         self.storage = storage
     }
 

@@ -8,9 +8,11 @@ import Foundation
 /// an in-memory store and the app can inject a file-backed one.
 ///
 /// Declared as a named typealias because the existential `any AsyncStorage`
-/// needs concrete associated-type bindings, and `any FavoriteStorage` reads
-/// far clearer at call sites than `any AsyncStorage<[Favorite], String>`.
-typealias FavoriteStorage = any AsyncStorage<Favorite, String>
+/// needs concrete associated-type bindings, and `FavoriteStorage` reads far
+/// clearer at call sites than `any AsyncStorage<[Favorite], String>`. The
+/// typealias already includes the `any`, so use it bare (`FavoriteStorage`),
+/// never `any FavoriteStorage` (which would be `any any …`).
+typealias FavoriteStorage = any AsyncStorage<[Favorite], String>
 
 extension EnvironmentValues {
     /// The ``FavoritesModel`` shared across the Favourites tab and the Stop
