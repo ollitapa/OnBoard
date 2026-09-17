@@ -27,11 +27,13 @@
 - **Use documentation comments**: Add Swift documentation comments (`///`) for public APIs and complex logic
 - **Follow existing patterns**: Match the repository's existing style and architecture
 - **Small changes**: Make the smallest correct change that solves the problem
+- **Prefer computed properties and extensions over static helper functions**: When a piece of logic answers a question *about a value* (e.g. a model's display label, delay minutes, or parsed date), model it as a computed property on that type, ideally in a `Type+Feature.swift` extension next to its consumer — never as a `static func foo(for: SomeType)` on an unrelated type. Call sites should read `departure.lineLabel`, not `StopDetailsModel.lineLabel(for: departure)`. The static "pass the value back in" form is a Java-style smell and hides the receiver. Reserve static functions for true factories (`init`s) or stateless utilities that don't have a natural receiver. When logic needs extra inputs beyond the receiver (e.g. a `now` date), keep those as method parameters on the extension rather than reaching into a model.
 
 ### SwiftUI Conventions
 
 These conventions keep view code consistent and avoid SwiftUI initialization pitfalls.
 
+- **Extract views as structs, not computed `some View` properties**: Do not break a view into smaller pieces with `private var something: some View { ... }`. Each computed property returns an opaque, type-erased-to-the-caller view whose value depends on the enclosing view's whole state, so SwiftUI re-evaluates and re-renders it whenever the parent re-renders — defeating the diffing that structs get for free. Instead, make an actual `View` struct that takes only the data it needs as stored properties (e.g. `private struct DeparturesList: View { let departures: [CallAtLocation] ... }`). Structs give SwiftUI a stable identity and let it skip re-rendering a subtree whose inputs haven't changed. Reserve computed properties for non-view values (plain `String`, `Int`, `Bool`, model objects); the only `some View` computed property in a `View` should be its `body`.
 - **Indentation**: 4 spaces. When a call or initializer doesn't fit on one line, put the opening delimiter on the first line and wrap each argument on its own line, indented 4 spaces from the start of the statement; place the closing delimiter on its own line aligned with the start of the statement. Apply the same wrapping to nested calls, array literals, and closures. For example:
   ```swift
   locationDelegate?.locationManager(
