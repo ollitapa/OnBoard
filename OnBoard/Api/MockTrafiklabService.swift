@@ -22,22 +22,25 @@ struct MockTrafiklabService: NetworkProtocol {
     /// The nearby stops returned from the nearby-stops endpoint.
     let nearbyStops: [StopLocation]
 
-    /// The departures returned from the Timetables departures endpoint.
-    let departures: [CallAtLocation]
+    /// The departures returned from the Timetables departures endpoint, keyed
+    /// by the area id in the request path (`/departures/{areaId}`). An area id
+    /// with no entry returns an empty departures list, matching the real API.
+    let departuresByAreaId: [String: [CallAtLocation]]
 
     /// Creates a mock Trafiklab service.
     /// - Parameters:
     ///   - baseURL: The base URL this server responds for.
     ///   - nearbyStops: The stops to return from the nearby endpoint.
-    ///   - departures: The departures to return from the departures endpoint.
+    ///   - departuresByAreaId: The departures to return per area id from the
+    ///     departures endpoint; area ids with no entry return an empty list.
     init(
         baseURL: URL = URL(string: "https://api.resrobot.se")!,
         nearbyStops: [StopLocation] = MockTrafiklabService.defaultNearbyStops,
-        departures: [CallAtLocation] = []
+        departuresByAreaId: [String: [CallAtLocation]] = [:]
     ) {
         self.baseURL = baseURL
         self.nearbyStops = nearbyStops
-        self.departures = departures
+        self.departuresByAreaId = departuresByAreaId
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
@@ -56,6 +59,7 @@ struct MockTrafiklabService: NetworkProtocol {
         }
 
         if request.httpMethod == "GET", url.path.contains("/departures/") {
+            let departures = self.departures(for: url)
             let payload = DeparturesResponse(
                 timestamp: "2099-01-01T12:00:00",
                 query: TimetableQuery(queryTime: "2099-01-01T12:00:00", query: nil),
@@ -73,6 +77,19 @@ struct MockTrafiklabService: NetworkProtocol {
         }
 
         throw NoResponseConfigured()
+    }
+
+    /// Extracts the `{areaId}` path segment from a departures URL
+    /// (`.../departures/{areaId}` or `.../departures/{areaId}/{time}`) and
+    /// returns the configured departures for it, defaulting to empty.
+    private func departures(for url: URL) -> [CallAtLocation] {
+        let segments = url.path.split(separator: "/").map(String.init)
+        guard let departuresIndex = segments.lastIndex(of: "departures"),
+              segments.count > departuresIndex + 1 else {
+            return []
+        }
+        let areaId = segments[departuresIndex + 1]
+        return departuresByAreaId[areaId] ?? []
     }
 
     /// A stable set of nearby stops used by default in tests, matching the
@@ -96,6 +113,16 @@ struct MockTrafiklabService: NetworkProtocol {
             lon: "18.0717",
             dist: 420,
             weight: 200,
+            products: 1024
+        ),
+        StopLocation(
+            rawId: "740000003",
+            extId: "740000003",
+            name: "Folkungagatan",
+            lat: "59.3128",
+            lon: "18.0760",
+            dist: 550,
+            weight: 30,
             products: 1024
         )
     ]

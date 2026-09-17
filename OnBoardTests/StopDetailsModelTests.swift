@@ -24,7 +24,7 @@ struct StopDetailsModelTests {
                 canceled: true
             )
         ]
-        let network = MockTrafiklabService(departures: departures)
+        let network = MockTrafiklabService(departuresByAreaId: ["740000001": departures])
         let model = StopDetailsModel()
         // When
         await model.loadDepartures(network: network, areaId: "740000001")
@@ -36,10 +36,22 @@ struct StopDetailsModelTests {
 
     @Test func loadDeparturesEmptyResponse() async throws {
         // Given
-        let network = MockTrafiklabService(departures: [])
+        let network = MockTrafiklabService(departuresByAreaId: ["740000001": []])
         let model = StopDetailsModel()
         // When
         await model.loadDepartures(network: network, areaId: "740000001")
+        // Then
+        #expect(model.departures == [])
+        #expect(model.failure == nil)
+    }
+
+    @Test func loadDeparturesForUnknownAreaIdIsEmpty() async throws {
+        // Given: an area id with no configured departures returns an empty
+        // list rather than throwing, matching the real API's empty window.
+        let network = MockTrafiklabService(departuresByAreaId: ["740000001": departures])
+        let model = StopDetailsModel()
+        // When
+        await model.loadDepartures(network: network, areaId: "740000999")
         // Then
         #expect(model.departures == [])
         #expect(model.failure == nil)

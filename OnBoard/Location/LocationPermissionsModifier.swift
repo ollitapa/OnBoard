@@ -37,17 +37,7 @@ struct LocationPermissionsModifier: ViewModifier {
     /// fixed coordinate when `--skip-location-permission` is passed at
     /// launch, otherwise a real `CLLocationManager`-backed model.
     private static func makeModel() -> LocationAuthorization {
-        if CommandLine.arguments.contains(skipLocationPermissionLaunchArgument) {
-            // Pre-authorized with a fixed coordinate so the Nearby tab renders
-            // stops in UI tests where real CoreLocation permission can't be
-            // granted. Drives the real startUpdating code path; the manager
-            // delivers its coordinate once updates start.
-            let manager = FixedLocationManager(authorizationStatus: .authorizedWhenInUse)
-            let model = LocationAuthorization(manager: manager)
-            model.startUpdating()
-            return model
-        }
-        return LocationAuthorization()
+        makeLocationAuthorizationFromLaunchArguments()
     }
 
     /// Creates the modifier backed by the given model, for previews and tests.
@@ -90,6 +80,24 @@ struct LocationPermissionsModifier: ViewModifier {
 /// permission. Mirrors the `--mock-network` harness.
 let skipLocationPermissionLaunchArgument = "--skip-location-permission"
 
+/// Builds the location-authorization model for the app's default init and the
+/// `.locationPermissions` modifier's default init: when
+/// `--skip-location-permission` is passed at launch, a `FixedLocationManager`
+/// pre-authorized with a fixed coordinate so the Nearby tab renders stops in
+/// UI tests where real CoreLocation permission can't be granted; otherwise a
+/// real `CLLocationManager`-backed model. Centralized so `MainView` and the
+/// modifier share one source of truth.
+@MainActor
+func makeLocationAuthorizationFromLaunchArguments() -> LocationAuthorization {
+    if CommandLine.arguments.contains(skipLocationPermissionLaunchArgument) {
+        let manager = FixedLocationManager(authorizationStatus: .authorizedWhenInUse)
+        let model = LocationAuthorization(manager: manager)
+        model.startUpdating()
+        return model
+    }
+    return LocationAuthorization()
+}
+
 extension View {
 
     /// Gates this view behind the location permission flow.
@@ -105,6 +113,17 @@ extension View {
         onManualSearch: @escaping () -> Void = {}
     ) -> some View {
         modifier(LocationPermissionsModifier(onManualSearch: onManualSearch))
+    }
+
+    /// Gates this view behind the location permission flow using an explicit
+    /// ``LocationAuthorization`` model, for previews and tests that need a
+    /// pre-authorized (or otherwise pre-configured) model instead of the
+    /// launch-argument-driven default.
+    func locationPermissions(
+        model: LocationAuthorization,
+        onManualSearch: @escaping () -> Void = {}
+    ) -> some View {
+        modifier(LocationPermissionsModifier(model: model, onManualSearch: onManualSearch))
     }
 }
 
