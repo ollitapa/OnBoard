@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftData
 
 /// The view model for the Favourites tab ("Step 4 — Save a stop → skip the
 /// search next time" in `Designs/storyboard.html`).
@@ -22,33 +23,22 @@ final class FavoritesModel {
     /// spinner before the empty state.
     var isLoading: Bool = false
     /// The saved stops, in insertion order (most recently saved is last).
-    private(set) var favorites: [Favorite] = []
+    private(set) var stored: StoredFavorites?
 
-    /// The raw `Data` store the favourites list is encoded into. Held by
-    /// reference so a `@MainActor` model can keep it across load/save calls.
-    private let fileStorage: any AsyncStorage<StoredFavorites, String>
-    /// The single id the whole list is stored under.
-    private let storageId = "favorites"
-
-    /// Creates a model backed by the given raw `Data` store.
-    /// - Parameter fileStorage: The store the favourites list is JSON-encoded
-    ///   into, keyed by `String`. The app passes a file-backed store so
-    ///   favourites survive between launches; tests pass an in-memory store.
-    init(fileStorage: some AsyncStorage<Data, String>) {
-        self.fileStorage = fileStorage
-            .combined(with: MemoryStorage())
-            .codable(for: StoredFavorites.self)
+    var favorites: [Favorite] {
+        stored?.favorites ?? []
     }
 
+    init() { }
+
     /// Loads the saved favourites from the store into ``favorites``.
-    func loadFavorites() async {
+    func loadFavorites(context: ModelContext) {
         isLoading = true
         defer { isLoading = false }
         do {
-            favorites = try await fileStorage.value(for: storageId)?.favorites ?? []
+            stored = try context.fetch(FetchDescriptor<StoredFavorites>()).first
         } catch {
-            favorites = []
-            try? await fileStorage.saveValue(nil, for: storageId)
+            stored = nil
             failure = String(describing: error)
         }
     }
@@ -71,41 +61,38 @@ final class FavoritesModel {
     func toggle(
         _ stopId: String,
         name stopName: String,
-        lines lineLabels: [String]
-    ) async {
-        let previous = favorites
-        if let index = favorites.firstIndex(where: { $0.id == stopId }) {
-            favorites.remove(at: index)
+        lines lineLabels: [String],
+        context: ModelContext
+    ) {
+        let stored: StoredFavorites
+        if let existing = self.stored {
+            stored = existing
         } else {
-            favorites.append(
-                Favorite(id: stopId, name: stopName, lines: lineLabels)
-            )
+            stored = StoredFavorites(favorites: [])
+            context.insert(stored)
+            self.stored = stored
         }
-        await persist(previous: previous)
+
+        if let index = stored.favorites.firstIndex(where: { $0.id == stopId }) {
+            let fav = stored.favorites.remove(at: index)
+            context.delete(fav)
+        } else {
+            let fav = Favorite(id: stopId, name: stopName, lines: lineLabels)
+            stored.favorites.append(fav)
+            stored.favorites = stored.favorites
+                .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        }
     }
 
     /// Removes a saved favourite by stop id. A no-op when the stop is not
     /// saved. Persisted on every change; a save failure rolls back and
     /// surfaces the error in ``failure``.
-    func remove(_ stopId: String) async {
-        let previous = favorites
-        guard let index = favorites.firstIndex(where: { $0.id == stopId }) else {
+    func remove(_ stopId: String, context: ModelContext) {
+        guard let stored else { return }
+        guard let index = stored.favorites.firstIndex(where: { $0.id == stopId }) else {
             return
         }
-        favorites.remove(at: index)
-        await persist(previous: previous)
-    }
-
-    /// Writes the current list to the store, rolling back to `previous` and
-    /// surfacing the error in ``failure`` on a write failure so the in-memory
-    /// list never drifts ahead of the persisted one.
-    private func persist(previous: [Favorite]) async {
-        do {
-            try await fileStorage.saveValue(StoredFavorites(favorites: favorites), for: storageId)
-            failure = nil
-        } catch {
-            favorites = previous
-            failure = String(describing: error)
-        }
+        let fav = stored.favorites.remove(at: index)
+        context.delete(fav)
     }
 }

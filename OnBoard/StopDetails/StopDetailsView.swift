@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The Stop board screen ("Step 2 — Tap a stop → live departure board" in
 /// `Designs/storyboard.html`).
@@ -267,6 +268,7 @@ private struct ModeBlip: View {
 /// on the board are captured into the favourite so the row shows a "Lines …"
 /// subtitle.
 private struct FavoriteToggle: View {
+    @Environment(\.modelContext) var modelContex
     let stopId: String
     let stopName: String
     let departures: [CallAtLocation]
@@ -274,9 +276,12 @@ private struct FavoriteToggle: View {
 
     var body: some View {
         Button {
-            Task {
-                await model.toggle(stopId, name: stopName, lines: departures.lineLabels)
-            }
+            model.toggle(
+                stopId,
+                name: stopName,
+                lines: departures.lineLabels,
+                context: modelContex
+            )
         } label: {
             Image(systemName: model.contains(stopId) ? "star.fill" : "star")
                 .foregroundStyle(model.contains(stopId) ? .yellow : .secondary)
@@ -293,5 +298,5 @@ private struct FavoriteToggle: View {
         )
     }
     .environment(\.network, MockNetwork())
-    .environment(FavoritesModel(fileStorage: MemoryStorage<Data, String>()))
+    .environment(FavoritesModel())
 }

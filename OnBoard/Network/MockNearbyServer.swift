@@ -91,8 +91,3 @@ func previewLocationAuthorization() -> LocationAuthorization {
     model.startUpdating()
     return model
 }
-
-@MainActor
-func mockFavoritesModel() -> FavoritesModel {
-    return FavoritesModel(fileStorage: MemoryStorage())
-}

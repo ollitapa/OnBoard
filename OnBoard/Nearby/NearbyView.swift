@@ -15,6 +15,7 @@ struct NearbyView: View {
             if let failure = model.failure {
                 Text("Error: \(failure)")
                     .foregroundStyle(.red)
+                    .textSelection(.enabled)
             } else if model.stops.isEmpty {
                 ProgressView()
             } else {

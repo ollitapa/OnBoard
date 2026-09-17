@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The Favourites tab ("Step 4 — Save a stop → skip the search next time" in
 /// `Designs/storyboard.html`).
@@ -22,6 +23,7 @@ struct FavoritesView: View {
 /// struct taking only the model it needs so SwiftUI can skip re-rendering it
 /// when unrelated parent state changes.
 private struct FavoritesContent: View {
+    @Environment(\.modelContext) var modelContext
     let model: FavoritesModel
 
     var body: some View {
@@ -34,14 +36,14 @@ private struct FavoritesContent: View {
                 }
             } else if model.isLoading {
                 ProgressView()
-            } else if model.favorites.isEmpty {
+            } else if model.favorites.isEmpty == true {
                 FavoritesEmptyHint()
             } else {
                 FavoritesList(model: model)
             }
         }
-        .task {
-            await model.loadFavorites()
+        .onAppear {
+            model.loadFavorites(context: modelContext)
         }
     }
 }
@@ -49,6 +51,7 @@ private struct FavoritesContent: View {
 /// The plain list of saved-stop rows. Swipe-to-delete removes a stop from
 /// the favourites list via the shared model.
 private struct FavoritesList: View {
+    @Environment(\.modelContext) var modelContext
     let model: FavoritesModel
 
     var body: some View {
@@ -60,10 +63,8 @@ private struct FavoritesList: View {
             }
             .onDelete { indexSet in
                 let ids = indexSet.map { model.favorites[$0].id }
-                Task {
-                    for id in ids {
-                        await model.remove(id)
-                    }
+                for id in ids {
+                    model.remove(id, context: modelContext)
                 }
             }
         }
@@ -113,24 +114,19 @@ private struct FavoritesEmptyHint: View {
 }
 
 #Preview("Favourites") {
-    let storage = MemoryStorage<Data, String>()
-    try! storage.saveValue(
-        try JSONEncoder().encode(StoredFavorites(favorites: [
-            Favorite(id: "740000001", name: "Medborgarplatsen", lines: ["2", "3", "55"]),
-            Favorite(id: "740000002", name: "Odenplan", lines: ["4", "42", "72"])
-        ])),
-        for: "favorites"
-    )
-    let model = FavoritesModel(fileStorage: storage)
-    return NavigationStack {
+    @Previewable @State var model = FavoritesModel()
+
+    NavigationStack {
         FavoritesView()
-            .environment(model)
     }
+    .environment(model)
+    .modelContainer(mockModelContainer())
+    .environment(\.network, mockNetwork())
 }
 
 #Preview("Empty") {
     NavigationStack {
         FavoritesView()
-            .environment(FavoritesModel(fileStorage: MemoryStorage<Data, String>()))
     }
+    .environment(FavoritesModel())
 }
