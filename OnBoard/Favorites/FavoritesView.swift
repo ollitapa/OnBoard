@@ -119,17 +119,17 @@ private struct FavoritesEmptyHint: View {
 }
 
 #Preview("Favourites") {
-    let storage = InMemoryFavoriteStorage()
+    let storage = MemoryStorage<Data, String>()
     Task {
         try await storage.saveValue(
-            [
+            try JSONEncoder().encode([
                 Favorite(id: "740000001", name: "Medborgarplatsen", lines: ["2", "3", "55"]),
                 Favorite(id: "740000002", name: "Odenplan", lines: ["4", "42", "72"])
-            ],
+            ]),
             for: "favorites"
         )
     }
-    let model = FavoritesModel(storage: storage)
+    let model = FavoritesModel(fileStorage: storage)
     return NavigationStack {
         FavoritesView()
             .environment(\.favoritesModel, model)
@@ -139,6 +139,6 @@ private struct FavoritesEmptyHint: View {
 #Preview("Empty") {
     NavigationStack {
         FavoritesView()
-            .environment(\.favoritesModel, FavoritesModel(storage: InMemoryFavoriteStorage()))
+            .environment(\.favoritesModel, FavoritesModel(fileStorage: MemoryStorage<Data, String>()))
     }
 }

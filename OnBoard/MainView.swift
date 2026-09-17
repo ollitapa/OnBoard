@@ -118,7 +118,7 @@ struct MainView: View {
     /// an explicit `favoritesModel` and skip this path.
     @MainActor
     private static func makeFavoritesModel() -> FavoritesModel {
-        let model = FavoritesModel(storage: liveFavoritesStorage())
+        let model = FavoritesModel(fileStorage: liveFavoritesStorage())
         Task { await model.loadFavorites() }
         return model
     }

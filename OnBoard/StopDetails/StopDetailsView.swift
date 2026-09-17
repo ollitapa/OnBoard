@@ -295,5 +295,5 @@ private struct FavoriteToggle: View {
         )
     }
     .environment(\.network, MockNetwork())
-    .environment(\.favoritesModel, FavoritesModel(storage: InMemoryFavoriteStorage()))
+    .environment(\.favoritesModel, FavoritesModel(fileStorage: MemoryStorage<Data, String>()))
 }

@@ -6,10 +6,12 @@ import Observation
 ///
 /// Owns the persisted list of saved stops and the loading lifecycle, mirroring
 /// ``NearbyModel`` and ``StopDetailsModel``: `@MainActor @Observable`, surfaces
-/// storage errors as a `failure` string rather than throwing, and depends only
-/// on an `AsyncStorage` so tests inject an in-memory store. A favourite is
-/// uniquely identified by its stop id (see ``Favorite``); a stop is saved at
-/// most once, and toggling a stop that is already saved removes it.
+/// storage errors as a `failure` string rather than throwing. The model takes a
+/// raw `AsyncStorage<Data, String>` (a `FileStorage`-shaped store) and does its
+/// own JSON encode/decode of the `[Favorite]` list, so it depends only on the
+/// same storage primitive the rest of the app uses. A favourite is uniquely
+/// identified by its stop id (see ``Favorite``); a stop is saved at most once,
+/// and toggling a stop that is already saved removes it.
 @MainActor
 @Observable
 final class FavoritesModel {
@@ -22,19 +24,18 @@ final class FavoritesModel {
     /// The saved stops, in insertion order (most recently saved is last).
     private(set) var favorites: [Favorite] = []
 
-    /// The backing store for the persisted favourites list. Held by reference
-    /// so a `@MainActor` model can keep it across the load/save calls without
-    /// copying it into `@State`.
-    private let storage: FavoriteStorage
+    /// The raw `Data` store the favourites list is encoded into. Held by
+    /// reference so a `@MainActor` model can keep it across load/save calls.
+    private let fileStorage: any AsyncStorage<Data, String>
     /// The single id the whole list is stored under.
     private let storageId = "favorites"
 
-    /// Creates a model backed by the given store.
-    /// - Parameter storage: The ``FavoriteStorage`` used to persist the
-    ///   favourites list. Defaults to a live file-backed store so the app
-    ///   survives between launches; tests pass an in-memory store.
-    init(storage: FavoriteStorage) {
-        self.storage = storage
+    /// Creates a model backed by the given raw `Data` store.
+    /// - Parameter fileStorage: The store the favourites list is JSON-encoded
+    ///   into, keyed by `String`. The app passes a file-backed store so
+    ///   favourites survive between launches; tests pass an in-memory store.
+    init(fileStorage: some AsyncStorage<Data, String>) {
+        self.fileStorage = fileStorage
     }
 
     /// Loads the saved favourites from the store into ``favorites``.
@@ -42,8 +43,11 @@ final class FavoritesModel {
         isLoading = true
         defer { isLoading = false }
         do {
-            let loaded = try await storage.value(for: storageId) ?? []
-            favorites = loaded
+            if let data = try await fileStorage.value(for: storageId) {
+                favorites = try JSONDecoder().decode([Favorite].self, from: data)
+            } else {
+                favorites = []
+            }
             failure = nil
         } catch {
             favorites = []
@@ -99,7 +103,8 @@ final class FavoritesModel {
     /// list never drifts ahead of the persisted one.
     private func persist(previous: [Favorite]) async {
         do {
-            try await storage.saveValue(favorites, for: storageId)
+            let data = try JSONEncoder().encode(favorites)
+            try await fileStorage.saveValue(data, for: storageId)
             failure = nil
         } catch {
             favorites = previous

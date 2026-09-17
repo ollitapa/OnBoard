@@ -7,7 +7,7 @@ struct FavoritesModelTests {
     // MARK: - Loading
 
     @Test func loadFavoritesEmptyStoreStartsEmpty() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         // When
         await model.loadFavorites()
         // Then
@@ -17,12 +17,12 @@ struct FavoritesModelTests {
     }
 
     @Test func loadFavoritesReadsPersistedList() async throws {
-        let storage = InMemoryFavoriteStorage()
+        let storage = MemoryStorage<Data, String>()
         try await storage.saveValue(
-            [Favorite(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])],
+            try JSONEncoder().encode([Favorite(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])]),
             for: "favorites"
         )
-        let model = FavoritesModel(storage: storage)
+        let model = FavoritesModel(fileStorage: storage)
         // When
         await model.loadFavorites()
         // Then
@@ -31,7 +31,7 @@ struct FavoritesModelTests {
     }
 
     @Test func loadFavoritesSurfacesStorageError() async {
-        let model = FavoritesModel(storage: ThrowingFavoriteStorage())
+        let model = FavoritesModel(fileStorage: ThrowingFavoriteStorage())
         // When
         await model.loadFavorites()
         // Then
@@ -40,22 +40,33 @@ struct FavoritesModelTests {
         #expect(model.isLoading == false)
     }
 
+    @Test func loadFavoritesSurfacesDecodeError() async throws {
+        let storage = MemoryStorage<Data, String>()
+        try await storage.saveValue(Data("not-json".utf8), for: "favorites")
+        let model = FavoritesModel(fileStorage: storage)
+        // When
+        await model.loadFavorites()
+        // Then
+        #expect(model.favorites == [])
+        #expect(model.failure != nil)
+    }
+
     // MARK: - contains
 
     @Test func containsIsFalseBeforeSave() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.loadFavorites()
         #expect(model.contains("1") == false)
     }
 
     @Test func containsIsTrueAfterSave() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.toggle("1", name: "Slussen", lines: ["4"])
         #expect(model.contains("1") == true)
     }
 
     @Test func containsIsFalseAfterRemove() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.toggle("1", name: "Slussen", lines: ["4"])
         await model.toggle("1", name: "Slussen", lines: ["4"])
         #expect(model.contains("1") == false)
@@ -64,7 +75,7 @@ struct FavoritesModelTests {
     // MARK: - toggle
 
     @Test func toggleAddsFavorite() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         // When
         await model.toggle("1", name: "Medborgarplatsen", lines: ["3", "7"])
         // Then
@@ -73,7 +84,7 @@ struct FavoritesModelTests {
     }
 
     @Test func toggleRemovesExistingFavorite() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.toggle("1", name: "Medborgarplatsen", lines: ["3"])
         await model.toggle("2", name: "Slussen", lines: ["4"])
         // When
@@ -83,7 +94,7 @@ struct FavoritesModelTests {
     }
 
     @Test func toggleDoesNotDuplicateFavorite() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.toggle("1", name: "Medborgarplatsen", lines: ["3"])
         await model.toggle("1", name: "Medborgarplatsen", lines: ["3"])
         await model.toggle("1", name: "Medborgarplatsen", lines: ["7"])
@@ -93,7 +104,7 @@ struct FavoritesModelTests {
     }
 
     @Test func toggleUpdatesLineLabelsWhenReAdding() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.toggle("1", name: "Medborgarplatsen", lines: ["3"])
         await model.toggle("1", name: "Medborgarplatsen", lines: ["3"]) // remove
         // When
@@ -103,7 +114,7 @@ struct FavoritesModelTests {
     }
 
     @Test func togglePreservesInsertionOrder() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.toggle("1", name: "First", lines: [])
         await model.toggle("2", name: "Second", lines: [])
         await model.toggle("3", name: "Third", lines: [])
@@ -113,7 +124,7 @@ struct FavoritesModelTests {
     // MARK: - remove
 
     @Test func removeIsNoOpForUnknownId() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.toggle("1", name: "Slussen", lines: ["4"])
         // When
         await model.remove("999")
@@ -122,7 +133,7 @@ struct FavoritesModelTests {
     }
 
     @Test func removeDeletesFavorite() async {
-        let model = FavoritesModel(storage: InMemoryFavoriteStorage())
+        let model = FavoritesModel(fileStorage: MemoryStorage<Data, String>())
         await model.toggle("1", name: "Slussen", lines: ["4"])
         await model.toggle("2", name: "Odenplan", lines: ["4"])
         // When
@@ -134,31 +145,31 @@ struct FavoritesModelTests {
     // MARK: - Persistence
 
     @Test func togglePersistsToStorage() async throws {
-        let storage = InMemoryFavoriteStorage()
-        let model = FavoritesModel(storage: storage)
+        let storage = MemoryStorage<Data, String>()
+        let model = FavoritesModel(fileStorage: storage)
         // When
         await model.toggle("1", name: "Medborgarplatsen", lines: ["3", "7"])
         // Then: a fresh model reading the same store sees the saved list.
-        let reader = FavoritesModel(storage: storage)
+        let reader = FavoritesModel(fileStorage: storage)
         await reader.loadFavorites()
         #expect(reader.favorites == [Favorite(id: "1", name: "Medborgarplatsen", lines: ["3", "7"])])
     }
 
     @Test func removePersistsToStorage() async throws {
-        let storage = InMemoryFavoriteStorage()
-        let model = FavoritesModel(storage: storage)
+        let storage = MemoryStorage<Data, String>()
+        let model = FavoritesModel(fileStorage: storage)
         await model.toggle("1", name: "Slussen", lines: ["4"])
         await model.toggle("2", name: "Odenplan", lines: ["4"])
         // When
         await model.remove("1")
         // Then
-        let reader = FavoritesModel(storage: storage)
+        let reader = FavoritesModel(fileStorage: storage)
         await reader.loadFavorites()
         #expect(reader.favorites == [Favorite(id: "2", name: "Odenplan", lines: ["4"])])
     }
 
     @Test func toggleRollsBackOnSaveError() async {
-        let model = FavoritesModel(storage: ThrowingFavoriteStorage(allowRead: true))
+        let model = FavoritesModel(fileStorage: ThrowingFavoriteStorage(allowRead: true))
         await model.toggle("1", name: "Slussen", lines: ["4"])
         // When: the save throws, so the in-memory list rolls back.
         await model.toggle("2", name: "Odenplan", lines: ["4"])
@@ -197,11 +208,11 @@ struct FavoritesModelTests {
 
 // MARK: - Helpers
 
-/// A `FavoriteStorage` that throws on every operation, optionally allowing
-/// reads so a first favorite can be saved before a failing write tests the
-/// rollback path.
+/// A `AsyncStorage<Data, String>` that throws on every operation, optionally
+/// allowing reads so a first favorite can be saved before a failing write
+/// tests the rollback path.
 private struct ThrowingFavoriteStorage: AsyncStorage {
-    typealias Value = [Favorite]
+    typealias Value = Data
     typealias Id = String
 
     let allowRead: Bool
@@ -210,12 +221,12 @@ private struct ThrowingFavoriteStorage: AsyncStorage {
         self.allowRead = allowRead
     }
 
-    func value(for id: Id) async throws -> Value? {
+    func value(for id: Id) async throws -> Data? {
         guard allowRead else { throw StorageError() }
         return nil
     }
 
-    func saveValue(_ value: Value?, for id: Id) async throws {
+    func saveValue(_ value: Data?, for id: Id) async throws {
         throw StorageError()
     }
 
