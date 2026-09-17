@@ -170,7 +170,7 @@ struct NationalStopGroupResponse: Codable, Equatable {
 }
 
 /// A national stop group / meta-stop returned by Stop Lookup.
-struct StopGroup: Codable, Equatable, Identifiable {
+struct StopGroup: Codable, Equatable, Identifiable, Hashable {
     var id: String
     var name: String
     var area_type: String
@@ -180,7 +180,7 @@ struct StopGroup: Codable, Equatable, Identifiable {
 }
 
 /// A child stop reference — never use its `id` for Timetables/Trips calls.
-struct StopRef: Codable, Equatable, Identifiable {
+struct StopRef: Codable, Equatable, Identifiable, Hashable {
     var id: String
     var name: String
     var lat: Double

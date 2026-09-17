@@ -29,20 +29,31 @@ struct MockTrafiklabService: NetworkProtocol {
     /// UI-test harness, and unit tests all share one canned dataset.
     let departuresByAreaId: [String: [CallAtLocation]]
 
+    /// The stop groups returned from the Stop Lookup name-search endpoint,
+    /// filtered client-side by name against the request's `{searchValue}` so
+    /// the mock reflects the real endpoint's behaviour. Defaults to
+    /// ``defaultStopGroups`` so previews, the `--mock-network` UI-test harness,
+    /// and unit tests all share one canned dataset.
+    let stopGroups: [StopGroup]
+
     /// Creates a mock Trafiklab service.
     /// - Parameters:
     ///   - baseURL: The base URL this server responds for.
     ///   - nearbyStops: The stops to return from the nearby endpoint.
     ///   - departuresByAreaId: The departures to return per area id from the
     ///     departures endpoint; area ids with no entry return an empty list.
+    ///   - stopGroups: The stop groups to return from the Stop Lookup name
+    ///     search endpoint, filtered by name against the search value.
     init(
         baseURL: URL = URL(string: "https://api.resrobot.se")!,
         nearbyStops: [StopLocation] = MockTrafiklabService.defaultNearbyStops,
-        departuresByAreaId: [String: [CallAtLocation]] = MockTrafiklabService.defaultDeparturesByAreaId
+        departuresByAreaId: [String: [CallAtLocation]] = MockTrafiklabService.defaultDeparturesByAreaId,
+        stopGroups: [StopGroup] = MockTrafiklabService.defaultStopGroups
     ) {
         self.baseURL = baseURL
         self.nearbyStops = nearbyStops
         self.departuresByAreaId = departuresByAreaId
+        self.stopGroups = stopGroups
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
@@ -50,6 +61,45 @@ struct MockTrafiklabService: NetworkProtocol {
 
         if request.httpMethod == "GET", url.path.hasSuffix("location.nearbystops") {
             let payload = NearbyStopsResponse(StopLocation: nearbyStops)
+            let data = try JSONEncoder().encode(payload)
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (data, response)
+        }
+
+        if request.httpMethod == "GET", url.path.contains("/stops/name/") {
+            let groups = self.stopGroups(for: url)
+            let payload = NationalStopGroupResponse(
+                timestamp: "2099-01-01T12:00:00",
+                query: NationalStopGroupResponse.StopLookupQuery(
+                    queryTime: "2099-01-01T12:00:00",
+                    query: self.searchValue(for: url)
+                ),
+                stop_groups: groups
+            )
+            let data = try JSONEncoder().encode(payload)
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (data, response)
+        }
+
+        if request.httpMethod == "GET", url.path.hasSuffix("/stops/list") {
+            let payload = NationalStopGroupResponse(
+                timestamp: "2099-01-01T12:00:00",
+                query: NationalStopGroupResponse.StopLookupQuery(
+                    queryTime: "2099-01-01T12:00:00",
+                    query: nil
+                ),
+                stop_groups: stopGroups
+            )
             let data = try JSONEncoder().encode(payload)
             let response = HTTPURLResponse(
                 url: url,
@@ -93,6 +143,66 @@ struct MockTrafiklabService: NetworkProtocol {
         let areaId = segments[departuresIndex + 1]
         return departuresByAreaId[areaId] ?? []
     }
+
+    /// Extracts the `{searchValue}` path segment from a Stop Lookup name
+    /// search URL (`.../stops/name/{searchValue}`) for the response's `query`
+    /// field. Returns `nil` when the segment can't be found.
+    private func searchValue(for url: URL) -> String? {
+        let segments = url.path.split(separator: "/").map(String.init)
+        guard let nameIndex = segments.lastIndex(of: "name"),
+              segments.count > nameIndex + 1 else {
+            return nil
+        }
+        return segments[nameIndex + 1]
+    }
+
+    /// Extracts the `{searchValue}` path segment from a Stop Lookup name search
+    /// URL (`.../stops/name/{searchValue}`) and returns the configured stop
+    /// groups whose name contains it (case-insensitive). An empty filter returns
+    /// all groups, matching the real endpoint's broadest match.
+    private func stopGroups(for url: URL) -> [StopGroup] {
+        guard let value = searchValue(for: url), !value.isEmpty else {
+            return stopGroups
+        }
+        let needle = value.lowercased()
+        return stopGroups.filter { $0.name.lowercased().contains(needle) }
+    }
+
+    /// A stable set of stop groups used by default for the Stop Lookup name
+    /// search endpoint, matching the shape the Trafiklab API returns
+    /// (`average_daily_stop_times`, `transport_modes`, child `stops`).
+    static let defaultStopGroups: [StopGroup] = [
+        StopGroup(
+            id: "740000001",
+            name: "Medborgarplatsen",
+            area_type: "META_STOP",
+            average_daily_stop_times: 850,
+            transport_modes: ["BUS", "METRO", "TRAM"],
+            stops: [
+                StopRef(id: "740000001", name: "Medborgarplatsen", lat: 59.3139, lon: 18.0720)
+            ]
+        ),
+        StopGroup(
+            id: "740000002",
+            name: "Slussen",
+            area_type: "META_STOP",
+            average_daily_stop_times: 1200,
+            transport_modes: ["BUS", "METRO", "TRAM", "BOAT"],
+            stops: [
+                StopRef(id: "740000002", name: "Slussen", lat: 59.3199, lon: 18.0717)
+            ]
+        ),
+        StopGroup(
+            id: "740000004",
+            name: "Odenplan",
+            area_type: "META_STOP",
+            average_daily_stop_times: 950,
+            transport_modes: ["BUS", "METRO", "TRAIN"],
+            stops: [
+                StopRef(id: "740000004", name: "Odenplan", lat: 59.3429, lon: 18.0496)
+            ]
+        )
+    ]
 
     /// A stable set of nearby stops used by default in tests, matching the
     /// shape ResRobot returns (`dist` in meters, `lat`/`lon` as strings).
