@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The Stop board screen ("Step 2 — Tap a stop → live departure board" in
 /// `Designs/storyboard.html`).
@@ -19,6 +20,8 @@ struct StopDetailsView: View {
     let stopName: String
 
     @Environment(\.network) private var network
+
+    @Environment(FavoritesModel.self) private var favoritesModel
 
     @State private var model = StopDetailsModel()
 
@@ -46,6 +49,16 @@ struct StopDetailsView: View {
         }
         .navigationTitle(stopName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                FavoriteToggle(
+                    stopId: stopId,
+                    stopName: stopName,
+                    departures: model.departures,
+                    model: favoritesModel
+                )
+            }
+        }
         .task {
             await model.loadDepartures(network: network, areaId: stopId)
         }
@@ -247,12 +260,45 @@ private struct ModeBlip: View {
     }
 }
 
+// MARK: - Favorite toggle
+
+/// The toolbar star on the Stop board that saves/removes the current stop as a
+/// favourite, matching the storyboard's "tap the star on any stop page". The
+/// filled state reflects the shared ``FavoritesModel``; the line labels seen
+/// on the board are captured into the favourite so the row shows a "Lines …"
+/// subtitle.
+private struct FavoriteToggle: View {
+    @Environment(\.modelContext) var modelContext
+    let stopId: String
+    let stopName: String
+    let departures: [CallAtLocation]
+    let model: FavoritesModel
+
+    var body: some View {
+        Button {
+            model.toggle(
+                stopId,
+                name: stopName,
+                lines: departures.lineLabels,
+                context: modelContext
+            )
+        } label: {
+            Image(systemName: model.contains(stopId) ? "star.fill" : "star")
+                .foregroundStyle(model.contains(stopId) ? .yellow : .secondary)
+                .accessibilityLabel(model.contains(stopId) ? "Remove favourite" : "Add favourite")
+        }
+    }
+}
+
 #Preview("Departures") {
+    @Previewable @State var model = FavoritesModel()
     NavigationStack {
         StopDetailsView(
             stopId: "740000001",
             stopName: "Medborgarplatsen"
         )
     }
-    .environment(\.network, MockNetwork())
+    .environment(\.network, MockTrafiklabService())
+    .environment(model)
+    .modelContainer(mockModelContainer())
 }

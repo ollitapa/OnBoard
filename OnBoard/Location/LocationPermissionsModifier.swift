@@ -16,7 +16,7 @@ import CoreLocation
 /// https://developer.apple.com/documentation/corelocationui/locationbutton.
 struct LocationPermissionsModifier: ViewModifier {
 
-    @State private var model: LocationAuthorization = Self.makeModel()
+    @Environment(LocationAuthorization.self) var model
 
     /// Called when the user taps "Search manually instead" in the denied
     /// view, so the app can switch to the search tab.
@@ -33,22 +33,8 @@ struct LocationPermissionsModifier: ViewModifier {
         self.onManualSearch = onManualSearch
     }
 
-    /// Builds the model for the default init: a mock pre-authorized with a
-    /// fixed coordinate when `--skip-location-permission` is passed at
-    /// launch, otherwise a real `CLLocationManager`-backed model.
-    private static func makeModel() -> LocationAuthorization {
-        makeLocationAuthorizationFromLaunchArguments()
-    }
-
-    /// Creates the modifier backed by the given model, for previews and tests.
-    init(model: LocationAuthorization, onManualSearch: @escaping () -> Void = {}) {
-        self.onManualSearch = onManualSearch
-        self.model = model
-    }
-
     func body(content: Content) -> some View {
         content
-            .environment(\.locationAuthorization, model)
             .overlay {
                 switch model.status {
                 case .notDetermined:
@@ -74,30 +60,6 @@ struct LocationPermissionsModifier: ViewModifier {
     }
 }
 
-/// Launch argument that makes `.locationPermissions` skip the system
-/// permission flow and pre-authorize a fixed coordinate, so the Nearby tab
-/// renders stops in UI tests where the simulator can't grant real location
-/// permission. Mirrors the `--mock-network` harness.
-let skipLocationPermissionLaunchArgument = "--skip-location-permission"
-
-/// Builds the location-authorization model for the app's default init and the
-/// `.locationPermissions` modifier's default init: when
-/// `--skip-location-permission` is passed at launch, a `FixedLocationManager`
-/// pre-authorized with a fixed coordinate so the Nearby tab renders stops in
-/// UI tests where real CoreLocation permission can't be granted; otherwise a
-/// real `CLLocationManager`-backed model. Centralized so `MainView` and the
-/// modifier share one source of truth.
-@MainActor
-func makeLocationAuthorizationFromLaunchArguments() -> LocationAuthorization {
-    if CommandLine.arguments.contains(skipLocationPermissionLaunchArgument) {
-        let manager = FixedLocationManager(authorizationStatus: .authorizedWhenInUse)
-        let model = LocationAuthorization(manager: manager)
-        model.startUpdating()
-        return model
-    }
-    return LocationAuthorization()
-}
-
 extension View {
 
     /// Gates this view behind the location permission flow.
@@ -114,35 +76,10 @@ extension View {
     ) -> some View {
         modifier(LocationPermissionsModifier(onManualSearch: onManualSearch))
     }
-
-    /// Gates this view behind the location permission flow using an explicit
-    /// ``LocationAuthorization`` model, for previews and tests that need a
-    /// pre-authorized (or otherwise pre-configured) model instead of the
-    /// launch-argument-driven default.
-    func locationPermissions(
-        model: LocationAuthorization,
-        onManualSearch: @escaping () -> Void = {}
-    ) -> some View {
-        modifier(LocationPermissionsModifier(model: model, onManualSearch: onManualSearch))
-    }
-}
-
-/// Environment entry for the location authorization model, mirroring
-/// `.network`. Descendant views read `@Environment(\.locationAuthorization)` to
-/// obtain the current coordinate and authorization status.
-///
-/// The default is `nil` because constructing a `@MainActor` model in the
-/// `nonisolated` `EnvironmentKey.defaultValue` is not allowed; the
-/// `.locationPermissions` modifier always injects a real model, so views used
-/// within it receive a non-`nil` value.
-extension EnvironmentValues {
-
-    /// The location authorization model published by `.locationPermissions`,
-    /// or `nil` when read outside a `.locationPermissions` hierarchy.
-    @Entry var locationAuthorization: LocationAuthorization?
 }
 
 #Preview("Gated") {
     Color.clear
         .locationPermissions()
+        .environment(previewLocationAuthorization())
 }

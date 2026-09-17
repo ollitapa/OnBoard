@@ -49,10 +49,6 @@ struct MockNearbyServer: NetworkProtocol {
     ]
 }
 
-/// Launch argument used by UI tests to substitute a mock network for the
-/// production `LiveNetwork`. See `mockNetwork()`.
-let mockNetworkLaunchArgument = "--mock-network"
-
 /// Builds the `CombinedNetwork` used when `--mock-network` is passed at
 /// launch, composing a `MockTrafiklabService` over both the ResRobot and
 /// Trafiklab realtime base URLs so the nearby view (ResRobot
