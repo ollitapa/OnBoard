@@ -9,7 +9,7 @@ import Foundation
 ///             .codable(for: Stuff.self)
 ///         )
 ///
-public struct FileStorage: AsyncStorage {
+public struct FileStorage: AsyncStorage, Sendable {
     public typealias Value = Data
     public typealias Id = String
 

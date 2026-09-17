@@ -17,7 +17,7 @@ extension AsyncStorage where Self.Value == Data {
     }
 }
 
-struct CodableStorage<Value: Codable & Sendable, Original: AsyncStorage>: AsyncStorage
+struct CodableStorage<Value: Codable & Sendable, Original: AsyncStorage>: AsyncStorage, Sendable
 where Original.Value == Data {
 
     let original: Original

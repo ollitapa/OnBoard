@@ -14,7 +14,7 @@ extension AsyncStorage {
     }
 }
 
-public struct CombinedStorage<DefaultStorage: AsyncStorage, BackupStorage: AsyncStorage>: AsyncStorage
+public struct CombinedStorage<DefaultStorage: AsyncStorage, BackupStorage: AsyncStorage>: AsyncStorage, Sendable
 where DefaultStorage.Value == BackupStorage.Value, DefaultStorage.Id == BackupStorage.Id {
 
     public typealias Id = BackupStorage.Id

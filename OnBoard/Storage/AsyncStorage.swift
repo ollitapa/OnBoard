@@ -1,5 +1,5 @@
 /// An interface for a storage that can asynchronously get and set values for given ID.
-public protocol AsyncStorage<Value, Id> {
+public protocol AsyncStorage<Value, Id>: Sendable {
     associatedtype Value: Sendable
     associatedtype Id: Sendable
 

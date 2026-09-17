@@ -1,6 +1,6 @@
 import os
 
-struct MemoryStorage<Value: Hashable & Sendable, Id: Hashable & Sendable>: AsyncStorage<Value, Id> {
+struct MemoryStorage<Value: Hashable & Sendable, Id: Hashable & Sendable>: AsyncStorage<Value, Id>, Sendable {
 
     private let memory = OSAllocatedUnfairLock<[Id: Value]>(initialState: [:])
 
