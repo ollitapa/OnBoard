@@ -98,7 +98,7 @@ extension MainView {
     /// departures keyed by their area ids, so the Stop board screen renders
     /// real rows in the preview. `Folkungagatan` has no departures configured,
     /// so its board shows the empty state.
-    private static func previewNetwork() -> some NetworkProtocol {
+    static func previewNetwork() -> some NetworkProtocol {
         MockTrafiklabService(
             departuresByAreaId: [
                 "740000001": previewDepartures,
@@ -111,7 +111,7 @@ extension MainView {
     /// so the Nearby tab renders its stops in the preview without a permission
     /// prompt.
     @MainActor
-    private static func previewLocationModel() -> LocationAuthorization {
+    static func previewLocationModel() -> LocationAuthorization {
         let manager = FixedLocationManager(
             authorizationStatus: .authorizedWhenInUse,
             coordinate: CLLocationCoordinate2D(latitude: 59.31, longitude: 18.07)
@@ -123,7 +123,7 @@ extension MainView {
 
     /// A handful of departures exercising the row variants: an on-time bus, a
     /// delayed tram, and a cancelled metro.
-    private static var previewDepartures: [CallAtLocation] {
+    static var previewDepartures: [CallAtLocation] {
         [
             CallAtLocation(
                 scheduled: Self.futureTimestamp(minutesFromNow: 2),
@@ -172,7 +172,7 @@ extension MainView {
 
     /// Formats a timestamp `minutesFromNow` minutes ahead as the Trafiklab
     /// realtime format `YYYY-MM-DDTHH:mm:ss` in the current time zone.
-    private static func futureTimestamp(minutesFromNow: Int) -> String {
+    static func futureTimestamp(minutesFromNow: Int) -> String {
         let date = Date().addingTimeInterval(TimeInterval(minutesFromNow) * 60)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
