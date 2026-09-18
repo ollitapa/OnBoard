@@ -9,9 +9,8 @@ extension StopGroup {
     /// Empty when the API reports no current traffic.
     var modeIcons: [String] {
         transport_modes
-            .map { $0.uppercased() }
-            .reduce(into: [String]()) { acc, mode in
-                let icon = SearchTransport.icon(for: mode)
+            .map { $0.icon}
+            .reduce(into: [String]()) { acc, icon in
                 if !acc.contains(icon) { acc.append(icon) }
             }
     }
@@ -20,32 +19,8 @@ extension StopGroup {
     /// Empty when the API reports no current traffic.
     var modeSummary: String {
         transport_modes
-            .map { $0.uppercased() }
+            .map { $0.rawMode }
             .filter { !$0.isEmpty }
             .joined(separator: " · ")
-    }
-}
-
-/// Maps a Trafiklab `transport_mode` to a SF Symbol. Shared with the Stop
-/// board's blip so the Search rows and the board agree on icons.
-enum SearchTransport {
-    /// Maps a Trafiklab `transport_mode` to a SF Symbol.
-    static func icon(for mode: String) -> String {
-        switch mode.uppercased() {
-        case "BUS":
-            return "bus.fill"
-        case "TRAM":
-            return "tram.fill"
-        case "METRO":
-            return "tram.fill"
-        case "TRAIN":
-            return "train.side.front.car"
-        case "BOAT":
-            return "ferry.fill"
-        case "TAXI":
-            return "car.fill"
-        default:
-            return "questionmark"
-        }
     }
 }

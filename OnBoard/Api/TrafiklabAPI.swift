@@ -175,7 +175,7 @@ struct StopGroup: Codable, Equatable, Identifiable, Hashable {
     var name: String
     var area_type: String
     var average_daily_stop_times: Double
-    var transport_modes: [String]
+    var transport_modes: [TransportMode]
     var stops: [StopRef]
 }
 
@@ -278,7 +278,7 @@ struct Route: Codable, Equatable {
     var name: String?
 }
 
-struct TransportMode: Codable, Equatable, ExpressibleByStringLiteral {
+struct TransportMode: Codable, Equatable, Hashable, ExpressibleByStringLiteral {
     /// `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT`.
     var rawMode: String
 
@@ -287,7 +287,7 @@ struct TransportMode: Codable, Equatable, ExpressibleByStringLiteral {
     }
 
     init(from decoder: any Decoder) throws {
-        var container = try decoder.singleValueContainer()
+        let container = try decoder.singleValueContainer()
         self.rawMode = try container.decode(String.self).uppercased()
     }
 
