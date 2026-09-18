@@ -60,7 +60,7 @@ struct RouteDetailsView: View {
     /// `trip-header .route`. The delay pill is rendered inside the track, not
     /// the nav bar, so the title stays short.
     static func title(_ route: RouteDetails) -> String {
-        "Line \(route.lineLabel) \u2192 \(route.direction)"
+        "Line \(route.lineLabel) • \(route.direction)"
     }
 }
 
@@ -194,7 +194,7 @@ private struct StopNode: View {
     /// for upcoming stops \u2014 matching the storyboard's `stop-node` states.
     private var nodeDot: some View {
         Circle()
-            .fill(isPassed ? Color.secondary.opacity(0.3) : .background)
+            .fill(isPassed ? Color.secondary.opacity(0.3) : Color.secondary)
             .overlay(
                 Circle()
                     .strokeBorder(
@@ -269,7 +269,7 @@ private struct StopNode: View {
                 tripId: "123",
                 startDate: "2099-01-01",
                 lineLabel: "T14",
-                direction: "Fru\u00e4ngen",
+                direction: "Fruängen",
                 delayMinutes: nil
             )
         )
