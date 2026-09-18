@@ -158,7 +158,7 @@ struct StopDetailsModelTests {
         scheduled: String = "2099-01-01T12:00:00",
         designation: String? = nil,
         name: String? = nil,
-        transportMode: String? = nil,
+        transportMode: TransportMode? = nil,
         direction: String? = nil,
         isRealtime: Bool? = nil,
         delay: Int? = nil,
