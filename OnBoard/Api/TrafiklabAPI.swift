@@ -271,11 +271,30 @@ struct Route: Codable, Equatable {
     /// The line-badge number, e.g. "3" or "T14".
     var designation: String?
     /// `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT`.
-    var transport_mode: String?
+    var transport_mode: TransportMode?
     /// Destination text; may change mid-route.
     var direction: String?
     /// Set only for lines known by name rather than number.
     var name: String?
+}
+
+struct TransportMode: Codable, Equatable, ExpressibleByStringLiteral {
+    /// `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT`.
+    var rawMode: String
+
+    init(stringLiteral value: String) {
+        self.rawMode = value.uppercased()
+    }
+
+    init(from decoder: any Decoder) throws {
+        var container = try decoder.singleValueContainer()
+        self.rawMode = try container.decode(String.self).uppercased()
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawMode)
+    }
 }
 
 /// Operator branding for a departure/arrival row.
