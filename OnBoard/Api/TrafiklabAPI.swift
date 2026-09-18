@@ -366,6 +366,9 @@ struct LocalDate: Codable, Hashable, Sendable {
     init(date: Date) {
         self.date = date
     }
+    init(string: String) throws {
+        self.date = try Self.formatter.parse(string)
+    }
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -384,12 +387,10 @@ struct LocalDate: Codable, Hashable, Sendable {
         try container.encode(Self.formatter.format(date))
     }
 
-    private static let formatter: Date.ISO8601FormatStyle = Date.ISO8601FormatStyle(
-        dateSeparator: .dash,
-        dateTimeSeparator: .standard,
-        timeSeparator: .colon,
-        timeZoneSeparator: .omitted,
-        includingFractionalSeconds: false,
-        timeZone: .autoupdatingCurrent
-    )
+    private static let formatter = Date.ISO8601FormatStyle
+        .iso8601(timeZone: .current)
+        .year()
+        .month()
+        .day()
+        .time(includingFractionalSeconds: false)
 }

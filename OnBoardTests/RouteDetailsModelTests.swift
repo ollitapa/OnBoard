@@ -166,8 +166,8 @@ struct RouteDetailsModelTests {
             name: name,
             lat: nil,
             lon: nil,
-            scheduled: scheduled,
-            realtime: realtime,
+            scheduled: try! scheduled.map(LocalDate.init(string:)),
+            realtime: try! realtime.map(LocalDate.init(string:)),
             delay: delay,
             canceled: canceled,
             is_realtime: isRealtime
