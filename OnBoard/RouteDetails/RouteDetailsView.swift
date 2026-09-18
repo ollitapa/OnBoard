@@ -20,6 +20,8 @@ struct RouteDetailsView: View {
 
     @State private var model = RouteDetailsModel()
 
+    @State private var loadingTrigger = 0
+
     var body: some View {
         Group {
             if let failure = model.failure {
@@ -47,12 +49,14 @@ struct RouteDetailsView: View {
         }
         .navigationTitle(Self.title(route))
         .navigationBarTitleDisplayMode(.inline)
-        .task {
+        .task(id: loadingTrigger) {
             await model.loadTrip(
                 network: network,
                 tripId: route.tripId,
                 startDate: route.startDate
             )
+            try? await Task.sleep(for: .seconds(30)) // refresh every 30s
+            loadingTrigger += 1
         }
     }
 
