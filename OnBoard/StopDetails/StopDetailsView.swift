@@ -223,11 +223,11 @@ private struct LineBadge: View {
 /// matching the storyboard's `mode-blip`.
 private struct ModeBlip: View {
 
-    let mode: String?
+    let mode: TransportMode?
 
     var body: some View {
         if let mode {
-            Image(systemName: Self.modeIcon(for: mode))
+            Image(systemName: mode.icon)
                 .font(.system(size: 8, weight: .bold))
                 .foregroundStyle(.primary)
                 .padding(2)
@@ -237,11 +237,13 @@ private struct ModeBlip: View {
                 .offset(x: 5, y: 5)
         }
     }
+}
 
+extension TransportMode {
     /// Maps a Trafiklab `transport_mode` to a SF Symbol, matching the icons in
     /// the storyboard (`BUS`/`TRAM`/`METRO`/`TRAIN`/`BOAT`/`TAXI`).
-    static func modeIcon(for mode: String) -> String {
-        switch mode.uppercased() {
+    var icon: String {
+        switch rawMode {
         case "BUS":
             return "bus.fill"
         case "TRAM":

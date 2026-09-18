@@ -28,7 +28,9 @@ struct MainView: View {
                 }
             }
             Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
-                SearchView()
+                NavigationStack {
+                    SearchView()
+                }
             }
         }
         .onAppear {
