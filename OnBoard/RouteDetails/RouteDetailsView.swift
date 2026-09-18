@@ -123,21 +123,41 @@ private struct TripNodes: View {
     let route: RouteDetails
     let stops: [TripStop]
 
-    private var currentIndex: Int? { stops.currentStopIndex() }
+    private var currentPosition: TransportPosition? { stops.currentStopIndex() }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             line
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
-                    StopNode(
-                        stop: stop,
-                        isPassed: stops.isPassed(at: index),
-                        isCurrent: index == currentIndex,
-                        isFinal: index == stops.count - 1
-                    )
-                    if index == currentIndex {
+                    switch currentPosition {
+                    case .atStop(let currentIndex):
+                        StopNode(
+                            stop: stop,
+                            isPassed: stops.isPassed(at: index),
+                            isCurrent: index == currentIndex,
+                            isFinal: index == stops.count - 1
+                        )
+                        .overlay {
+                            TransportModeMarker(mode: route.transportMode)
+                        }
+
+                    case .betweenStops(let before, _) where before == index:
+                        StopNode(
+                            stop: stop,
+                            isPassed: stops.isPassed(at: index),
+                            isCurrent: false,
+                            isFinal: index == stops.count - 1
+                        )
                         TransportModeMarker(mode: route.transportMode)
+
+                    default:
+                        StopNode(
+                            stop: stop,
+                            isPassed: stops.isPassed(at: index),
+                            isCurrent: false,
+                            isFinal: index == stops.count - 1
+                        )
                     }
                 }
             }
