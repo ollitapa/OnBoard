@@ -69,7 +69,7 @@ struct RouteDetailsModelTests {
         #expect(departure.routeDetails == nil)
     }
 
-    @Test func routeDetailsCarriesTripRefAndPresentation() {
+    @Test func routeDetailsCarriesTripRefAndPresentation() throws {
         let departure = StopDetailsModelTests.departure(
             tripId: "900001",
             scheduled: "2099-01-01T12:00:00",
@@ -83,12 +83,12 @@ struct RouteDetailsModelTests {
         #expect(route.startDate == "2099-01-01")
         #expect(route.lineLabel == "3")
         #expect(route.direction == "Ropsten")
-        #expect(route.delayMinutes == 3)
+        #expect(route.delayMinutes?.minutes == 3)
     }
 
     // MARK: - TripStop presentation
 
-    @Test func tripStopDatePrefersRealtime() {
+    @Test func tripStopDatePrefersRealtime() throws {
         let stop = Self.stop(
             scheduled: "2099-01-01T12:00:00",
             realtime: "2099-01-01T12:03:00"
@@ -114,7 +114,7 @@ struct RouteDetailsModelTests {
             isRealtime: true,
             delay: 181
         )
-        #expect(stop.delayMinutes == 4)
+        #expect(stop.delayMinutes?.minutes == 4)
     }
 
     // MARK: - Schedule helpers
@@ -127,7 +127,7 @@ struct RouteDetailsModelTests {
             Self.stop(scheduled: Self.future(now, minutes: 6)),
             Self.stop(scheduled: Self.future(now, minutes: 13))
         ]
-        #expect(stops.currentStopIndex(now: now) == 2)
+        #expect(stops.currentStopIndex(now: now) == .betweenStops(before: 1, after: 2))
         #expect(stops.isPassed(at: 0, now: now) == true)
         #expect(stops.isPassed(at: 1, now: now) == true)
         #expect(stops.isPassed(at: 2, now: now) == false)
@@ -166,8 +166,8 @@ struct RouteDetailsModelTests {
             name: name,
             lat: nil,
             lon: nil,
-            scheduled: scheduled,
-            realtime: realtime,
+            scheduled: try! scheduled.map(LocalDate.init(string:)),
+            realtime: try! realtime.map(LocalDate.init(string:)),
             delay: delay,
             canceled: canceled,
             is_realtime: isRealtime
@@ -184,10 +184,20 @@ struct RouteDetailsModelTests {
         timestamp(now.addingTimeInterval(TimeInterval(minutes) * 60))
     }
 
-    /// Formats a `Date` as the Trafiklab realtime format `YYYY-MM-DDTHH:mm:ss`.
+    /// Formats a `Date` as the Trafiklab realtime format `YYYY-MM-DDTHH:mm:ss`:
+    /// local wall-clock time with no time-zone designator, mirroring the format
+    /// style `LocalDate` parses with. Emitting UTC (`...Z`) here would be
+    /// re-read as local time and shift every stop by the UTC offset.
     static func timestamp(_ date: Date) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.string(from: date)
+        date.formatted(formatStyle)
     }
+
+    /// The same ISO8601 configuration `LocalDate` uses: current time zone,
+    /// full date, whole-second time, no zone designator.
+    private static let formatStyle = Date.ISO8601FormatStyle
+        .iso8601(timeZone: .current)
+        .year()
+        .month()
+        .day()
+        .time(includingFractionalSeconds: false)
 }

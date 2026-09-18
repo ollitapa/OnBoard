@@ -62,7 +62,7 @@ struct CallAtLocationFavoritesTests {
         name: String? = nil
     ) -> CallAtLocation {
         CallAtLocation(
-            scheduled: "2099-01-01T12:00:00",
+            scheduled: try! LocalDate(string: "2099-01-01T12:00:00"),
             realtime: nil,
             delay: nil,
             canceled: nil,

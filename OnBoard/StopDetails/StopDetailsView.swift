@@ -138,13 +138,13 @@ private struct StatusPill: View {
                 .padding(.vertical, 2)
                 .background(Color.red.opacity(0.15), in: Capsule())
         } else if let delay = departure.delayMinutes {
-            Text(Self.delayLabel(delay))
+            Text(delay.label)
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(delay < 0 ? .green : .orange)
+                .foregroundStyle(delay.minutes < 0 ? .green : .orange)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(
-                    Color(delay < 0 ? .green : .orange).opacity(0.15),
+                    Color(delay.minutes < 0 ? .green : .orange).opacity(0.15),
                     in: Capsule()
                 )
         }
@@ -194,7 +194,7 @@ private struct Countdown: View {
             }
             return date.formatted(date: .omitted, time: .shortened)
         }
-        return departure.scheduled
+        return departure.scheduled.date.formatted()
     }
 }
 

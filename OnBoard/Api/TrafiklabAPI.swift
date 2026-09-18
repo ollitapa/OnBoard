@@ -251,8 +251,8 @@ struct CallAtLocation: Codable, Equatable, Identifiable {
     /// A stable row id derived from the trip; falls back to scheduled time.
     var id: String { trip?.trip_id ?? "\(scheduled)-\(route?.designation ?? "")" }
 
-    var scheduled: String
-    var realtime: String?
+    var scheduled: LocalDate
+    var realtime: LocalDate?
     /// Delay in seconds; may be negative. `0` when there is no realtime data.
     var delay: Int?
     var canceled: Bool?
@@ -343,6 +343,7 @@ struct Trip: Codable, Equatable, Identifiable {
     var id: String?
     var trip_id: String?
     var start_date: String?
+    var route: Route?
     var stops: [TripStop]
 }
 
@@ -352,9 +353,53 @@ struct TripStop: Codable, Equatable, Identifiable {
     var name: String?
     var lat: Double?
     var lon: Double?
-    var scheduled: String?
-    var realtime: String?
+    var scheduled: LocalDate?
+    var realtime: LocalDate?
     var delay: Int?
     var canceled: Bool?
     var is_realtime: Bool?
+}
+
+struct LocalDate: Codable, Hashable, Sendable {
+    /// The wrapped instant, always normalized to whole-second precision so a
+    /// value stays equal to itself after an encode/decode round trip (the wire
+    /// format carries no fractional seconds).
+    private(set) var date: Date
+
+    init(date: Date) {
+        self.date = Self.truncatingFractionalSeconds(date)
+    }
+    init(string: String) throws {
+        self.date = try Self.truncatingFractionalSeconds(Self.formatter.parse(string))
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let stringDate = try container.decode(String.self)
+
+        guard !stringDate.isEmpty else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Date can not be empty")
+        }
+
+        let parsedDate = try Self.formatter.parse(stringDate)
+        self.date = Self.truncatingFractionalSeconds(parsedDate)
+    }
+
+    /// Drops any sub-second component so values match the second-granularity
+    /// timestamps the API sends and ``encode(to:)`` writes.
+    private static func truncatingFractionalSeconds(_ date: Date) -> Date {
+        Date(timeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate.rounded(.down))
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(Self.formatter.format(date))
+    }
+
+    private static let formatter = Date.ISO8601FormatStyle
+        .iso8601(timeZone: .current)
+        .year()
+        .month()
+        .day()
+        .time(includingFractionalSeconds: false)
 }
