@@ -27,18 +27,22 @@ struct RouteDetailsView: View {
             if let failure = model.failure {
                 ContentUnavailableView {
                     Label("Couldn't load the trip", systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.ink)
                 } description: {
                     Text(failure)
+                        .foregroundStyle(.inkSoft)
                 }
             } else if model.stops.isEmpty {
                 if model.isLoading {
                     ProgressView()
+                        .tint(.accent)
                 } else {
                     ContentUnavailableView(
                         "No stops",
                         systemImage: "tray",
                         description: Text("This trip has no scheduled stops.")
                     )
+                    .foregroundStyle(.ink, .inkSoft)
                 }
             } else {
                 TripTrack(
@@ -49,6 +53,8 @@ struct RouteDetailsView: View {
         }
         .navigationTitle(Self.title(route))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(Color.panel, for: .navigationBar)
         .task(id: loadingTrigger) {
             await model.loadTrip(
                 network: network,
@@ -105,10 +111,13 @@ private struct DelayPill: View {
         if let delayMinutes {
             Text(delayMinutes.label)
                 .font(.caption.weight(.bold))
-                .foregroundStyle(.red)
+                .foregroundStyle(delayMinutes.minutes < 0 ? .statusGreen : .statusRed)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3)
-                .background(Color.red.opacity(0.15), in: Capsule())
+                .background(
+                    delayMinutes.minutes < 0 ? Color.statusGreenTint : Color.statusRedTint,
+                    in: Capsule()
+                )
         }
     }
 }
@@ -169,7 +178,7 @@ private struct TripNodes: View {
     /// first/last node.
     private var line: some View {
         Capsule()
-            .fill(Color.secondary.opacity(0.3))
+            .fill(Color.hairline)
             .frame(width: 3)
             .padding(.leading, 4)
             .padding(.top, 16)
@@ -188,7 +197,7 @@ private struct TransportModeMarker: View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer(minLength: 20)
             RoundedRectangle(cornerRadius: 7)
-                .fill(Color.accentColor)
+                .fill(Color.accent)
                 .frame(width: 26, height: 26)
                 .overlay(
                     Group {
@@ -199,7 +208,7 @@ private struct TransportModeMarker: View {
                         }
                     }
                 )
-                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(.background, lineWidth: 3))
+                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.panel, lineWidth: 3))
                 .offset(x: -7)
                 .accessibilityLabel("Vehicle is here")
             Spacer(minLength: 20)
@@ -223,12 +232,12 @@ private struct StopNode: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(stop.name ?? "")
                     .font(.subheadline.weight(isPassed ? .regular : .semibold))
-                    .foregroundStyle(isPassed ? .secondary : .primary)
+                    .foregroundStyle(isPassed ? .inkSoft : .ink)
                     .strikethrough(stop.canceled == true)
                 if let subtitle = subtitle {
                     Text(subtitle)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.inkSoft)
                 }
             }
             Spacer(minLength: 0)
@@ -241,17 +250,17 @@ private struct StopNode: View {
     /// for upcoming stops • matching the storyboard's `stop-node` states.
     private var nodeDot: some View {
         Circle()
-            .fill(isPassed ? Color.secondary.opacity(0.3) : Color.secondary)
+            .fill(isPassed ? Color.hairline : Color.panel)
             .overlay(
                 Circle()
                     .strokeBorder(
-                        isCurrent ? Color.accentColor : Color.secondary.opacity(0.5),
+                        isCurrent ? Color.accent : Color.hairline,
                         lineWidth: isCurrent ? 3 : 3
                     )
             )
             .frame(width: isCurrent ? 15 : 11, height: isCurrent ? 15 : 11)
             .shadow(
-                color: isCurrent ? Color.accentColor.opacity(0.35) : .clear,
+                color: isCurrent ? Color.accentTint : .clear,
                 radius: isCurrent ? 5 : 0
             )
     }
