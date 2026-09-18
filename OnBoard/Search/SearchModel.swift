@@ -49,11 +49,19 @@ final class SearchModel {
         }
 
         isLoading = true
+
+        // This delay is a simple debounce to avoid hammering the API with every keystroke.
+        try? await Task.sleep(for: .milliseconds(400))
+        guard !Task.isCancelled else { return }
+
+        // If we were cancelled, some other query is already loading,
+        // so we do not need to stet to false.
         defer { isLoading = false }
 
         do {
             let api = Trafiklab(network: network)
             let response = try await api.searchStops(named: trimmed)
+            guard !Task.isCancelled else { return }
             results = response.stop_groups
             failure = nil
         } catch {

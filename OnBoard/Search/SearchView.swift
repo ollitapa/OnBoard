@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The Search tab ("Tab: Search" in `Designs/storyboard.html`).
 ///
@@ -26,8 +27,8 @@ struct SearchView: View {
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, prompt: "Search stop or line")
         .onSubmit(of: .search) { handleSubmit() }
-        .onChange(of: query) { _, newValue in
-            Task { await model.search(named: newValue, network: network) }
+        .task(id: query) {
+            await model.search(named: query, network: network)
         }
     }
 
