@@ -11,7 +11,7 @@ extension TripStop {
     /// and falling back to the scheduled time. Returns `nil` when the string
     /// is empty or malformed. Mirrors ``CallAtLocation.date``.
     var date: Date? {
-        Self.parsedDate(from: realtime ?? scheduled)
+        realtime?.date ?? scheduled?.date
     }
 
     /// Whole-minute delay for a stop, rounded away from zero. Returns `nil`
@@ -22,19 +22,6 @@ extension TripStop {
             return nil
         }
         return DelayTime(seconds: delay)
-    }
-
-    /// Parses a Trafiklab realtime timestamp (`YYYY-MM-DDTHH:mm:ss`) into a
-    /// `Date`. Returns `nil` for an empty or malformed string.
-    private static func parsedDate(from string: String?) -> Date? {
-        guard let string, !string.isEmpty else { return nil }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: string) {
-            return date
-        }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: string)
     }
 }
 

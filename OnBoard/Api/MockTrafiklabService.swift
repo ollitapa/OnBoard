@@ -352,11 +352,8 @@ struct MockTrafiklabService: NetworkProtocol {
 
     /// Formats a timestamp `minutesFromNow` minutes ahead as the Trafiklab
     /// realtime format `YYYY-MM-DDTHH:mm:ss` in the current time zone.
-    static func futureTimestamp(minutesFromNow: Int) -> String {
-        let date = Date().addingTimeInterval(TimeInterval(minutesFromNow) * 60)
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.string(from: date)
+    static func futureTimestamp(minutesFromNow: Int) -> LocalDate {
+        return LocalDate(date: Date().addingTimeInterval(TimeInterval(minutesFromNow) * 60))
     }
 
     /// A canned trip exercising the Live Trip track's passed/current/upcoming

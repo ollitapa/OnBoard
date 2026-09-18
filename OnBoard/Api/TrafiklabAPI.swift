@@ -251,8 +251,8 @@ struct CallAtLocation: Codable, Equatable, Identifiable {
     /// A stable row id derived from the trip; falls back to scheduled time.
     var id: String { trip?.trip_id ?? "\(scheduled)-\(route?.designation ?? "")" }
 
-    var scheduled: String
-    var realtime: String?
+    var scheduled: LocalDate
+    var realtime: LocalDate?
     /// Delay in seconds; may be negative. `0` when there is no realtime data.
     var delay: Int?
     var canceled: Bool?
@@ -353,9 +353,43 @@ struct TripStop: Codable, Equatable, Identifiable {
     var name: String?
     var lat: Double?
     var lon: Double?
-    var scheduled: String?
-    var realtime: String?
+    var scheduled: LocalDate?
+    var realtime: LocalDate?
     var delay: Int?
     var canceled: Bool?
     var is_realtime: Bool?
+}
+
+struct LocalDate: Codable, Hashable, Sendable {
+    var date: Date
+
+    init(date: Date) {
+        self.date = date
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let stringDate = try container.decode(String.self)
+
+        guard !stringDate.isEmpty else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Date can not be empty")
+        }
+
+        let parsedDate = try Self.formatter.parse(stringDate)
+        self.date = parsedDate
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(Self.formatter.format(date))
+    }
+
+    private static let formatter: Date.ISO8601FormatStyle = Date.ISO8601FormatStyle(
+        dateSeparator: .dash,
+        dateTimeSeparator: .standard,
+        timeSeparator: .colon,
+        timeZoneSeparator: .omitted,
+        includingFractionalSeconds: false,
+        timeZone: .autoupdatingCurrent
+    )
 }

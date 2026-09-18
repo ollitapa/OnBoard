@@ -194,7 +194,7 @@ private struct Countdown: View {
             }
             return date.formatted(date: .omitted, time: .shortened)
         }
-        return departure.scheduled
+        return departure.scheduled.date.formatted()
     }
 }
 

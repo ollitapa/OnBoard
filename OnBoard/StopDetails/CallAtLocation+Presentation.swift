@@ -30,7 +30,7 @@ extension CallAtLocation {
     /// and falling back to the scheduled time. Returns `nil` when the string
     /// is empty or malformed.
     var date: Date? {
-        Self.parsedDate(from: realtime ?? scheduled)
+        realtime?.date ?? scheduled.date
     }
 
     /// Parses a Trafiklab realtime timestamp (`YYYY-MM-DDTHH:mm:ss`) into a
