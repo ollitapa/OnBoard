@@ -184,10 +184,20 @@ struct RouteDetailsModelTests {
         timestamp(now.addingTimeInterval(TimeInterval(minutes) * 60))
     }
 
-    /// Formats a `Date` as the Trafiklab realtime format `YYYY-MM-DDTHH:mm:ss`.
+    /// Formats a `Date` as the Trafiklab realtime format `YYYY-MM-DDTHH:mm:ss`:
+    /// local wall-clock time with no time-zone designator, mirroring the format
+    /// style `LocalDate` parses with. Emitting UTC (`...Z`) here would be
+    /// re-read as local time and shift every stop by the UTC offset.
     static func timestamp(_ date: Date) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.string(from: date)
+        date.formatted(formatStyle)
     }
+
+    /// The same ISO8601 configuration `LocalDate` uses: current time zone,
+    /// full date, whole-second time, no zone designator.
+    private static let formatStyle = Date.ISO8601FormatStyle
+        .iso8601(timeZone: .current)
+        .year()
+        .month()
+        .day()
+        .time(includingFractionalSeconds: false)
 }

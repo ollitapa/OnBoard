@@ -361,13 +361,16 @@ struct TripStop: Codable, Equatable, Identifiable {
 }
 
 struct LocalDate: Codable, Hashable, Sendable {
-    var date: Date
+    /// The wrapped instant, always normalized to whole-second precision so a
+    /// value stays equal to itself after an encode/decode round trip (the wire
+    /// format carries no fractional seconds).
+    private(set) var date: Date
 
     init(date: Date) {
-        self.date = date
+        self.date = Self.truncatingFractionalSeconds(date)
     }
     init(string: String) throws {
-        self.date = try Self.formatter.parse(string)
+        self.date = try Self.truncatingFractionalSeconds(Self.formatter.parse(string))
     }
 
     init(from decoder: any Decoder) throws {
@@ -379,7 +382,13 @@ struct LocalDate: Codable, Hashable, Sendable {
         }
 
         let parsedDate = try Self.formatter.parse(stringDate)
-        self.date = parsedDate
+        self.date = Self.truncatingFractionalSeconds(parsedDate)
+    }
+
+    /// Drops any sub-second component so values match the second-granularity
+    /// timestamps the API sends and ``encode(to:)`` writes.
+    private static func truncatingFractionalSeconds(_ date: Date) -> Date {
+        Date(timeIntervalSinceReferenceDate: date.timeIntervalSinceReferenceDate.rounded(.down))
     }
 
     func encode(to encoder: any Encoder) throws {
