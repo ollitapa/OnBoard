@@ -1,11 +1,11 @@
 import SwiftUI
 import SwiftData
 
-/// The Favourites tab ("Step 4 — Save a stop → skip the search next time" in
+/// The Favourites tab ("Step 4 \u2192 Save a stop \u2192 skip the search next time" in
 /// `Designs/storyboard.html`).
 ///
 /// Shows the saved stops as rows matching the storyboard's `fav-row`: a star,
-/// the stop name, and a "Lines …" subtitle, plus a dashed empty hint when no
+/// the stop name, and a "Lines \u2026" subtitle, plus a dashed empty hint when no
 /// stops are saved. Tapping a row opens the stop's live departure board
 /// (``StopDetailsView``). The view is driven by ``FavoritesModel`` and reads
 /// its shared model from the SwiftUI environment (`@Environment(FavoritesModel.self)`),
@@ -16,6 +16,8 @@ struct FavoritesView: View {
     var body: some View {
         FavoritesContent(model: favoritesModel)
             .navigationTitle("Favourites")
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(Color.panel, for: .navigationBar)
     }
 }
 
@@ -31,11 +33,14 @@ private struct FavoritesContent: View {
             if let failure = model.failure {
                 ContentUnavailableView {
                     Label("Couldn't load favourites", systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.ink)
                 } description: {
                     Text(failure)
+                        .foregroundStyle(.inkSoft)
                 }
             } else if model.isLoading {
                 ProgressView()
+                    .tint(.accent)
             } else if model.favorites.isEmpty == true {
                 FavoritesEmptyHint()
             } else {
@@ -69,13 +74,16 @@ private struct FavoritesList: View {
             }
         }
         .listStyle(.plain)
+        .listRowBackground(Color.panel)
+        .scrollContentBackground(Color.paper)
+        .background(Color.paper)
         .navigationDestination(for: Favorite.self) { favorite in
             StopDetailsView(stopId: favorite.id, stopName: favorite.name)
         }
     }
 }
 
-/// One `fav-row` from the storyboard: a star, the stop name, and a "Lines …"
+/// One `fav-row` from the storyboard: a star, the stop name, and a "Lines \u2026"
 /// subtitle.
 private struct FavoriteRow: View {
     let favorite: Favorite
@@ -83,20 +91,23 @@ private struct FavoriteRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 11) {
             Image(systemName: "star.fill")
-                .foregroundStyle(.yellow)
+                .foregroundStyle(.star)
                 .font(.callout)
             VStack(alignment: .leading, spacing: 1) {
                 Text(favorite.name)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.ink)
                 if !favorite.lineSummary.isEmpty {
                     Text(favorite.lineSummary)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.inkSoft)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .background(Color.panel)
     }
 }
 
@@ -106,8 +117,10 @@ private struct FavoritesEmptyHint: View {
     var body: some View {
         ContentUnavailableView {
             Label("No favourites yet", systemImage: "star")
+                .foregroundStyle(.ink)
         } description: {
             Text("Add stops by tapping the star on any stop page.")
+                .foregroundStyle(.inkSoft)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

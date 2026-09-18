@@ -6,6 +6,20 @@ struct Stop: Codable, Identifiable, Equatable, Hashable {
     var name: String
     var latitude: Double
     var longitude: Double
+    
+    /// Computed distance text for display (e.g., "180 m")
+    var distanceText: String {
+        // This would be calculated from user location in a real implementation
+        // For now, return a placeholder
+        return ""
+    }
+    
+    /// Computed minutes to walk (for the green time chip)
+    var minutesToWalk: Int? {
+        // This would be calculated from user location in a real implementation
+        // For now, return nil to hide the chip
+        return nil
+    }
 }
 
 @MainActor

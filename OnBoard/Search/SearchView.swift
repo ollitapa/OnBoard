@@ -25,6 +25,8 @@ struct SearchView: View {
         )
         .navigationTitle("Search")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(Color.panel, for: .navigationBar)
         .searchable(text: $query, prompt: "Search stop or line")
         .onSubmit(of: .search) { handleSubmit() }
         .task(id: query) {
@@ -63,8 +65,10 @@ private struct SearchContent: View {
             if let failure = model.failure {
                 ContentUnavailableView {
                     Label("Couldn't load stops", systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.ink)
                 } description: {
                     Text(failure)
+                        .foregroundStyle(.inkSoft)
                 }
             } else if query.trimmingCharacters(in: .whitespaces).isEmpty {
                 RecentsSection(
@@ -74,13 +78,16 @@ private struct SearchContent: View {
                 )
             } else if model.isLoading && model.results.isEmpty {
                 ProgressView()
+                    .tint(.accent)
             } else if model.results.isEmpty {
                 ContentUnavailableView.search(text: query.trimmingCharacters(in: .whitespaces))
+                    .foregroundStyle(.ink, .inkSoft)
             } else {
                 SearchResultsList(results: model.results)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.paper)
     }
 }
 
@@ -97,6 +104,9 @@ private struct SearchResultsList: View {
             }
         }
         .listStyle(.plain)
+        .listRowBackground(Color.panel)
+        .scrollContentBackground(Color.paper)
+        .background(Color.paper)
         .navigationDestination(for: StopGroup.self) { group in
             StopDetailsView(stopId: group.id, stopName: group.name)
         }
@@ -114,21 +124,23 @@ private struct SearchResultRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(group.name)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.ink)
                 if !group.modeSummary.isEmpty {
                     Text(group.modeSummary)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.inkSoft)
                 }
             }
             Spacer(minLength: 8)
             ForEach(group.modeIcons, id: \.self) { icon in
                 Image(systemName: icon)
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.inkSoft)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
     }
 }
 
@@ -147,6 +159,7 @@ private struct RecentsSection: View {
                 systemImage: "magnifyingglass",
                 description: Text("Find stops and lines by name.")
             )
+            .foregroundStyle(.ink, .inkSoft)
         } else {
             List {
                 Section {
@@ -161,13 +174,19 @@ private struct RecentsSection: View {
                 } header: {
                     HStack {
                         Text("Recent searches")
+                            .foregroundStyle(.ink)
+                            .font(.subheadline.weight(.semibold))
                         Spacer()
                         Button("Clear", action: onClear)
                             .font(.caption)
+                            .foregroundStyle(.inkSoft)
                     }
+                    .padding(.horizontal, 18)
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(Color.paper)
+            .background(Color.paper)
         }
     }
 }
@@ -180,12 +199,15 @@ private struct RecentRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 11) {
             Image(systemName: "clock.arrow.circlepath")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.inkSoft)
             Text(term)
                 .font(.subheadline)
-                .foregroundStyle(.primary)
+                .foregroundStyle(.ink)
             Spacer(minLength: 0)
         }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .background(Color.panel)
     }
 }
 

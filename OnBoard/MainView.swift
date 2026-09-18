@@ -38,6 +38,8 @@ struct MainView: View {
         }
         .tabViewSearchActivation(.searchTabSelection)
         .environment(favoritesModel)
+        .tint(.accent)
+        .accentColor(.accent)
     }
 }
 

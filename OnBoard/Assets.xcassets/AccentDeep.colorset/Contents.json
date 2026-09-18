@@ -1,0 +1,21 @@
+{
+  "colors" : [
+    {
+      "idiom" : "universal",
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "#4E0754"
+        },
+        {
+          "appearance" : "dark",
+          "value" : "#90279C"
+        }
+      ]
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

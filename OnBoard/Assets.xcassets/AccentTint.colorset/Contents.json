@@ -1,0 +1,21 @@
+{
+  "colors" : [
+    {
+      "idiom" : "universal",
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "#F5E1F7"
+        },
+        {
+          "appearance" : "dark",
+          "value" : "#BB61C747" // rgba(187,97,199,0.28) - 28% opacity
+        }
+      ]
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

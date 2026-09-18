@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// The Stop board screen ("Step 2 — Tap a stop → live departure board" in
+/// The Stop board screen ("Step 2 \u2192 Tap a stop \u2192 live departure board" in
 /// `Designs/storyboard.html`).
 ///
 /// Shows a dark header with the stop name and an "updated just now" meta line,
@@ -30,18 +30,22 @@ struct StopDetailsView: View {
             if let failure = model.failure {
                 ContentUnavailableView {
                     Label("Couldn't load departures", systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.ink)
                 } description: {
                     Text(failure)
+                        .foregroundStyle(.inkSoft)
                 }
             } else if model.departures.isEmpty {
                 if model.isLoading {
                     ProgressView()
+                        .tint(.accent)
                 } else {
                     ContentUnavailableView(
                         "No departures",
                         systemImage: "tray",
                         description: Text("There are no departures in the next hour.")
                     )
+                    .foregroundStyle(.ink, .inkSoft)
                 }
             } else {
                 DeparturesList(departures: model.departures)
@@ -62,6 +66,8 @@ struct StopDetailsView: View {
                 )
             }
         }
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(Color.panel, for: .navigationBar)
         .task {
             await model.loadDepartures(network: network, areaId: stopId)
         }
@@ -90,8 +96,11 @@ private struct DeparturesList: View {
             }
             .listRowSeparator(.visible)
             .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+            .listRowBackground(Color.panel)
         }
         .listStyle(.plain)
+        .scrollContentBackground(Color.paper)
+        .background(Color.paper)
     }
 }
 
@@ -109,7 +118,7 @@ private struct DepartureRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(departure.destination)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.ink)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 StatusPill(departure: departure)
@@ -133,18 +142,18 @@ private struct StatusPill: View {
         if departure.canceled == true {
             Text("Cancelled")
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(.red)
+                .foregroundStyle(.statusRed)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
-                .background(Color.red.opacity(0.15), in: Capsule())
+                .background(Color.statusRedTint, in: Capsule())
         } else if let delay = departure.delayMinutes {
             Text(Self.delayLabel(delay))
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(delay < 0 ? .green : .orange)
+                .foregroundStyle(delay < 0 ? .statusGreen : .statusYellow)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(
-                    Color(delay < 0 ? .green : .orange).opacity(0.15),
+                    delay < 0 ? Color.statusGreenTint : Color.statusYellowTint,
                     in: Capsule()
                 )
         }
@@ -169,12 +178,12 @@ private struct Countdown: View {
         if departure.canceled == true {
             Text("Cancelled")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.inkSoft)
                 .strikethrough()
         } else {
             Text(Self.text(for: departure))
                 .font(.title3.weight(.bold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(.ink)
                 .monospacedDigit()
                 .frame(minWidth: 44, alignment: .trailing)
         }
@@ -213,7 +222,7 @@ private struct LineBadge: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
                 .frame(minWidth: 42, minHeight: 40)
-                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 11))
+                .background(Color.accentDeep, in: RoundedRectangle(cornerRadius: 11))
             ModeBlip(mode: departure.route?.transport_mode)
         }
         .accessibilityElement(children: .ignore)
@@ -240,11 +249,11 @@ private struct ModeBlip: View {
         if let mode {
             Image(systemName: mode.icon)
                 .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(.panel)
                 .padding(2)
                 .frame(width: 19, height: 19)
-                .background(.background, in: Circle())
-                .overlay(Circle().strokeBorder(.background, lineWidth: 2))
+                .background(Color.panel, in: Circle())
+                .overlay(Circle().strokeBorder(Color.panel, lineWidth: 2))
                 .offset(x: 5, y: 5)
         }
     }
@@ -278,7 +287,7 @@ extension TransportMode {
 /// The toolbar star on the Stop board that saves/removes the current stop as a
 /// favourite, matching the storyboard's "tap the star on any stop page". The
 /// filled state reflects the shared ``FavoritesModel``; the line labels seen
-/// on the board are captured into the favourite so the row shows a "Lines …"
+/// on the board are captured into the favourite so the row shows a "Lines \u2026"
 /// subtitle.
 private struct FavoriteToggle: View {
     @Environment(\.modelContext) var modelContext
@@ -297,7 +306,7 @@ private struct FavoriteToggle: View {
             )
         } label: {
             Image(systemName: model.contains(stopId) ? "star.fill" : "star")
-                .foregroundStyle(model.contains(stopId) ? .yellow : .secondary)
+                .foregroundStyle(model.contains(stopId) ? .star : .inkSoft)
                 .accessibilityLabel(model.contains(stopId) ? "Remove favourite" : "Add favourite")
         }
     }
