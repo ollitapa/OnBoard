@@ -147,22 +147,16 @@ private struct StatusPill: View {
                 .padding(.vertical, 2)
                 .background(Color.statusRedTint, in: Capsule())
         } else if let delay = departure.delayMinutes {
-            Text(Self.delayLabel(delay))
+            Text(delay.label)
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(delay < 0 ? .statusGreen : .statusYellow)
+                .foregroundStyle(delay.minutes < 0 ? .statusGreen : .statusYellow)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(
-                    delay < 0 ? Color.statusGreenTint : Color.statusYellowTint,
+                    delay.minutes < 0 ? Color.statusGreenTint : Color.statusYellowTint,
                     in: Capsule()
                 )
         }
-    }
-
-    /// Formats a signed delay value as "+3 min" / "-2 min".
-    static func delayLabel(_ minutes: Int) -> String {
-        let sign = minutes >= 0 ? "+" : ""
-        return "\(sign)\(minutes) min"
     }
 }
 

@@ -138,7 +138,7 @@ struct StopDetailsModelTests {
             isRealtime: true,
             delay: 181
         )
-        #expect(departure.delayMinutes == 4)
+        #expect(departure.delayMinutes?.minutes == 4)
     }
 
     @Test func delayMinutesRoundsNegativeDown() {
@@ -147,7 +147,7 @@ struct StopDetailsModelTests {
             isRealtime: true,
             delay: -181
         )
-        #expect(departure.delayMinutes == -4)
+        #expect(departure.delayMinutes?.minutes == -4)
     }
 
     // MARK: - Helpers
@@ -165,7 +165,7 @@ struct StopDetailsModelTests {
         canceled: Bool? = nil
     ) -> CallAtLocation {
         CallAtLocation(
-            scheduled: scheduled,
+            scheduled: try! LocalDate(string: scheduled),
             realtime: nil,
             delay: delay,
             canceled: canceled,
