@@ -99,25 +99,16 @@ private struct TripTrack: View {
 /// the storyboard's `trip-header .eta`. Hidden when on time or no realtime data.
 private struct DelayPill: View {
 
-    let delayMinutes: Int?
+    let delayMinutes: DelayTime?
 
     var body: some View {
         if let delayMinutes {
-            Text(Self.label(delayMinutes))
+            Text(delayMinutes.label)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.red)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3)
                 .background(Color.red.opacity(0.15), in: Capsule())
-        }
-    }
-
-    /// "Delayed 3 min" for a positive delay, "Early 2 min" for a negative one.
-    static func label(_ minutes: Int) -> String {
-        if minutes >= 0 {
-            return "Delayed \(minutes) min"
-        } else {
-            return "Early \(-minutes) min"
         }
     }
 }
@@ -277,7 +268,7 @@ private struct StopNode: View {
                 startDate: "2099-01-01",
                 lineLabel: "3",
                 direction: "Karolinska sjukhuset",
-                delayMinutes: 0,
+                delayMinutes: DelayTime(seconds: 0),
                 transportMode: "BUS"
             )
         )
@@ -293,7 +284,7 @@ private struct StopNode: View {
                 startDate: "2099-01-01",
                 lineLabel: "7",
                 direction: "Ropsten",
-                delayMinutes: 3,
+                delayMinutes: DelayTime(seconds: 180),
                 transportMode: "TRAM"
             )
         )

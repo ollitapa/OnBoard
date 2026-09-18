@@ -19,7 +19,7 @@ struct RouteDetails: Identifiable, Hashable {
     let direction: String
     /// Whole-minute delay for the header's "Delayed 3 min" pill, from the tapped
     /// departure's realtime data; `nil` when on time or no realtime data.
-    let delayMinutes: Int?
+    let delayMinutes: DelayTime?
     /// The transport mode for the route, used to display the mode icon.
     let transportMode: TransportMode?
 

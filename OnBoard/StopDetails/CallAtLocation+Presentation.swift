@@ -19,14 +19,11 @@ extension CallAtLocation {
 
     /// Whole-minute delay for the delay pill, rounded away from zero. Returns
     /// `nil` when there is no realtime data (delay missing or zero).
-    var delayMinutes: Int? {
-        guard is_realtime == true, let delay, delay != 0 else {
+    var delayMinutes: DelayTime? {
+        guard is_realtime == true, let delay else {
             return nil
         }
-        let minutes = Double(delay) / 60
-        return delay > 0
-            ? Int(minutes.rounded(.up))
-            : Int(minutes.rounded(.down))
+        return DelayTime(seconds: delay)
     }
 
     /// The departure time parsed into a `Date`, preferring the realtime time
@@ -47,5 +44,28 @@ extension CallAtLocation {
         }
         formatter.formatOptions = [.withInternetDateTime]
         return formatter.date(from: string)
+    }
+}
+
+struct DelayTime: Hashable {
+    let minutes: Int
+
+    var label: String {
+        if minutes >= 0 {
+            return "Delayed \(minutes) min"
+        } else {
+            return "Early \(-minutes) min"
+        }
+    }
+
+    init?(seconds: Int) {
+        let minutes = Double(seconds) / 60.0
+        let roundedMinutes = seconds > 0
+            ? Int(minutes.rounded(.up))
+            : Int(minutes.rounded(.down))
+
+        guard roundedMinutes > 1 || roundedMinutes < -1 else { return nil }
+
+        self.minutes = roundedMinutes
     }
 }

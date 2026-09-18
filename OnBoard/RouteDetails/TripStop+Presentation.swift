@@ -17,14 +17,11 @@ extension TripStop {
     /// Whole-minute delay for a stop, rounded away from zero. Returns `nil`
     /// when there is no realtime data (delay missing or zero). Mirrors
     /// ``CallAtLocation.delayMinutes``.
-    var delayMinutes: Int? {
-        guard is_realtime == true, let delay, delay != 0 else {
+    var delayMinutes: DelayTime? {
+        guard is_realtime == true, let delay else {
             return nil
         }
-        let minutes = Double(delay) / 60
-        return delay > 0
-            ? Int(minutes.rounded(.up))
-            : Int(minutes.rounded(.down))
+        return DelayTime(seconds: delay)
     }
 
     /// Parses a Trafiklab realtime timestamp (`YYYY-MM-DDTHH:mm:ss`) into a
