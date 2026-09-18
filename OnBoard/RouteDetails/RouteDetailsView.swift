@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Live Trip screen ("Step 3 \u2014 Tap a departure \u2192 track the bus stop by
+/// The Live Trip screen ("Step 3 • Tap a departure → track the bus stop by
 /// stop" in `Designs/storyboard.html`).
 ///
 /// Shows a header with the route line and an optional delay pill, followed by
@@ -60,7 +60,7 @@ struct RouteDetailsView: View {
         }
     }
 
-    /// The inline nav title: "Line 55 \u2192 Ropsten", matching the storyboard's
+    /// The inline nav title: "Line 55 • Ropsten", matching the storyboard's
     /// `trip-header .route`. The delay pill is rendered inside the track, not
     /// the nav bar, so the title stays short.
     static func title(_ route: RouteDetails) -> String {
@@ -145,6 +145,9 @@ private struct TripNodes: View {
                         isCurrent: index == currentIndex,
                         isFinal: index == stops.count - 1
                     )
+                    if index == currentIndex {
+                        TransportModeMarker(mode: route.transportMode)
+                    }
                 }
             }
         }
@@ -160,6 +163,36 @@ private struct TripNodes: View {
             .padding(.leading, 4)
             .padding(.top, 16)
             .padding(.bottom, 16)
+    }
+}
+
+/// The transport mode marker shown at the current stop, matching the storyboard's
+/// `bus-marker` • a small square with the mode icon, sitting on the line with
+/// spacing above and below.
+private struct TransportModeMarker: View {
+
+    let mode: TransportMode?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer(minLength: 20)
+            RoundedRectangle(cornerRadius: 7)
+                .fill(Color.accentColor)
+                .frame(width: 26, height: 26)
+                .overlay(
+                    Group {
+                        if let mode {
+                            Image(systemName: mode.icon)
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                )
+                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(.background, lineWidth: 3))
+                .offset(x: -7)
+                .accessibilityLabel("Vehicle is here")
+            Spacer(minLength: 20)
+        }
     }
 }
 
@@ -190,12 +223,11 @@ private struct StopNode: View {
             Spacer(minLength: 0)
         }
         .frame(minHeight: 58)
-        .overlay(alignment: .leading) { busMarker }
     }
 
     /// The node's dot: a filled grey dot for passed stops, a larger ringed
     /// magenta dot with a glow for the current stop, and a plain outlined dot
-    /// for upcoming stops \u2014 matching the storyboard's `stop-node` states.
+    /// for upcoming stops • matching the storyboard's `stop-node` states.
     private var nodeDot: some View {
         Circle()
             .fill(isPassed ? Color.secondary.opacity(0.3) : Color.secondary)
@@ -228,20 +260,6 @@ private struct StopNode: View {
         return nil
     }
 
-    /// The bus marker overlapping the current node, matching the storyboard's
-    /// `bus-marker` \u2014 a small magenta square sitting on the line.
-    @ViewBuilder
-    private var busMarker: some View {
-        if isCurrent {
-            RoundedRectangle(cornerRadius: 7)
-                .fill(Color.accentColor)
-                .frame(width: 26, height: 26)
-                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(.background, lineWidth: 3))
-                .offset(x: -7)
-                .accessibilityLabel("Bus is here")
-        }
-    }
-
     /// Whole minutes until the stop's departure from now, or `nil` when the
     /// time can't be parsed.
     static func minutesUntil(_ stop: TripStop) -> Int? {
@@ -255,11 +273,12 @@ private struct StopNode: View {
     NavigationStack {
         RouteDetailsView(
             route: RouteDetails(
-                tripId: "123",
+                tripId: "900001",
                 startDate: "2099-01-01",
-                lineLabel: "55",
-                direction: "Ropsten",
-                delayMinutes: 3
+                lineLabel: "3",
+                direction: "Karolinska sjukhuset",
+                delayMinutes: 0,
+                transportMode: "BUS"
             )
         )
     }
@@ -270,11 +289,12 @@ private struct StopNode: View {
     NavigationStack {
         RouteDetailsView(
             route: RouteDetails(
-                tripId: "123",
+                tripId: "900002",
                 startDate: "2099-01-01",
-                lineLabel: "T14",
-                direction: "Fruängen",
-                delayMinutes: nil
+                lineLabel: "7",
+                direction: "Ropsten",
+                delayMinutes: 3,
+                transportMode: "TRAM"
             )
         )
     }

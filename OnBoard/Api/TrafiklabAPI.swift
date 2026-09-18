@@ -343,6 +343,7 @@ struct Trip: Codable, Equatable, Identifiable {
     var id: String?
     var trip_id: String?
     var start_date: String?
+    var route: Route?
     var stops: [TripStop]
 }
 

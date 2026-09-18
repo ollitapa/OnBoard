@@ -18,7 +18,8 @@ extension CallAtLocation {
             startDate: trip.start_date,
             lineLabel: lineLabel,
             direction: destination,
-            delayMinutes: delayMinutes
+            delayMinutes: delayMinutes,
+            transportMode: route?.transport_mode
         )
     }
 }

@@ -296,8 +296,8 @@ struct MockTrafiklabService: NetworkProtocol {
     /// UI tests. A computed property so the relative stop times stay fresh.
     static var defaultTripsByKey: [String: Trip] {
         [
-            "900001/2099-01-01": sampleTrip(routeDesignation: "3", direction: "Karolinska sjukhuset", delaySeconds: 0),
-            "900002/2099-01-01": sampleTrip(routeDesignation: "7", direction: "Ropsten", delaySeconds: 180)
+            "900001/2099-01-01": sampleTrip(routeDesignation: "3", direction: "Karolinska sjukhuset", delaySeconds: 0, transportMode: "BUS"),
+            "900002/2099-01-01": sampleTrip(routeDesignation: "7", direction: "Ropsten", delaySeconds: 180, transportMode: "TRAM")
         ]
     }
 
@@ -363,7 +363,7 @@ struct MockTrafiklabService: NetworkProtocol {
     /// states: two stops already passed, the current stop arriving soon, then
     /// upcoming stops ending at the destination. `delaySeconds` shifts every
     /// realtime time by that amount so the delay pill renders in the screen.
-    static func sampleTrip(routeDesignation: String, direction: String, delaySeconds: Int) -> Trip {
+    static func sampleTrip(routeDesignation: String, direction: String, delaySeconds: Int, transportMode: TransportMode? = nil) -> Trip {
         let names = ["Skanstull", "Medborgarplatsen", "Slussen", "Gamla stan", direction]
         let offsets = [-10, 6, 13, 21, 30]
         let stops = (0..<names.count).map { index in
@@ -383,6 +383,7 @@ struct MockTrafiklabService: NetworkProtocol {
             id: routeDesignation,
             trip_id: routeDesignation,
             start_date: "2099-01-01",
+            route: Route(designation: routeDesignation, transport_mode: transportMode, direction: direction, name: nil),
             stops: stops
         )
     }
