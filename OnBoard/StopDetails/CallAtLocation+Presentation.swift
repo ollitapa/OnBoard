@@ -47,7 +47,7 @@ extension CallAtLocation {
     }
 }
 
-struct DelayTime: Hashable {
+struct DelayTime: Hashable, Sendable {
     let minutes: Int
 
     var label: String {

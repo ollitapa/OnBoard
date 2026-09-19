@@ -46,6 +46,12 @@ import SwiftData
         do {
             return try ModelContainer(for: StoredFavorites.self)
         } catch {
+            // Fail fast on a store that can't open (e.g. an incompatible on-disk
+            // schema): a container-less app has no working persistence, and a
+            // crash is a louder, more debuggable failure than silently losing all
+            // writes. Apps that must self-heal can catch here instead and rebuild
+            // the container (deleting or migrating the store) — that policy is a
+            // product decision, so it stays explicit rather than buried here.
             fatalError("Could not create ModelContainer: \(error)")
         }
     }

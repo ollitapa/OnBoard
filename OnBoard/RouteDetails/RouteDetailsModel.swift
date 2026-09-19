@@ -8,7 +8,7 @@ import Observation
 ///
 /// Built from a `CallAtLocation` via ``CallAtLocation.routeDetails``; `nil`
 /// when the departure has no `trip` reference and so can't open the screen.
-struct RouteDetails: Identifiable, Hashable {
+struct RouteDetails: Identifiable, Hashable, Sendable {
     /// `trip.trip_id` from the tapped departure, fed to `Trafiklab.trip`.
     let tripId: String
     /// `trip.start_date` from the tapped departure, fed to `Trafiklab.trip`.

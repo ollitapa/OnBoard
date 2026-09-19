@@ -75,4 +75,21 @@ struct NearbyModelTests {
         #expect(model.failure != nil)
     }
 
+    // MARK: - Distance label
+
+    @Test func distanceLabelFormatsMetersBelowKilometer() {
+        let stop = Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420, distance: 420)
+        #expect(stop.distanceLabel == "420 m")
+    }
+
+    @Test func distanceLabelFormatsKilometersAbove1000Meters() {
+        let stop = Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420, distance: 1800)
+        #expect(stop.distanceLabel == "1.8 km")
+    }
+
+    @Test func distanceLabelNilWithoutDistance() {
+        let stop = Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420)
+        #expect(stop.distanceLabel == nil)
+    }
+
 }
