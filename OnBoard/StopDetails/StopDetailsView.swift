@@ -25,6 +25,17 @@ struct StopDetailsView: View {
 
     @State private var model = StopDetailsModel()
 
+    /// Bumped after each poll cycle so `.task(id:)` restarts the loop and the
+    /// screen keeps refreshing while it is on screen; the task (and therefore
+    /// the polling) is cancelled when the view disappears. Mirrors
+    /// ``RouteDetailsView``'s refresh trigger.
+    @State private var refreshTrigger = 0
+
+    /// How often the board re-fetches departures. Trafiklab caches responses
+    /// for 60 seconds, so polling faster returns the same payload (see
+    /// `Designs/API-Instructions.md`).
+    private static let refreshInterval: Duration = .seconds(60)
+
     var body: some View {
         Group {
             if let failure = model.failure {
@@ -45,6 +56,16 @@ struct StopDetailsView: View {
                 }
             } else {
                 DeparturesList(departures: model.departures)
+                    .overlay(alignment: .bottom) {
+                        if let lastUpdated = model.lastUpdated {
+                            Text("Updated \(lastUpdated.formatted(.relative(presentation: .named)))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(8)
+                                .background(.thinMaterial, in: Capsule())
+                                .padding(.bottom, 12)
+                        }
+                    }
             }
         }
         .navigationTitle(stopName)
@@ -62,8 +83,12 @@ struct StopDetailsView: View {
                 )
             }
         }
-        .task {
+        .task(id: refreshTrigger) {
             await model.loadDepartures(network: network, areaId: stopId)
+            guard model.failure == nil else { return }
+            try? await Task.sleep(for: Self.refreshInterval)
+            guard !Task.isCancelled else { return }
+            refreshTrigger += 1
         }
     }
 }

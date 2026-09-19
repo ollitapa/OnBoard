@@ -22,6 +22,10 @@ final class StopDetailsModel {
     /// The departures returned for the loaded stop, in API order (soonest first).
     var departures: [CallAtLocation] = []
 
+    /// When the most recent successful load completed, for the header's
+    /// "Updated …" meta line.
+    private(set) var lastUpdated: Date?
+
     init() {}
 
     /// Loads departures for the given stop group id via the Trafiklab Timetables API.
@@ -37,6 +41,7 @@ final class StopDetailsModel {
             let api = Trafiklab(network: network)
             let response = try await api.departures(at: areaId)
             departures = response.departures
+            lastUpdated = Date()
             failure = nil
         } catch {
             departures = []
