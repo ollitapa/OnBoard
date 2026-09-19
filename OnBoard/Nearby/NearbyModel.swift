@@ -7,8 +7,7 @@ struct Stop: Codable, Identifiable, Equatable, Hashable, Sendable {
     var latitude: Double
     var longitude: Double
     /// Distance from the query point in meters, as ResRobot reports it.
-    /// `nil` for stops constructed without one (mock data).
-    var distance: Int? = nil
+    var distance: Int?
 }
 
 @MainActor
@@ -63,5 +62,12 @@ extension Stop {
         }
         let kilometers = Double(distance) / 1000
         return kilometers.formatted(.number.precision(.fractionLength(0...1))) + " km"
+    }
+
+    /// Computed minutes to walk (for the green time chip)
+    var minutesToWalk: Int? {
+        // This would be calculated from user location in a real implementation
+        // For now, return nil to hide the chip
+        return nil
     }
 }

@@ -73,7 +73,7 @@ private struct NearbyStopRow: View {
                 Text(stop.name)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.ink)
-                Text(stop.distanceText)
+                Text(stop.distanceLabel ?? "")
                     .font(.caption)
                     .foregroundStyle(.inkSoft)
             }
