@@ -21,7 +21,7 @@ import SwiftData
         if CommandLine.arguments.contains("--mock-network") {
             mockNetwork()
         } else {
-            LiveNetwork()
+            LiveNetwork().logging()
         }
     }
 
