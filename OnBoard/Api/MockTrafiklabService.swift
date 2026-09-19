@@ -97,21 +97,38 @@ struct MockTrafiklabService: NetworkProtocol {
         guard let url = request.url else { throw NoResponseConfigured() }
 
         if request.httpMethod == "GET", url.path.hasSuffix("location.nearbystops") {
-            let body = "{\"StopLocation\":[\(nearbyStops.joined(separator: ","))]}"
+            let body = """
+            {
+              "StopLocation":[\(nearbyStops.joined(separator: ","))]
+            }
+            """
             return Self.ok(Data(body.utf8), url: url)
         }
 
         if request.httpMethod == "GET", url.path.contains("/stops/name/") {
             let value = searchValue(for: url)
             let body = """
-                {"timestamp":"\(Self.cannedTimestamp)","query":{"queryTime":"\(Self.cannedTimestamp)","query":\(Self.jsonValue(value))},"stop_groups":[\(matchingStopGroups(value).joined(separator: ","))]}
+                {
+                  "timestamp":"\(Self.cannedTimestamp)",
+                  "query":{
+                    "queryTime":"\(Self.cannedTimestamp)",
+                    "query":\(Self.jsonValue(value))
+                  },
+                  "stop_groups":[\(matchingStopGroups(value).joined(separator: ","))]
+                }
                 """
             return Self.ok(Data(body.utf8), url: url)
         }
 
         if request.httpMethod == "GET", url.path.hasSuffix("/stops/list") {
             let body = """
-                {"timestamp":"\(Self.cannedTimestamp)","query":{"queryTime":"\(Self.cannedTimestamp)"},"stop_groups":[\(stopGroups.joined(separator: ","))]}
+                {
+                  "timestamp":"\(Self.cannedTimestamp)",
+                  "query":{
+                    "queryTime":"\(Self.cannedTimestamp)"
+                  },
+                  "stop_groups":[\(stopGroups.joined(separator: ","))]
+                }
                 """
             return Self.ok(Data(body.utf8), url: url)
         }
@@ -119,15 +136,28 @@ struct MockTrafiklabService: NetworkProtocol {
         if request.httpMethod == "GET", url.path.contains("/departures/") {
             let rows = departuresByAreaId[areaId(for: url) ?? ""] ?? "[]"
             let body = """
-                {"timestamp":"\(Self.cannedTimestamp)","query":{"queryTime":"\(Self.cannedTimestamp)"},"stops":[],"departures":\(rows)}
+                {
+                  "timestamp":"\(Self.cannedTimestamp)",
+                  "query":{
+                    "queryTime":"\(Self.cannedTimestamp)"
+                  },
+                  "stops":[],
+                  "departures":\(rows)
+                }
                 """
             return Self.ok(Data(body.utf8), url: url)
         }
 
         if request.httpMethod == "GET", url.path.contains("/trips/") {
-            let trip = tripsByKey[tripKey(for: url) ?? ""] ?? "{\"stops\":[]}"
+            let trip = tripsByKey[tripKey(for: url) ?? ""] ?? #"{"stops":[]}"#
             let body = """
-                {"timestamp":"\(Self.cannedTimestamp)","query":{"queryTime":"\(Self.cannedTimestamp)"},"trip":\(trip)}
+                {
+                  "timestamp":"\(Self.cannedTimestamp)",
+                  "query":{
+                    "queryTime":"\(Self.cannedTimestamp)"
+                  },
+                  "trip":\(trip)
+                }
                 """
             return Self.ok(Data(body.utf8), url: url)
         }
@@ -211,10 +241,6 @@ struct MockTrafiklabService: NetworkProtocol {
     /// the Trafiklab realtime format.
     private static let cannedTimestamp = "2099-01-01T12:00:00"
 
-    /// Matches a relative timestamp marker in a fixture: the quoted word `now`
-    /// with an optional signed minute offset, e.g. `"now"`, `"now+2"`, `"now-10"`.
-    private static let relativeTimestamp = /"now(?:([+-])([0-9]+))?"/
-
     /// The Trafiklab timestamp format `YYYY-MM-DDTHH:mm:ss` pinned to
     /// Europe/Stockholm, the same configuration `LocalDate` parses with, so a
     /// resolved marker re-reads as the instant it meant.
@@ -260,7 +286,9 @@ struct MockTrafiklabService: NetworkProtocol {
         var resolved = ""
         resolved.reserveCapacity(json.count)
         var cursor = json.startIndex
-        for match in json.matches(of: relativeTimestamp) {
+        /// Matches a relative timestamp marker in a fixture: the quoted word `now`
+        /// with an optional signed minute offset, e.g. `"now"`, `"now+2"`, `"now-10"`.
+        for match in json.matches(of: /"now(?:([+-])([0-9]+))?"/) {
             resolved += json[cursor..<match.range.lowerBound]
             let sign = match.output.1?.first == "-" ? -1 : 1
             let minutes = sign * (match.output.2.flatMap { Int($0) } ?? 0)
