@@ -171,28 +171,16 @@ struct MockTrafiklabService: NetworkProtocol {
 
     // MARK: - Request paths
 
-    /// Captures the `{areaId}` path segment of a departures URL
-    /// (`.../departures/{areaId}` or `.../departures/{areaId}/{time}`).
-    private static let areaIdPath = /departures\/([^/]+)/
-
-    /// Captures the `{tripId}` and `{startDate}` path segments of a trips
-    /// URL (`.../trips/{tripId}/{startDate}`).
-    private static let tripKeyPath = /trips\/([^/]+)\/([^/]+)/
-
-    /// Captures the `{searchValue}` path segment of a Stop Lookup name search
-    /// URL (`.../stops/name/{searchValue}`).
-    private static let searchValuePath = /stops\/name\/([^/]+)/
-
     /// The `{areaId}` of a departures URL, or `nil` when the path doesn't
     /// match one.
     private func areaId(for url: URL) -> String? {
-        url.path.firstMatch(of: Self.areaIdPath).map { String($0.output.1) }
+        url.path.firstMatch(of: #/departures/([^/]+)/#).map { String($0.output.1) }
     }
 
     /// The `"{tripId}/{startDate}"` key of a trips URL, or `nil` when the
     /// path doesn't match one.
     private func tripKey(for url: URL) -> String? {
-        url.path.firstMatch(of: Self.tripKeyPath).map {
+        url.path.firstMatch(of: #/trips/([^/]+)/([^/]+)/#).map {
             "\($0.output.1)/\($0.output.2)"
         }
     }
@@ -201,8 +189,8 @@ struct MockTrafiklabService: NetworkProtocol {
     /// the path doesn't match one. The client percent-encodes the search
     /// value into the path segment, so decode it back before filtering.
     private func searchValue(for url: URL) -> String? {
-        url.path.firstMatch(of: Self.searchValuePath).map {
-            String($0.output.1).removingPercentEncoding
+        url.path.firstMatch(of: #/stops/name/([^/]+)/#).flatMap {
+            $0.output.1.removingPercentEncoding
         }
     }
 
