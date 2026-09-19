@@ -14,8 +14,8 @@ struct NearbyModelTests {
                          lat: "60.1699", lon: "24.9384", dist: 300, weight: 40, products: 0)
         ]
         let expectedStops = [
-            Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420),
-            Stop(id: "2", name: "Market Square", latitude: 60.1699, longitude: 24.9384)
+            Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420, distance: 120),
+            Stop(id: "2", name: "Market Square", latitude: 60.1699, longitude: 24.9384, distance: 300)
         ]
         let network = MockTrafiklabService(nearbyStops: stopLocations)
 
@@ -84,7 +84,7 @@ struct NearbyModelTests {
 
     @Test func distanceLabelFormatsKilometersAbove1000Meters() {
         let stop = Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420, distance: 1800)
-        #expect(stop.distanceLabel == "1.8 km")
+        #expect(stop.distanceLabel == "1,8 km")
     }
 
     @Test func distanceLabelNilWithoutDistance() {
