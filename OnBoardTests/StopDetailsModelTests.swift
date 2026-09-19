@@ -7,13 +7,17 @@ struct StopDetailsModelTests {
 
     @Test func loadDeparturesSuccess() async throws {
         // Given: a mock serving the shared sample departures for the first
-        // nearby stop's area id. The expected rows are read back from the
-        // service's decoded fixture so the comparison isn't affected by the
+        // nearby stop's area id. The expected rows are decoded from the
+        // service's stored fixture so the comparison isn't affected by the
         // fixture's relative timestamps being re-evaluated.
         let network = MockTrafiklabService(departuresByAreaId: """
             { "740000001": \(MockTrafiklabService.sampleDeparturesJSON) }
             """)
-        let expected = try #require(network.departuresByAreaId["740000001"])
+        let config = try JSONDecoder().decode(
+            [String: [CallAtLocation]].self,
+            from: Data(network.departuresByAreaId.utf8)
+        )
+        let expected = try #require(config["740000001"])
         let model = StopDetailsModel()
         // When
         await model.loadDepartures(network: network, areaId: "740000001")

@@ -48,8 +48,7 @@ struct LocalDateTests {
         // Given: a timestamp parsed from the API's format.
         let date = try LocalDate(string: "2099-06-15T08:30:00")
 
-        // When: encoded as the API's format (as `MockTrafiklabService` does
-        // when serving canned responses), the wall-clock string matches.
+        // When: encoded as the API's format, the wall-clock string matches.
         let encoded = try JSONEncoder().encode(date)
         #expect(String(data: encoded, encoding: .utf8) == "\"2099-06-15T08:30:00\"")
 

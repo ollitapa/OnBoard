@@ -5,21 +5,24 @@ import Foundation
 ///
 /// Every dataset is configured as a multiline JSON string in the endpoint's
 /// wire format — the same shape `Trafiklab` decodes — so fixtures read like
-/// captured API responses instead of hand-built Swift value trees. Any
-/// timestamp string in a fixture may use a relative marker (`"now"`, `"now+2"`,
-/// `"now-10"`, in minutes) that is resolved to an absolute Trafiklab timestamp
-/// when the service is created, so previews and UI tests always show fresh
-/// times; every other string is served verbatim. Malformed fixture JSON traps
-/// at creation with the fixture named, so a broken fixture fails loudly
-/// rather than silently serving an empty response.
+/// captured API responses. The fixture JSON is pushed through as raw bytes in
+/// the response body (wrapped only in the endpoint's response envelope, e.g.
+/// the departures rows for one area id inside a `DeparturesResponse`
+/// envelope): the mock never converts fixtures into the API's Swift models,
+/// so the model under test runs its real production decode path. Any
+/// timestamp string in a fixture may use a relative marker (`"now"`,
+/// `"now+2"`, `"now-10"`, in minutes) that is resolved to an absolute
+/// Trafiklab timestamp when the service is created, so previews and UI tests
+/// always show fresh times. Malformed fixture JSON traps at creation with the
+/// fixture named, so a broken fixture fails loudly rather than silently
+/// serving an empty response.
 ///
 /// Mirrors `MockNearbyServer`: it responds to the ResRobot nearby-stops path
-/// with a JSON-encoded `NearbyStopsResponse` and to the Trafiklab Timetables
-/// departures path with a JSON-encoded `DeparturesResponse`, and throws
-/// `NoResponseConfigured` for anything else. Matching is by URL path suffix so
-/// the request's query parameters (including the API key) don't affect the
-/// response, which keeps the mock usable from tests where `Bundle.main` has
-/// no key configured.
+/// and to the Trafiklab Stop Lookup, Timetables departures, and Trips paths,
+/// and throws `NoResponseConfigured` for anything else. Matching is by URL
+/// path so the request's query parameters (including the API key) don't
+/// affect the response, which keeps the mock usable from tests where
+/// `Bundle.main` has no key configured.
 ///
 /// Use it directly as the network injected into a view model, or wrap it in a
 /// `CombinedNetwork` route to mix it with other mock servers (as the app's
@@ -29,32 +32,38 @@ struct MockTrafiklabService: NetworkProtocol {
     /// The base URL this server is responsible for (matched by `CombinedNetwork`).
     let baseURL: URL
 
-    /// The nearby stops returned from the nearby-stops endpoint, decoded from
-    /// the `nearbyStops` fixture when the service is created.
-    let nearbyStops: [StopLocation]
+    /// The JSON served from the nearby-stops endpoint: an array of
+    /// `StopLocation` objects in ResRobot's wire shape, wrapped in the
+    /// `NearbyStopsResponse` envelope when served. Defaults to
+    /// ``defaultNearbyStopsJSON`` so previews, the `--mock-network` UI-test
+    /// harness, and unit tests all share one canned dataset. Relative
+    /// timestamp markers are resolved when the service is created.
+    let nearbyStops: String
 
-    /// The departures returned from the Timetables departures endpoint, keyed
-    /// by the area id in the request path (`/departures/{areaId}`) and decoded
-    /// from the `departuresByAreaId` fixture. An area id with no entry returns
-    /// an empty departures list, matching the real API. Defaults to
-    /// ``defaultDeparturesJSON`` so previews, the `--mock-network` UI-test
-    /// harness, and unit tests all share one canned dataset.
-    let departuresByAreaId: [String: [CallAtLocation]]
+    /// The JSON configuring the Timetables departures endpoint: an object
+    /// keyed by the area id in the request path (`/departures/{areaId}`),
+    /// each value an array of `CallAtLocation` rows in the Timetables wire
+    /// shape. An area id with no entry returns an empty departures list,
+    /// matching the real API. Defaults to ``defaultDeparturesJSON`` so
+    /// previews, the `--mock-network` UI-test harness, and unit tests all
+    /// share one canned dataset.
+    let departuresByAreaId: String
 
-    /// The trips returned from the Trips endpoint, keyed by `"{tripId}/{startDate}"`
-    /// (the path segments after `/trips/`) and decoded from the `tripsByKey`
-    /// fixture. A trip id with no entry returns an empty trip, matching the
-    /// real API. Defaults to ``defaultTripsJSON`` so the Live Trip screen
-    /// renders canned data in previews and UI tests.
-    let tripsByKey: [String: Trip]
+    /// The JSON configuring the Trips endpoint: an object keyed by
+    /// `"{tripId}/{startDate}"` (the path segments after `/trips/`), each
+    /// value a `Trip` in the Trips wire shape. A trip id with no entry
+    /// returns an empty trip, matching the real API. Defaults to
+    /// ``defaultTripsJSON`` so the Live Trip screen renders canned data in
+    /// previews and UI tests.
+    let tripsByKey: String
 
-    /// The stop groups returned from the Stop Lookup name-search endpoint,
-    /// decoded from the `stopGroups` fixture and filtered client-side by name
-    /// against the request's `{searchValue}` so the mock reflects the real
-    /// endpoint's behaviour. Defaults to ``defaultStopGroupsJSON`` so previews,
-    /// the `--mock-network` UI-test harness, and unit tests all share one
-    /// canned dataset.
-    let stopGroups: [StopGroup]
+    /// The JSON served from the Stop Lookup endpoints: an array of
+    /// `StopGroup` objects, filtered by name against the name-search
+    /// request's `{searchValue}` so the mock reflects the real endpoint's
+    /// behaviour. Defaults to ``defaultStopGroupsJSON`` so previews, the
+    /// `--mock-network` UI-test harness, and unit tests all share one canned
+    /// dataset.
+    let stopGroups: String
 
     /// Creates a mock Trafiklab service.
     /// - Parameters:
@@ -63,13 +72,13 @@ struct MockTrafiklabService: NetworkProtocol {
     ///     of `StopLocation` objects in ResRobot's wire shape.
     ///   - departuresByAreaId: Multiline JSON for the departures fixture: an
     ///     object keyed by area id, each value an array of `CallAtLocation`
-    ///     rows in the Timetables wire shape; area ids with no entry return an
-    ///     empty list.
-    ///   - tripsByKey: Multiline JSON for the trips fixture: an object keyed by
-    ///     `"{tripId}/{startDate}"`, each value a `Trip` in the Trips wire
+    ///     rows in the Timetables wire shape; area ids with no entry return
+    ///     an empty list.
+    ///   - tripsByKey: Multiline JSON for the trips fixture: an object keyed
+    ///     by `"{tripId}/{startDate}"`, each value a `Trip` in the Trips wire
     ///     shape; trip ids with no entry return an empty trip.
-    ///   - stopGroups: Multiline JSON for the Stop Lookup fixture: an array of
-    ///     `StopGroup` objects, filtered by name against the search value.
+    ///   - stopGroups: Multiline JSON for the Stop Lookup fixture: an array
+    ///     of `StopGroup` objects, filtered by name against the search value.
     init(
         baseURL: URL = URL(string: "https://api.resrobot.se")!,
         nearbyStops: String = MockTrafiklabService.defaultNearbyStopsJSON,
@@ -78,149 +87,146 @@ struct MockTrafiklabService: NetworkProtocol {
         stopGroups: String = MockTrafiklabService.defaultStopGroupsJSON
     ) {
         self.baseURL = baseURL
-        self.nearbyStops = Self.decode(
-            nearbyStops,
-            as: [StopLocation].self,
-            fixture: "nearbyStops"
-        )
-        self.departuresByAreaId = Self.decode(
-            departuresByAreaId,
-            as: [String: [CallAtLocation]].self,
-            fixture: "departuresByAreaId"
-        )
-        self.tripsByKey = Self.decode(
-            tripsByKey,
-            as: [String: Trip].self,
-            fixture: "tripsByKey"
-        )
-        self.stopGroups = Self.decode(
-            stopGroups,
-            as: [StopGroup].self,
-            fixture: "stopGroups"
-        )
+        self.nearbyStops = Self.resolved(nearbyStops, fixture: "nearbyStops")
+        self.departuresByAreaId = Self.resolved(departuresByAreaId, fixture: "departuresByAreaId")
+        self.tripsByKey = Self.resolved(tripsByKey, fixture: "tripsByKey")
+        self.stopGroups = Self.resolved(stopGroups, fixture: "stopGroups")
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         guard let url = request.url else { throw NoResponseConfigured() }
 
         if request.httpMethod == "GET", url.path.hasSuffix("location.nearbystops") {
-            let payload = NearbyStopsResponse(StopLocation: nearbyStops)
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let body = "{\"StopLocation\":\(nearbyStops)}"
+            let data = Data(body.utf8)
+            return Self.ok(data, url: url)
         }
 
         if request.httpMethod == "GET", url.path.contains("/stops/name/") {
-            let groups = self.stopGroups(for: url)
-            let payload = NationalStopGroupResponse(
-                timestamp: "2099-01-01T12:00:00",
-                query: NationalStopGroupResponse.StopLookupQuery(
-                    queryTime: "2099-01-01T12:00:00",
-                    query: self.searchValue(for: url)
-                ),
-                stop_groups: groups
-            )
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let data = try stopLookupBody(searchValue: searchValue(for: url))
+            return Self.ok(data, url: url)
         }
 
         if request.httpMethod == "GET", url.path.hasSuffix("/stops/list") {
-            let payload = NationalStopGroupResponse(
-                timestamp: "2099-01-01T12:00:00",
-                query: NationalStopGroupResponse.StopLookupQuery(
-                    queryTime: "2099-01-01T12:00:00",
-                    query: nil
-                ),
-                stop_groups: stopGroups
-            )
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let data = try stopLookupBody(searchValue: nil)
+            return Self.ok(data, url: url)
         }
 
         if request.httpMethod == "GET", url.path.contains("/departures/") {
-            let departures = self.departures(for: url)
-            let payload = DeparturesResponse(
-                timestamp: "2099-01-01T12:00:00",
-                query: TimetableQuery(queryTime: "2099-01-01T12:00:00", query: nil),
-                stops: [],
-                departures: departures
-            )
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let data = try departuresBody(areaId: areaId(for: url))
+            return Self.ok(data, url: url)
         }
 
         if request.httpMethod == "GET", url.path.contains("/trips/") {
-            let trip = self.trip(for: url)
-            let payload = TripResponse(
-                timestamp: "2099-01-01T12:00:00",
-                query: TripResponse.TripQuery(queryTime: "2099-01-01T12:00:00", query: nil),
-                trip: trip
-            )
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let data = try tripBody(key: tripKey(for: url))
+            return Self.ok(data, url: url)
         }
 
         throw NoResponseConfigured()
     }
 
+    // MARK: - Response bodies
+
+    /// Builds the Stop Lookup response body: the configured stop groups
+    /// (filtered by name against `searchValue` when non-empty, matching the
+    /// real endpoint's case-insensitive substring behaviour) wrapped in the
+    /// response envelope with the search value echoed in `query`. Works on
+    /// the fixture's generic JSON directly, without the API's Swift models.
+    private func stopLookupBody(searchValue: String?) throws -> Data {
+        let groups = try Self.decodedArray(stopGroups)
+        let filtered: [Any]
+        if let value = searchValue, !value.isEmpty {
+            let needle = value.lowercased()
+            filtered = groups.filter { group in
+                guard let group = group as? [String: Any],
+                      let name = group["name"] as? String else {
+                    return false
+                }
+                return name.lowercased().contains(needle)
+            }
+        } else {
+            filtered = groups
+        }
+        var query: [String: Any] = ["queryTime": Self.cannedTimestamp]
+        if let searchValue {
+            query["query"] = searchValue
+        }
+        let payload: [String: Any] = [
+            "timestamp": Self.cannedTimestamp,
+            "query": query,
+            "stop_groups": filtered
+        ]
+        return try JSONSerialization.data(withJSONObject: payload)
+    }
+
+    /// Builds the Timetables departures response body for the request's area
+    /// id: the configured rows for that id (an empty list when none are
+    /// configured, matching the real API's empty window) wrapped in the
+    /// response envelope.
+    private func departuresBody(areaId: String?) throws -> Data {
+        let config = try Self.decodedObject(departuresByAreaId)
+        let departures: [Any]
+        if let areaId, let rows = config[areaId] as? [Any] {
+            departures = rows
+        } else {
+            departures = []
+        }
+        let payload: [String: Any] = [
+            "timestamp": Self.cannedTimestamp,
+            "query": ["queryTime": Self.cannedTimestamp],
+            "stops": [Any](),
+            "departures": departures
+        ]
+        return try JSONSerialization.data(withJSONObject: payload)
+    }
+
+    /// Builds the Trips response body for the request's
+    /// `{tripId}/{startDate}` key: the configured trip (an empty trip when
+    /// none is configured, matching the real API) wrapped in the response
+    /// envelope.
+    private func tripBody(key: String?) throws -> Data {
+        let config = try Self.decodedObject(tripsByKey)
+        let trip: [String: Any]
+        if let key, let configured = config[key] as? [String: Any] {
+            trip = configured
+        } else {
+            trip = ["stops": [Any]()]
+        }
+        let payload: [String: Any] = [
+            "timestamp": Self.cannedTimestamp,
+            "query": ["queryTime": Self.cannedTimestamp],
+            "trip": trip
+        ]
+        return try JSONSerialization.data(withJSONObject: payload)
+    }
+
     /// Extracts the `{areaId}` path segment from a departures URL
-    /// (`.../departures/{areaId}` or `.../departures/{areaId}/{time}`) and
-    /// returns the configured departures for it, defaulting to empty.
-    private func departures(for url: URL) -> [CallAtLocation] {
+    /// (`.../departures/{areaId}` or `.../departures/{areaId}/{time}`).
+    /// Returns `nil` when the segment can't be found.
+    private func areaId(for url: URL) -> String? {
         let segments = url.path.split(separator: "/").map(String.init)
         guard let departuresIndex = segments.lastIndex(of: "departures"),
               segments.count > departuresIndex + 1 else {
-            return []
+            return nil
         }
-        let areaId = segments[departuresIndex + 1]
-        return departuresByAreaId[areaId] ?? []
+        return segments[departuresIndex + 1]
     }
 
     /// Extracts the `{tripId}/{startDate}` key from a trips URL
-    /// (`.../trips/{tripId}/{startDate}`) and returns the configured trip for
-    /// it, defaulting to an empty trip.
-    private func trip(for url: URL) -> Trip? {
+    /// (`.../trips/{tripId}/{startDate}`). Returns `nil` when the segments
+    /// can't be found.
+    private func tripKey(for url: URL) -> String? {
         let segments = url.path.split(separator: "/").map(String.init)
         guard let tripsIndex = segments.lastIndex(of: "trips"),
               segments.count > tripsIndex + 2 else {
             return nil
         }
-        let key = "\(segments[tripsIndex + 1])/\(segments[tripsIndex + 2])"
-        return tripsByKey[key] ?? Trip(stops: [])
+        return "\(segments[tripsIndex + 1])/\(segments[tripsIndex + 2])"
     }
 
     /// Extracts the `{searchValue}` path segment from a Stop Lookup name
-    /// search URL (`.../stops/name/{searchValue}`) for the response's `query`
-    /// field. Returns `nil` when the segment can't be found.
+    /// search URL (`.../stops/name/{searchValue}`). Returns `nil` when the
+    /// segment can't be found.
     private func searchValue(for url: URL) -> String? {
         let segments = url.path.split(separator: "/").map(String.init)
         guard let nameIndex = segments.lastIndex(of: "name"),
@@ -232,19 +238,11 @@ struct MockTrafiklabService: NetworkProtocol {
         return segments[nameIndex + 1].removingPercentEncoding
     }
 
-    /// Extracts the `{searchValue}` path segment from a Stop Lookup name search
-    /// URL (`.../stops/name/{searchValue}`) and returns the configured stop
-    /// groups whose name contains it (case-insensitive). An empty filter returns
-    /// all groups, matching the real endpoint's broadest match.
-    private func stopGroups(for url: URL) -> [StopGroup] {
-        guard let value = searchValue(for: url), !value.isEmpty else {
-            return stopGroups
-        }
-        let needle = value.lowercased()
-        return stopGroups.filter { $0.name.lowercased().contains(needle) }
-    }
+    // MARK: - Fixture handling
 
-    // MARK: - Fixture decoding
+    /// The fixed `timestamp`/`queryTime` stamped into response envelopes, in
+    /// the Trafiklab realtime format.
+    private static let cannedTimestamp = "2099-01-01T12:00:00"
 
     /// Matches a relative timestamp marker in a fixture: the quoted word `now`
     /// with an optional signed minute offset, e.g. `"now"`, `"now+2"`, `"now-10"`.
@@ -260,18 +258,40 @@ struct MockTrafiklabService: NetworkProtocol {
         .day()
         .time(includingFractionalSeconds: false)
 
-    /// Decodes a multiline-JSON fixture into its wire type, resolving relative
-    /// timestamp markers first. Traps on invalid JSON with the fixture named:
-    /// a broken fixture is a programming error in the test or preview that
-    /// wired it, and a loud failure at creation beats a silently empty
-    /// response.
-    private static func decode<T: Decodable>(_ json: String, as type: T.Type, fixture: String) -> T {
+    /// Resolves a fixture's relative timestamp markers and validates its JSON
+    /// at creation, trapping with the fixture named: a broken fixture is a
+    /// programming error in the test or preview that wired it, and a loud
+    /// failure at creation beats a decoding error surfacing later as the
+    /// model's failure string.
+    private static func resolved(_ json: String, fixture: String) -> String {
         let resolved = resolvingRelativeTimestamps(in: json)
-        do {
-            return try JSONDecoder().decode(T.self, from: Data(resolved.utf8))
-        } catch {
-            fatalError("MockTrafiklabService: invalid \(fixture) JSON: \(error)")
+        guard (try? JSONSerialization.jsonObject(with: Data(resolved.utf8))) != nil else {
+            fatalError("MockTrafiklabService: invalid \(fixture) JSON")
         }
+        return resolved
+    }
+
+    /// Parses a fixture's JSON array into generic JSON values, defaulting to
+    /// empty when the fixture isn't an array.
+    private static func decodedArray(_ json: String) throws -> [Any] {
+        try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [Any] ?? []
+    }
+
+    /// Parses a fixture's JSON object into generic JSON values, defaulting to
+    /// empty when the fixture isn't an object.
+    private static func decodedObject(_ json: String) throws -> [String: Any] {
+        try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] ?? [:]
+    }
+
+    /// Wraps a JSON body in a `200` response with a JSON content type.
+    private static func ok(_ body: Data, url: URL) -> (Data, URLResponse) {
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        return (body, response)
     }
 
     /// Replaces every relative timestamp marker (`"now"`, `"now+2"`,
@@ -279,7 +299,7 @@ struct MockTrafiklabService: NetworkProtocol {
     /// number of minutes from `now`. Markers match any quoted string in the
     /// fixture, so fixtures must not use those exact spellings as literal
     /// values.
-    static func resolvingRelativeTimestamps(in json: String, now: Date = Date()) -> String {
+    private static func resolvingRelativeTimestamps(in json: String, now: Date = Date()) -> String {
         var resolved = ""
         resolved.reserveCapacity(json.count)
         var cursor = json.startIndex

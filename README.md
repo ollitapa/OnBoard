@@ -141,9 +141,10 @@ The checklist, in the order we'd apply it to a new app:
    load/mutate methods**, one aggregate root per feature, created on demand.
 7. **Serve tests/previews from a feature-specific mock service**
    (`MockTrafiklabService`) configured by multiline JSON fixtures in each
-   endpoint's wire shape, decoded through the same `Codable` types the app
-   uses, and keep a bare `MockNetwork` only for request-shape
-   and invalid-input assertions.
+   endpoint's wire shape, pushed through as raw JSON bytes without ever
+   converting into the API's Swift models, so the app's real `Codable`
+   decode path is what parses them. Keep a bare `MockNetwork` only for
+   request-shape and invalid-input assertions.
 8. **Drive UI tests with string launch arguments** checked in the app entry
    point's `make*()` factories (`--mock-network`), so the harness is the same
    code path production uses.
