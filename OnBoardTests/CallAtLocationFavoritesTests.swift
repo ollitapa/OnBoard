@@ -70,8 +70,11 @@ struct CallAtLocationFavoritesTests {
             route: Route(
                 designation: designation,
                 transport_mode: nil,
+                transport_mode_code: nil,
                 direction: "Destination",
-                name: name
+                name: name,
+                origin: nil,
+                destination: nil
             ),
             agency: nil,
             trip: nil,
