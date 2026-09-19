@@ -1,0 +1,28 @@
+name: Format
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: format-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: swift-format lint (advisory)
+    runs-on: macos-15
+    # Advisory: does not block merges while the codebase converges on the
+    # .swift-format configuration. Remove `continue-on-error` once the initial
+    # `swift-format --in-place --recursive` pass has landed.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install swift-format
+        run: brew install swift-format
+      - name: Lint
+        run: swift-format lint --strict --recursive --parallel OnBoard OnBoardTests OnBoardUITests

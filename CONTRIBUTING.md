@@ -48,6 +48,7 @@ App state is held in `@MainActor @Observable final class` models (`NearbyModel`,
 
 ### Code Style
 
+- **Formatting**: The repository carries a `.swift-format` configuration matching the style below (4-space indent, 100-column lines, vertical argument lists). The CI's `Format` job lints with it — currently advisory while the codebase converges; run `swift-format lint --strict --recursive OnBoard OnBoardTests OnBoardUITests` locally (or `swift-format --in-place …` to fix) before opening a PR. The mechanical rules below that `swift-format` enforces are listed for readability; the ones it can't (like view-struct extraction) remain on the author.
 - **Use documentation comments**: Add Swift documentation comments (`///`) for public APIs and complex logic
 - **Follow existing patterns**: Match the repository's existing style and architecture
 - **Small changes**: Make the smallest correct change that solves the problem
