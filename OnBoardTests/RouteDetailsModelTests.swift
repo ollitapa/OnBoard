@@ -207,6 +207,39 @@ struct RouteDetailsModelTests {
         #expect(TransportPosition.betweenStops(before: 1, after: 2).lowerBoundIndex == 1)
     }
 
+    @Test func stopRowsCarryPrecomputedPresentationState() {
+        let now = Date()
+        // The vehicle is between stop 1 and stop 2, so stop 2 is the target.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.past(now, minutes: 2)),
+            Self.call(stopId: "2", name: "Third", scheduledDeparture: Self.future(now, minutes: 6)),
+            Self.call(stopId: "3", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.map(\.name) == ["First", "Second", "Third", "Final"])
+        #expect(rows.map(\.isPassed) == [true, true, false, false])
+        #expect(rows.map(\.isTarget) == [false, false, true, false])
+        #expect(rows.map(\.isCurrent) == [false, false, false, false])
+        #expect(rows.map(\.isFirst) == [true, false, false, false])
+        #expect(rows.map(\.isFinal) == [false, false, false, true])
+        #expect(rows.last?.subtitle == "Final stop")
+    }
+
+    @Test func stopRowsSubtitleCountsDownAtTargetStop() {
+        let now = Date()
+        // The vehicle is between stop 0 and stop 1, which it reaches in 5
+        // minutes, so the target row carries the countdown.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 5)),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows[1].subtitle == "Arriving in 5 min")
+        #expect(rows.map(\.isTarget) == [false, true, false])
+    }
+
     // MARK: - Helpers
 
     /// Builds a `TripCall` with sensible defaults for tests.

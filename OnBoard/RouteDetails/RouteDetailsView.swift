@@ -90,35 +90,24 @@ private struct TripTrack: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        TripNodes(route: route, calls: calls, now: context.date)
+                        TripNodes(route: route, rows: calls.stopRows(now: context.date))
                             .padding(.horizontal, 18)
                             .padding(.bottom, 24)
                     }
                 }
-                .onChange(
-                    of: calls.currentStopIndex(now: context.date)?.targetIndex,
-                    initial: true
-                ) { oldIndex, newIndex in
-                    scrollTo(newIndex, from: proxy, animated: oldIndex != nil)
+                .onAppear {
+                    scrollToTarget(from: proxy)
                 }
             }
         }
     }
 
-    /// Scrolls the track so the stop the vehicle is at or heading to sits in
-    /// the middle of the screen: un-animated when the position first becomes
-    /// known (opening the view mid-journey jumps straight to the vehicle),
-    /// animated afterwards so the view follows the vehicle as it moves to the
-    /// next part of the journey.
-    private func scrollTo(_ index: Int?, from proxy: ScrollViewProxy, animated: Bool) {
-        guard let index, calls.indices.contains(index) else { return }
-        if animated {
-            withAnimation {
-                proxy.scrollTo(calls[index].id, anchor: .center)
-            }
-        } else {
-            proxy.scrollTo(calls[index].id, anchor: .center)
-        }
+    /// Scrolls the track so the stop the vehicle is at or heading to — the row
+    /// carrying the bus marker — sits in the middle of the screen, jumping
+    /// straight to the vehicle when the view opens.
+    private func scrollToTarget(from proxy: ScrollViewProxy) {
+        guard let target = calls.currentStopIndex()?.targetIndex, calls.indices.contains(target) else { return }
+        proxy.scrollTo(calls[target].id, anchor: .center)
     }
 }
 
@@ -146,17 +135,14 @@ private struct DelayPill: View {
 // MARK: - Stop nodes
 
 /// The list of stop nodes joined by a vertical line, with the bus marker on
-/// the stop the vehicle is at or heading to. Extracted as a struct so each
-/// node's passed/current state is computed once from the schedule.
+/// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
+/// snapshots so no row compares indices or re-derives the vehicle's position.
 private struct TripNodes: View {
 
     let route: RouteDetails
-    let calls: [TripCall]
-    let now: Date
+    let rows: [TripStopRow]
 
     @Namespace private var markerSpace
-
-    private var currentPosition: TransportPosition? { calls.currentStopIndex(now: now) }
 
     /// The identity shared by the marker wherever it appears, so SwiftUI
     /// animates it moving from one row to the next rather than fading out
@@ -167,47 +153,25 @@ private struct TripNodes: View {
         ZStack(alignment: .topLeading) {
             line
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(calls.enumerated()), id: \.element.id) { index, call in
-                    StopNode(
-                        call: call,
-                        isPassed: calls.isPassed(at: index, now: now),
-                        isCurrent: isCurrent(index),
-                        isFirst: index == 0,
-                        isFinal: index == calls.count - 1,
-                        now: now
-                    )
-                    .overlay(alignment: .trailing) {
-                        if isTarget(index) {
-                            DelayPill(delayMinutes: route.delayMinutes)
-                                .transition(.opacity)
+                ForEach(rows) { row in
+                    StopNode(row: row)
+                        .overlay(alignment: .trailing) {
+                            if row.isTarget {
+                                DelayPill(delayMinutes: route.delayMinutes)
+                                    .transition(.opacity)
+                            }
                         }
-                    }
-                    .overlay(alignment: .leading) {
-                        if isTarget(index) {
-                            TransportModeMarker(mode: route.transportMode)
-                                .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
-                                .transition(.opacity)
+                        .overlay(alignment: .leading) {
+                            if row.isTarget {
+                                TransportModeMarker(mode: route.transportMode)
+                                    .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
+                                    .transition(.opacity)
+                            }
                         }
-                    }
                 }
             }
         }
-        .animation(.spring(response: 0.6, dampingFraction: 0.85), value: currentPosition)
-    }
-
-    /// Whether this row is the stop the vehicle is at or heading to next — the
-    /// row the bus marker sits on and the delay pill trails.
-    private func isTarget(_ index: Int) -> Bool {
-        currentPosition?.targetIndex == index
-    }
-
-    /// Whether this row is the stop the vehicle is standing at right now, as
-    /// opposed to one it is merely heading to (``isTarget``).
-    private func isCurrent(_ index: Int) -> Bool {
-        if case .atStop(let currentIndex) = currentPosition {
-            return index == currentIndex
-        }
-        return false
+        .animation(.spring(response: 0.6, dampingFraction: 0.85), value: rows)
     }
 
     /// The vertical connector running through every node's dot, matching the
@@ -251,34 +215,28 @@ private struct TransportModeMarker: View {
     }
 }
 /// One `stop-node` from the storyboard: a dot on the line, the stop name, and
-/// an optional subtitle. Passed nodes fade; the current node carries the bus
-/// marker and an "in X min" subtitle; the first node wears a hollow origin
-/// ring and the last a flag pin, making the journey's extent readable at a
-/// glance.
+/// an optional subtitle. Renders straight from a precomputed ``TripStopRow``;
+/// passed rows fade, the target row carries the bus marker, the first row
+/// wears a hollow origin ring and the last a flag pin.
 private struct StopNode: View {
 
-    let call: TripCall
-    let isPassed: Bool
-    let isCurrent: Bool
-    let isFirst: Bool
-    let isFinal: Bool
-    let now: Date
+    let row: TripStopRow
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            if isFinal {
-                TerminusFlag(isPassed: isPassed)
-            } else if isFirst {
-                OriginRing(isPassed: isPassed, isCurrent: isCurrent)
+            if row.isFinal {
+                TerminusFlag(isPassed: row.isPassed)
+            } else if row.isFirst {
+                OriginRing(isPassed: row.isPassed, isCurrent: row.isCurrent)
             } else {
-                StopDot(isPassed: isPassed, isCurrent: isCurrent)
+                StopDot(isPassed: row.isPassed, isCurrent: row.isCurrent)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(call.stop?.name ?? "")
-                    .font(.body.weight(isPassed ? .regular : .semibold))
-                    .foregroundStyle(isPassed ? .inkSoft : .ink)
-                    .strikethrough(call.isCanceled)
-                if let subtitle = subtitle {
+                Text(row.name)
+                    .font(.body.weight(row.isPassed ? .regular : .semibold))
+                    .foregroundStyle(row.isPassed ? .inkSoft : .ink)
+                    .strikethrough(row.isCanceled)
+                if let subtitle = row.subtitle {
                     Text(subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.inkSoft)
@@ -287,29 +245,6 @@ private struct StopNode: View {
             Spacer(minLength: 0)
         }
         .frame(minHeight: 62)
-    }
-
-    /// The subtitle text for a node: the final stop shows "Final stop"; the
-    /// current stop shows "Arriving in X min"; cancelled calls show "Cancelled".
-    private var subtitle: String? {
-        if call.isCanceled {
-            return "Cancelled"
-        }
-        if isFinal {
-            return "Final stop"
-        }
-        if isCurrent, let minutes = Self.minutesUntil(call, now: now) {
-            return minutes <= 0 ? "Departing now" : "Arriving in \(minutes) min"
-        }
-        return nil
-    }
-
-    /// Whole minutes until the call's departure from `now`, or `nil` when the
-    /// time can't be parsed.
-    static func minutesUntil(_ call: TripCall, now: Date) -> Int? {
-        guard let date = call.date else { return nil }
-        let minutes = Calendar.current.dateComponents([.minute], from: now, to: date).minute
-        return minutes
     }
 }
 
