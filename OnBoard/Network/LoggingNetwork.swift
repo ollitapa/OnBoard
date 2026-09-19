@@ -35,8 +35,7 @@ struct LoggingNetwork: NetworkProtocol {
         let number = counter.next()
         logger.log("→ #\(number, privacy: .public) \(method(of: request), privacy: .public) \(requestLine(of: request), privacy: .public)")
         let (data, response) = try await wrapped.data(for: request)
-        logger.log("← #\(number, privacy: .public) \(status(of: response), privacy: .public)")
-        logger.log("\(body(of: data), privacy: .public)")
+        logger.log("← #\(number, privacy: .public) \(status(of: response), privacy: .public)\n\(body(of: data), privacy: .private)")
         return (data, response)
     }
 
