@@ -63,6 +63,14 @@ The core patterns:
   production transport; `MockNetwork` and `MockTrafiklabService` provide
   handler registration, request tracking, and canned responses for tests
   and previews.
+- **API client built per call — a documented trade-off**: each model constructs
+  its own `Trafiklab` client inside the load method (`let api = Trafiklab(network:
+  network)`). That keeps `Trafiklab` out of the model's initializer and the
+  environment, so a test injects a mock by passing a `NetworkProtocol` alone.
+  The cost: there is no shared place for cross-cutting concerns. If your app needs
+  those, invert the injection: make the API client itself the protocol
+  injected through the environment (`@Entry var api: any TrafiklabAPI`) and
+  keep the transport a detail of its live implementation.
 - **SwiftData persistence**: the app entry point builds the `ModelContainer`
   and injects it with `.modelContainer(container)`; views hand the
   environment's `ModelContext` to their model's load/mutate methods. Each
