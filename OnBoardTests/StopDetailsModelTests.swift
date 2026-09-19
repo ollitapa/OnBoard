@@ -6,11 +6,14 @@ import Foundation
 struct StopDetailsModelTests {
 
     @Test func loadDeparturesSuccess() async throws {
-        // Given: the default mock serves the shared sample departures for the
-        // first nearby stop's area id. Capture them once so the comparison
-        // isn't affected by the sample's relative timestamps being re-evaluated.
-        let expected = MockTrafiklabService.sampleDepartures
-        let network = MockTrafiklabService(departuresByAreaId: ["740000001": expected])
+        // Given: a mock serving the shared sample departures for the first
+        // nearby stop's area id. The expected rows are read back from the
+        // service's decoded fixture so the comparison isn't affected by the
+        // fixture's relative timestamps being re-evaluated.
+        let network = MockTrafiklabService(departuresByAreaId: """
+            { "740000001": \(MockTrafiklabService.sampleDeparturesJSON) }
+            """)
+        let expected = try #require(network.departuresByAreaId["740000001"])
         let model = StopDetailsModel()
         // When
         await model.loadDepartures(network: network, areaId: "740000001")
@@ -22,7 +25,7 @@ struct StopDetailsModelTests {
 
     @Test func loadDeparturesEmptyResponse() async throws {
         // Given: an area id explicitly configured with no departures.
-        let network = MockTrafiklabService(departuresByAreaId: ["740000001": []])
+        let network = MockTrafiklabService(departuresByAreaId: "{ \"740000001\": [] }")
         let model = StopDetailsModel()
         // When
         await model.loadDepartures(network: network, areaId: "740000001")
@@ -59,7 +62,7 @@ struct StopDetailsModelTests {
 
     @Test func loadDeparturesSetsLastUpdated() async throws {
         // Given
-        let network = MockTrafiklabService(departuresByAreaId: ["740000001": []])
+        let network = MockTrafiklabService(departuresByAreaId: "{ \"740000001\": [] }")
         let model = StopDetailsModel()
         #expect(model.lastUpdated == nil)
 
@@ -73,7 +76,7 @@ struct StopDetailsModelTests {
 
     @Test func failedLoadDoesNotStampLastUpdated() async throws {
         // Given: a previous successful load stamped the update time.
-        let good = MockTrafiklabService(departuresByAreaId: ["740000001": []])
+        let good = MockTrafiklabService(departuresByAreaId: "{ \"740000001\": [] }")
         let model = StopDetailsModel()
         await model.loadDepartures(network: good, areaId: "740000001")
         let stamp = try #require(model.lastUpdated)

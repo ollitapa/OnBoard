@@ -7,17 +7,7 @@ struct NearbyModelTests {
 
     @Test func loadStopsSuccess() async throws {
         // Given
-        let stopLocations = [
-            StopLocation(rawId: "1", extId: "1", name: "Central Station",
-                         lat: "60.1756", lon: "24.9420", dist: 120, weight: 50, products: 0),
-            StopLocation(rawId: "2", extId: "2", name: "Market Square",
-                         lat: "60.1699", lon: "24.9384", dist: 300, weight: 40, products: 0)
-        ]
-        let expectedStops = [
-            Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420, distance: 120),
-            Stop(id: "2", name: "Market Square", latitude: 60.1699, longitude: 24.9384, distance: 300)
-        ]
-        let network = MockTrafiklabService(nearbyStops: stopLocations)
+        let network = MockTrafiklabService(nearbyStops: Self.twoStopsJSON)
 
         let model = NearbyModel()
 
@@ -25,13 +15,17 @@ struct NearbyModelTests {
         await model.loadStops(network: network, latitude: 59.31, longitude: 18.07)
 
         // Then
+        let expectedStops = [
+            Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420, distance: 120),
+            Stop(id: "2", name: "Market Square", latitude: 60.1699, longitude: 24.9384, distance: 300)
+        ]
         #expect(model.stops == expectedStops)
         #expect(model.failure == nil)
     }
 
     @Test func loadStopsEmptyResponse() async throws {
         // Given
-        let network = MockTrafiklabService(nearbyStops: [])
+        let network = MockTrafiklabService(nearbyStops: "[]")
         let model = NearbyModel()
 
         // When
@@ -58,13 +52,9 @@ struct NearbyModelTests {
 
     @Test func loadStopsKeepsStopsOnFailure() async throws {
         // Given: a model that loaded stops, then a network that fails.
-        let stopLocations = [
-            StopLocation(rawId: "1", extId: "1", name: "Central Station",
-                         lat: "60.1756", lon: "24.9420", dist: 120, weight: 50, products: 0)
-        ]
         let model = NearbyModel()
         await model.loadStops(
-            network: MockTrafiklabService(nearbyStops: stopLocations),
+            network: MockTrafiklabService(nearbyStops: Self.centralStationJSON),
             latitude: 59.31,
             longitude: 18.07
         )
@@ -86,7 +76,7 @@ struct NearbyModelTests {
         #expect(model.failure != nil)
 
         // When: a subsequent load succeeds.
-        let network = MockTrafiklabService(nearbyStops: [])
+        let network = MockTrafiklabService(nearbyStops: "[]")
         await model.loadStops(network: network, latitude: 59.31, longitude: 18.07)
 
         // Then: the failure is cleared.
@@ -95,13 +85,7 @@ struct NearbyModelTests {
 
     @Test func loadStopsSkipsUnparseableCoordinates() async throws {
         // Given: a response where one stop has an unparseable coordinate string.
-        let stopLocations = [
-            StopLocation(rawId: "1", extId: "1", name: "Central Station",
-                         lat: "60.1756", lon: "24.9420", dist: 120, weight: 50, products: 0),
-            StopLocation(rawId: "2", extId: "2", name: "Bad Fix",
-                         lat: "not-a-number", lon: "24.9384", dist: 300, weight: 40, products: 0)
-        ]
-        let network = MockTrafiklabService(nearbyStops: stopLocations)
+        let network = MockTrafiklabService(nearbyStops: Self.unparseableCoordinateJSON)
         let model = NearbyModel()
 
         // When
@@ -147,5 +131,76 @@ struct NearbyModelTests {
         let stop = Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420)
         #expect(stop.distanceLabel == nil)
     }
+
+    // MARK: - Helpers
+
+    /// A one-stop nearby fixture for tests that need a single known stop.
+    static let centralStationJSON = """
+        [
+            {
+                "id": "1",
+                "extId": "1",
+                "name": "Central Station",
+                "lat": "60.1756",
+                "lon": "24.9420",
+                "dist": 120,
+                "weight": 50,
+                "products": 0
+            }
+        ]
+        """
+
+    /// A two-stop nearby fixture for tests that assert on the full mapped list.
+    static let twoStopsJSON = """
+        [
+            {
+                "id": "1",
+                "extId": "1",
+                "name": "Central Station",
+                "lat": "60.1756",
+                "lon": "24.9420",
+                "dist": 120,
+                "weight": 50,
+                "products": 0
+            },
+            {
+                "id": "2",
+                "extId": "2",
+                "name": "Market Square",
+                "lat": "60.1699",
+                "lon": "24.9384",
+                "dist": 300,
+                "weight": 40,
+                "products": 0
+            }
+        ]
+        """
+
+    /// A two-stop nearby fixture whose second stop has an unparseable
+    /// coordinate string, for the malformed-response path.
+    static let unparseableCoordinateJSON = """
+        [
+            {
+                "id": "1",
+                "extId": "1",
+                "name": "Central Station",
+                "lat": "60.1756",
+                "lon": "24.9420",
+                "dist": 120,
+                "weight": 50,
+                "products": 0
+            },
+            {
+                "id": "2",
+                "extId": "2",
+                "name": "Bad Fix",
+                "lat": "not-a-number",
+                "lon": "24.9384",
+                "dist": 300,
+                "weight": 40,
+                "products": 0
+            }
+        ]
+        """
 
 }

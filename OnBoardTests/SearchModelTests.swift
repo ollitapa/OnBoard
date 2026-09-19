@@ -9,7 +9,7 @@ struct SearchModelTests {
 
     @Test func searchSuccess() async throws {
         // Given: a controlled dataset where "slu" matches only "Slussen".
-        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
         let model = SearchModel()
 
         // When
@@ -24,7 +24,7 @@ struct SearchModelTests {
 
     @Test func searchMatchesMultipleBySubstring() async throws {
         // Given: a controlled dataset where "l" matches both stop names.
-        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
         let model = SearchModel()
 
         // When
@@ -38,7 +38,7 @@ struct SearchModelTests {
 
     @Test func searchExactMatch() async throws {
         // Given
-        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
         let model = SearchModel()
 
         // When
@@ -52,7 +52,7 @@ struct SearchModelTests {
 
     @Test func searchNoMatches() async throws {
         // Given
-        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
         let model = SearchModel()
 
         // When
@@ -66,7 +66,7 @@ struct SearchModelTests {
     @Test func searchBlankQueryClearsWithoutRequest() async throws {
         // Given: a model with prior recents. A blank query returns early
         // before any request is made, so results clear and no failure is set.
-        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
         let model = SearchModel()
         model.recordRecent("Medborgarplatsen")
 
@@ -120,7 +120,7 @@ struct SearchModelTests {
         #expect(model.failure != nil)
 
         // When: a subsequent successful search clears the failure.
-        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
         await model.search(named: "Slussen", network: network)
 
         // Then
@@ -132,7 +132,7 @@ struct SearchModelTests {
     @Test func cancelledSearchLeavesLoadingFlagToReplacementTask() async throws {
         // Given: a search in flight whose replacement is already loading. The
         // replacement sets `isLoading` before the cancelled task resumes.
-        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
         let model = SearchModel()
         model.isLoading = true
 
@@ -191,23 +191,40 @@ struct SearchModelTests {
     // MARK: - Helpers
 
     /// A small, ordered set of stop groups for tests that need a controlled,
-    /// predictable dataset (busiest first, matching the API's ordering).
-    static let searchDataset: [StopGroup] = [
-        StopGroup(
-            id: "740000002",
-            name: "Slussen",
-            area_type: "META_STOP",
-            average_daily_stop_times: 1200,
-            transport_modes: ["BUS", "METRO"],
-            stops: [StopRef(id: "740000002", name: "Slussen", lat: 59.3199, lon: 18.0717)]
-        ),
-        StopGroup(
-            id: "740000004",
-            name: "Odenplan",
-            area_type: "META_STOP",
-            average_daily_stop_times: 950,
-            transport_modes: ["BUS", "TRAIN"],
-            stops: [StopRef(id: "740000004", name: "Odenplan", lat: 59.3429, lon: 18.0496)]
-        )
-    ]
+    /// predictable dataset (busiest first, matching the API's ordering), as a
+    /// multiline-JSON fixture in the Stop Lookup wire shape.
+    static let searchDatasetJSON = """
+        [
+            {
+                "id": "740000002",
+                "name": "Slussen",
+                "area_type": "META_STOP",
+                "average_daily_stop_times": 1200,
+                "transport_modes": ["BUS", "METRO"],
+                "stops": [
+                    {
+                        "id": "740000002",
+                        "name": "Slussen",
+                        "lat": 59.3199,
+                        "lon": 18.0717
+                    }
+                ]
+            },
+            {
+                "id": "740000004",
+                "name": "Odenplan",
+                "area_type": "META_STOP",
+                "average_daily_stop_times": 950,
+                "transport_modes": ["BUS", "TRAIN"],
+                "stops": [
+                    {
+                        "id": "740000004",
+                        "name": "Odenplan",
+                        "lat": 59.3429,
+                        "lon": 18.0496
+                    }
+                ]
+            }
+        ]
+        """
 }

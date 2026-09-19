@@ -7,10 +7,11 @@ struct RouteDetailsModelTests {
 
     @Test func loadTripSuccess() async throws {
         // Given: a canned trip keyed by the same trip id / start date the model
-        // requests. Capture it once so the comparison isn't affected by the
-        // sample's relative timestamps being re-evaluated.
-        let trip = MockTrafiklabService.sampleTrip(routeDesignation: "3", direction: "Karolinska sjukhuset", delaySeconds: 0)
-        let network = MockTrafiklabService(tripsByKey: ["900001/2099-01-01": trip])
+        // requests. The expected stops are read back from the service's decoded
+        // fixture so the comparison isn't affected by the fixture's relative
+        // timestamps being re-evaluated.
+        let network = MockTrafiklabService(tripsByKey: MockTrafiklabService.defaultTripsJSON)
+        let trip = try #require(network.tripsByKey["900001/2099-01-01"])
         let model = RouteDetailsModel()
         // When
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
@@ -23,7 +24,7 @@ struct RouteDetailsModelTests {
     @Test func loadTripEmptyWhenResponseHasNoTrip() async throws {
         // Given: a service whose trips dict has no entry for the requested key,
         // so the mock returns an empty trip and the model surfaces an empty list.
-        let network = MockTrafiklabService(tripsByKey: [:])
+        let network = MockTrafiklabService(tripsByKey: "{}")
         let model = RouteDetailsModel()
         // When
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")

@@ -29,7 +29,7 @@ final class OnBoardUITests: XCTestCase {
         app.launch()
 
         // The nearby tab is selected by default and renders the stop names
-        // served by `MockTrafiklabService.defaultNearbyStops`.
+        // served by `MockTrafiklabService.defaultNearbyStopsJSON`.
         let firstStop = app.staticTexts["Medborgarplatsen"]
         let secondStop = app.staticTexts["Slussen"]
 
