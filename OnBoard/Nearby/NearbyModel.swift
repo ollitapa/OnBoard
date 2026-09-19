@@ -1,7 +1,7 @@
 import Observation
 import Foundation
 
-struct Stop: Codable, Identifiable, Equatable, Hashable {
+struct Stop: Codable, Identifiable, Equatable, Hashable, Sendable {
     var id: String
     var name: String
     var latitude: Double

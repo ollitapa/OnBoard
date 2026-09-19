@@ -148,25 +148,25 @@ struct Trafiklab {
 }
 
 /// Errors thrown by `Trafiklab`.
-struct TrafiklabInvalidURL: Error { }
+struct TrafiklabInvalidURL: Error, Sendable { }
 
 
 // MARK: - Response models
 
 /// Top-level response for Stop Lookup (`NationalStopGroupResponse`).
-struct NationalStopGroupResponse: Codable, Equatable {
+struct NationalStopGroupResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: StopLookupQuery
     var stop_groups: [StopGroup]
 
-    struct StopLookupQuery: Codable, Equatable {
+    struct StopLookupQuery: Codable, Equatable, Sendable {
         var queryTime: String
         var query: String?
     }
 }
 
 /// A national stop group / meta-stop returned by Stop Lookup.
-struct StopGroup: Codable, Equatable, Identifiable, Hashable {
+struct StopGroup: Codable, Equatable, Identifiable, Hashable, Sendable {
     var id: String
     var name: String
     var area_type: String
@@ -176,7 +176,7 @@ struct StopGroup: Codable, Equatable, Identifiable, Hashable {
 }
 
 /// A child stop reference — never use its `id` for Timetables/Trips calls.
-struct StopRef: Codable, Equatable, Identifiable, Hashable {
+struct StopRef: Codable, Equatable, Identifiable, Hashable, Sendable {
     var id: String
     var name: String
     var lat: Double
@@ -184,12 +184,12 @@ struct StopRef: Codable, Equatable, Identifiable, Hashable {
 }
 
 /// Top-level response for ResRobot Nearby Stops.
-struct NearbyStopsResponse: Codable, Equatable {
+struct NearbyStopsResponse: Codable, Equatable, Sendable {
     var StopLocation: [StopLocation]
 }
 
 /// A nearby stop ranked by distance, returned by ResRobot Nearby Stops.
-struct StopLocation: Codable, Equatable, Identifiable {
+struct StopLocation: Codable, Equatable, Identifiable, Sendable {
     /// Use `extId` (the group id) as the stable identifier; the raw `id` is internal.
     var id: String { extId }
 
@@ -211,7 +211,7 @@ struct StopLocation: Codable, Equatable, Identifiable {
 }
 
 /// Top-level response for Trafiklab Timetables departures.
-struct DeparturesResponse: Codable, Equatable {
+struct DeparturesResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: TimetableQuery
     var stops: [TimetableStop]
@@ -219,7 +219,7 @@ struct DeparturesResponse: Codable, Equatable {
 }
 
 /// Top-level response for Trafiklab Timetables arrivals.
-struct ArrivalsResponse: Codable, Equatable {
+struct ArrivalsResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: TimetableQuery
     var stops: [TimetableStop]
@@ -227,13 +227,13 @@ struct ArrivalsResponse: Codable, Equatable {
 }
 
 /// Query metadata shared by the Timetables responses.
-struct TimetableQuery: Codable, Equatable {
+struct TimetableQuery: Codable, Equatable, Sendable {
     var queryTime: String
     var query: String?
 }
 
 /// A physical stop covered by a Timetables area id.
-struct TimetableStop: Codable, Equatable, Identifiable {
+struct TimetableStop: Codable, Equatable, Identifiable, Sendable {
     var id: String
     var name: String
     var lat: Double
@@ -243,7 +243,7 @@ struct TimetableStop: Codable, Equatable, Identifiable {
 }
 
 /// A single departure/arrival row on a stop board.
-struct CallAtLocation: Codable, Equatable, Identifiable {
+struct CallAtLocation: Codable, Equatable, Identifiable, Sendable {
     /// A stable row id derived from the trip; falls back to scheduled time.
     var id: String { trip?.trip_id ?? "\(scheduled)-\(route?.designation ?? "")" }
 
@@ -263,7 +263,7 @@ struct CallAtLocation: Codable, Equatable, Identifiable {
 }
 
 /// Route information for a departure/arrival row.
-struct Route: Codable, Equatable {
+struct Route: Codable, Equatable, Sendable {
     /// The line-badge number, e.g. "3" or "T14".
     var designation: String?
     /// `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT`.
@@ -274,7 +274,7 @@ struct Route: Codable, Equatable {
     var name: String?
 }
 
-struct TransportMode: Codable, Equatable, Hashable, ExpressibleByStringLiteral {
+struct TransportMode: Codable, Equatable, Hashable, Sendable, ExpressibleByStringLiteral {
     /// `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT`.
     var rawMode: String
 
@@ -294,7 +294,7 @@ struct TransportMode: Codable, Equatable, Hashable, ExpressibleByStringLiteral {
 }
 
 /// Operator branding for a departure/arrival row.
-struct Agency: Codable, Equatable {
+struct Agency: Codable, Equatable, Sendable {
     var name: String?
     var operator_: String?
 
@@ -305,37 +305,37 @@ struct Agency: Codable, Equatable {
 }
 
 /// Reference to a trip, needed to open the Live Trip screen.
-struct TripRef: Codable, Equatable {
+struct TripRef: Codable, Equatable, Sendable {
     var trip_id: String
     var start_date: String
 }
 
 /// A platform/läge, e.g. "Läge C".
-struct Platform: Codable, Equatable {
+struct Platform: Codable, Equatable, Sendable {
     var id: String?
     var designation: String?
 }
 
 /// A service message for a stop or departure.
-struct Alert: Codable, Equatable, Identifiable {
+struct Alert: Codable, Equatable, Identifiable, Sendable {
     var id: String
     var text: String?
 }
 
 /// Top-level response for Trafiklab Trips (beta).
-struct TripResponse: Codable, Equatable {
+struct TripResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: TripQuery?
     var trip: Trip?
 
-    struct TripQuery: Codable, Equatable {
+    struct TripQuery: Codable, Equatable, Sendable {
         var queryTime: String
         var query: String?
     }
 }
 
 /// A single trip with its stop-by-stop schedule.
-struct Trip: Codable, Equatable, Identifiable {
+struct Trip: Codable, Equatable, Identifiable, Sendable {
     var id: String?
     var trip_id: String?
     var start_date: String?
@@ -344,7 +344,7 @@ struct Trip: Codable, Equatable, Identifiable {
 }
 
 /// One scheduled stop along a trip, with delay/ETA per stop.
-struct TripStop: Codable, Equatable, Identifiable {
+struct TripStop: Codable, Equatable, Identifiable, Sendable {
     var id: String
     var name: String?
     var lat: Double?
