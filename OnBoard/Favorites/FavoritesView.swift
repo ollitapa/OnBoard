@@ -86,17 +86,17 @@ private struct FavoriteRow: View {
     let favorite: Favorite
 
     var body: some View {
-        HStack(alignment: .center, spacing: 11) {
+        HStack(alignment: .center, spacing: 12) {
             Image(systemName: "star.fill")
                 .foregroundStyle(.star)
-                .font(.callout)
-            VStack(alignment: .leading, spacing: 1) {
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(favorite.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.ink)
                 if !favorite.lineSummary.isEmpty {
                     Text(favorite.lineSummary)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.inkSoft)
                 }
             }

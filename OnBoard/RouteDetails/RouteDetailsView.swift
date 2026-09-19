@@ -108,7 +108,7 @@ private struct DelayPill: View {
     var body: some View {
         if let delayMinutes {
             Text(delayMinutes.label)
-                .font(.caption.weight(.bold))
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(delayMinutes.minutes < 0 ? .statusGreen : .statusRed)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3)
@@ -196,12 +196,12 @@ private struct TransportModeMarker: View {
             Spacer(minLength: 20)
             RoundedRectangle(cornerRadius: 7)
                 .fill(Color.accent)
-                .frame(width: 26, height: 26)
+                .frame(width: 28, height: 28)
                 .overlay(
                     Group {
                         if let mode {
                             Image(systemName: mode.icon)
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(.white)
                         }
                     }
@@ -227,20 +227,20 @@ private struct StopNode: View {
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             nodeDot
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(stop.name ?? "")
-                    .font(.subheadline.weight(isPassed ? .regular : .semibold))
+                    .font(.body.weight(isPassed ? .regular : .semibold))
                     .foregroundStyle(isPassed ? .inkSoft : .ink)
                     .strikethrough(stop.canceled == true)
                 if let subtitle = subtitle {
                     Text(subtitle)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.inkSoft)
                 }
             }
             Spacer(minLength: 0)
         }
-        .frame(minHeight: 58)
+        .frame(minHeight: 62)
     }
 
     /// The node's dot: a filled grey dot for passed stops, a larger ringed
@@ -256,7 +256,7 @@ private struct StopNode: View {
                         lineWidth: isCurrent ? 3 : 3
                     )
             )
-            .frame(width: isCurrent ? 15 : 11, height: isCurrent ? 15 : 11)
+            .frame(width: isCurrent ? 17 : 12, height: isCurrent ? 17 : 12)
             .shadow(
                 color: isCurrent ? Color.accentTint : .clear,
                 radius: isCurrent ? 5 : 0

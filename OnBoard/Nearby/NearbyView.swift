@@ -71,22 +71,13 @@ private struct NearbyStopRow: View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(stop.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.ink)
                 Text(stop.distanceLabel ?? "")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.inkSoft)
             }
             Spacer()
-            // Time chip - placeholder for future implementation
-            if let minutes = stop.minutesToWalk {
-                Text("\(minutes) min")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.statusGreen)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.statusGreenTint, in: Capsule())
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 11)
