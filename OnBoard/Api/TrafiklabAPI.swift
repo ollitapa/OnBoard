@@ -6,7 +6,8 @@ import Foundation
 /// Timetables, and Trips (beta) — behind a single struct that depends only on a
 /// `NetworkProtocol` for transport. API keys are read from the env file bundled
 /// with the build (`Secrets.env`, with the committed `Secrets.example.env` as a
-/// bogus-key fallback); init takes nothing but the network.
+/// bogus-key fallback); a missing key throws when a request is built, surfacing
+/// as the caller's load failure rather than an empty-key request.
 ///
 /// Both products authenticate via a query-string parameter rather than a header:
 /// the realtime APIs use `key`, ResRobot uses `accessId`.
@@ -18,21 +19,20 @@ struct Trafiklab {
     /// Base URL for ResRobot v2.1 (Nearby Stops).
     private static let resrobotBase = URL(string: "https://api.resrobot.se/v2.1/")!
 
-    /// The realtime-API key, read from the bundled env file's `TRAFIKLAB_REALTIME_KEY`.
-    private let realtimeKey: String
-
-    /// The ResRobot key, read from the bundled env file's `TRAFIKLAB_RESROBOT_KEY`.
-    private let resrobotKey: String
+    /// The app's API keys, read when a request is built so a missing key
+    /// surfaces as a load failure instead of an empty-key request.
+    private let secrets: Secrets
 
     /// The transport used to perform requests.
     private let network: NetworkProtocol
 
     /// Creates a client backed by the given network and the app's bundled keys.
-    /// - Parameter network: The `NetworkProtocol` used to perform requests.
+    /// - Parameters:
+    ///   - network: The `NetworkProtocol` used to perform requests.
+    ///   - secrets: The keys to authenticate with.
     init(network: some NetworkProtocol, secrets: Secrets = Secrets()) {
         self.network = network
-        self.realtimeKey = secrets.realtimeKey
-        self.resrobotKey = secrets.resrobotKey
+        self.secrets = secrets
     }
 
     // MARK: - Stop Lookup (Search screen)
@@ -72,7 +72,7 @@ struct Trafiklab {
         components.queryItems = [
             URLQueryItem(name: "originCoordLat", value: String(latitude)),
             URLQueryItem(name: "originCoordLong", value: String(longitude)),
-            URLQueryItem(name: "accessId", value: resrobotKey),
+            URLQueryItem(name: "accessId", value: try secrets.resrobotKey),
             URLQueryItem(name: "format", value: "json"),
             URLQueryItem(name: "maxNo", value: String(maxResults)),
             URLQueryItem(name: "r", value: String(radius))
@@ -135,7 +135,7 @@ struct Trafiklab {
               var components = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
             throw TrafiklabInvalidURL()
         }
-        components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "key", value: realtimeKey)]
+        components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "key", value: try secrets.realtimeKey)]
         guard let resolved = components.url else { throw TrafiklabInvalidURL() }
         return URLRequest(url: resolved)
     }
