@@ -14,8 +14,15 @@ struct Stop: Codable, Identifiable, Equatable, Hashable, Sendable {
 @Observable
 final class NearbyModel {
 
+    /// The most recent transport error, if the last load failed.
     var failure: String?
 
+    /// Whether a load is currently in progress.
+    var isLoading: Bool = false
+
+    /// The nearby stops from the most recent successful load. Kept (not cleared)
+    /// when a refresh fails, so the view can show stale rows with a failure
+    /// banner instead of an empty screen.
     var stops: [Stop] = []
 
     init() {}
@@ -27,11 +34,13 @@ final class NearbyModel {
     ///   - latitude: WGS84 decimal degrees.
     ///   - longitude: WGS84 decimal degrees.
     func loadStops(network: some NetworkProtocol, latitude: Double, longitude: Double) async {
+        isLoading = true
+        defer { isLoading = false }
 
         do {
             let api = Trafiklab(network: network)
             let response = try await api.nearbyStops(latitude: latitude, longitude: longitude)
-            stops = response.StopLocation.map(Stop.init)
+            stops = response.StopLocation.compactMap(Stop.init)
             failure = nil
 
         } catch {
@@ -44,11 +53,17 @@ final class NearbyModel {
 extension Stop {
     /// Creates a `Stop` from a ResRobot `StopLocation`, using `extId` (the group id)
     /// as the stable identifier and parsing the string coordinates ResRobot returns.
-    init(_ location: StopLocation) {
+    /// Returns `nil` when either coordinate string can't be parsed, so an
+    /// unlocatable stop is skipped rather than placed at the null island (0, 0).
+    init?(_ location: StopLocation) {
+        guard let latitude = Double(location.lat),
+              let longitude = Double(location.lon) else {
+            return nil
+        }
         self.id = location.extId
         self.name = location.name
-        self.latitude = Double(location.lat) ?? 0
-        self.longitude = Double(location.lon) ?? 0
+        self.latitude = latitude
+        self.longitude = longitude
         self.distance = location.dist
     }
 
