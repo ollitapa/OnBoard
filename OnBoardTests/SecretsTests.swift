@@ -42,7 +42,7 @@ struct SecretsTests {
             TRAFIKLAB_REALTIME_KEY
             TRAFIKLAB_RESROBOT_KEY=def456
             """)
-        await #expect(throws: SecretsError.missingKey("TRAFIKLAB_REALTIME_KEY")) {
+        await #expect(throws: SecretMissingForKey(key: "TRAFIKLAB_REALTIME_KEY")) {
             _ = try secrets.realtimeKey
         }
         #expect(try secrets.resrobotKey == "def456")
@@ -50,11 +50,11 @@ struct SecretsTests {
 
     @Test func missingOrEmptyKeyThrows() async {
         let missing = Secrets(parsing: "TRAFIKLAB_RESROBOT_KEY=def456")
-        await #expect(throws: SecretsError.missingKey("TRAFIKLAB_REALTIME_KEY")) {
+        await #expect(throws: SecretMissingForKey(key: "TRAFIKLAB_REALTIME_KEY")) {
             _ = try missing.realtimeKey
         }
         let empty = Secrets(parsing: "TRAFIKLAB_REALTIME_KEY=")
-        await #expect(throws: SecretsError.missingKey("TRAFIKLAB_REALTIME_KEY")) {
+        await #expect(throws: SecretMissingForKey(key: "TRAFIKLAB_REALTIME_KEY")) {
             _ = try empty.realtimeKey
         }
     }
@@ -73,7 +73,7 @@ struct SecretsTests {
         // A bundle with no env file resources at all.
         let secrets = Secrets(bundle: Bundle(for: EmptyBundleMarker.self))
         #expect(secrets.values.isEmpty)
-        await #expect(throws: SecretsError.missingKey("TRAFIKLAB_REALTIME_KEY")) {
+        await #expect(throws: SecretMissingForKey(key: "TRAFIKLAB_REALTIME_KEY")) {
             _ = try secrets.realtimeKey
         }
     }

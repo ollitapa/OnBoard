@@ -52,13 +52,13 @@ struct Secrets {
     }
 
     /// The key for the Trafiklab Realtime APIs (Stop Lookup, Timetables, Trips).
-    /// Throws ``SecretsError/missingKey(_:)`` when the env file has no value.
+    /// Throws ``SecretMissingForKey`` when the env file has no value.
     var realtimeKey: String {
         get throws { try value(for: "TRAFIKLAB_REALTIME_KEY") }
     }
 
     /// The key for ResRobot v2.1 (Nearby Stops).
-    /// Throws ``SecretsError/missingKey(_:)`` when the env file has no value.
+    /// Throws ``SecretMissingForKey`` when the env file has no value.
     var resrobotKey: String {
         get throws { try value(for: "TRAFIKLAB_RESROBOT_KEY") }
     }
@@ -70,10 +70,10 @@ struct Secrets {
 
     /// Returns the value for a key, throwing when it is missing or empty.
     /// - Parameter name: The env-file key name, e.g. `TRAFIKLAB_REALTIME_KEY`.
-    /// - Throws: ``SecretsError/missingKey(_:)`` when no non-empty value exists.
+    /// - Throws: ``SecretMissingForKey`` when no non-empty value exists.
     private func value(for name: String) throws -> String {
         guard let value = values[name], !value.isEmpty else {
-            throw SecretsError.missingKey(name)
+            throw SecretMissingForKey(key: name)
         }
         return value
     }
@@ -91,8 +91,8 @@ struct Secrets {
     }
 }
 
-/// Errors thrown by ``Secrets``.
-enum SecretsError: Error, Equatable {
-    /// The bundled env file has no non-empty value for the named key.
-    case missingKey(String)
+/// The bundled env file has no non-empty value for ``Secrets``' `key`.
+struct SecretMissingForKey: Error, Equatable {
+    /// The env-file key name that has no non-empty value.
+    let key: String
 }
