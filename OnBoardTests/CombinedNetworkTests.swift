@@ -59,10 +59,18 @@ struct CombinedNetworkTests {
         let network = CombinedNetwork(routes: [
             .init(baseURL: URL(string: "https://api.example.com")!, network: MockNearbyServer())
         ])
+        // The request URL carries a credential in its query, like the real
+        // Trafiklab requests do.
+        let request = URLRequest(url: URL(string: "https://unrouted.example.com/stops/nearby?key=SECRET")!)
 
-        let request = URLRequest(url: URL(string: "https://unrouted.example.com/stops/nearby")!)
-        await #expect(throws: NoRouteConfigured.self) {
-            try await network.data(for: request)
+        do {
+            _ = try await network.data(for: request)
+            Issue.record("Expected NoRouteConfigured")
+        } catch let error as NoRouteConfigured {
+            // Then: the error identifies the unmatched route without leaking
+            // the credential from the request's query.
+            #expect(error.host == "https://unrouted.example.com")
+            #expect(error.path == "/stops/nearby")
         }
     }
 

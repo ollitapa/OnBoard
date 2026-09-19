@@ -40,7 +40,7 @@ struct CombinedNetwork: NetworkProtocol {
         if let fallback {
             return try await fallback.data(for: request)
         }
-        throw NoRouteConfigured(request: request)
+        throw NoRouteConfigured(url: request.url)
     }
 
     private func route(for request: URLRequest) -> Route? {
@@ -52,6 +52,22 @@ struct CombinedNetwork: NetworkProtocol {
 }
 
 /// Error thrown when no route matches a request and no fallback is configured.
-struct NoRouteConfigured: Error {
-    let request: URLRequest
+///
+/// Carries only the request URL's scheme, host, and path — never the full
+/// `URLRequest` — because the query carries the API key and this error is
+/// rendered on screen through the models' `failure` strings.
+struct NoRouteConfigured: Error, Equatable {
+    /// The scheme and host of the unmatched request URL, e.g. "https://api.example.com".
+    let host: String?
+
+    /// The path of the unmatched request URL, e.g. "/v1/departures/740000001".
+    let path: String
+
+    /// Creates the error for an unmatched request, carrying only the parts of
+    /// the URL that identify the route — the query (which carries credentials)
+    /// is dropped.
+    init(url: URL?) {
+        self.host = url.map { "\($0.scheme ?? "")://\($0.host ?? "")" }
+        self.path = url?.path ?? ""
+    }
 }
