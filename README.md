@@ -117,6 +117,38 @@ constraints and what they buy:
   presentation extensions live together, so adding a feature is adding a
   folder, and deleting one removes everything it owns. Only cross-cutting
   infrastructure (`Network/`, `Location/`, `Api/`) sits outside.
+- **A mock's job is fidelity of the bytes, not of the data model** —
+  `MockTrafiklabService` went through several rounds of simplification, and
+  each one removed code that was re-implementing something the app already
+  had. The learnings that shaped it:
+  - Fixtures are multiline JSON strings in the endpoint's wire shape — they
+    read like captured API responses, so you can paste a real response in
+    verbatim. Don't configure the mock with hand-built API model values; that
+    makes the mock a second (drifting) implementation of the endpoint.
+  - The serving path never decodes or re-encodes: the mock picks a string by
+    dictionary key, joins the chosen strings into the response envelope, and
+    hands over `Data(body.utf8)`. The model under test then runs its real
+    production `Codable` decode on exactly the fixture bytes — a broken
+    fixture surfaces as a model failure, which is where you want it.
+  - Key dictionaries by the thing you look up (`stopGroupsByName`), even if a
+    value (the group's name) repeats inside the JSON. A key lookup replaces
+    any scanning or range-searching inside JSON strings, which is fragile and
+    only ever half-correct.
+  - Dictionaries are unordered, so a fixture dictionary needs an explicit,
+    documented order for what it serves (the mock serves name-sorted groups
+    and says so where it deviates from the real API's busiest-first order).
+  - Resolve the moving parts once at creation: relative timestamp markers
+    (`"now"`, `"now±n"`) become absolute timestamps when the service is
+    built, so previews and UI tests show fresh times with no per-request
+    recomputation.
+  - Validate fixtures loudly at creation — a malformed fixture traps with the
+    fixture named instead of silently serving an empty response later.
+  - Parse request paths with small regex captures
+    (`url.path.firstMatch(of: #/departures/([^/]+)/#)`) rather than
+    split-and-index arithmetic, and prefer `String.replacing(_:with:)` with a
+    capture-group regex over a manual scan-and-rebuild loop for textual
+    substitution; both read as the endpoint's shape rather than as index
+    bookkeeping.
 
 ## Replicating this in your app
 
@@ -140,9 +172,12 @@ The checklist, in the order we'd apply it to a new app:
 6. **Persist through the environment's `ModelContext` passed into
    load/mutate methods**, one aggregate root per feature, created on demand.
 7. **Serve tests/previews from a feature-specific mock service**
-   (`MockTrafiklabService`) that round-trips real `Codable` types for the real
-   endpoint paths, and keep a bare `MockNetwork` only for request-shape
-   and invalid-input assertions.
+   (`MockTrafiklabService`) configured by JSON strings in each endpoint's
+   wire shape (one per stop, one per area id / trip key / stop-group name),
+   served by joining the chosen strings into the response envelope — never
+   converted into the API's Swift models, so the app's real `Codable` decode
+   path is what parses them. Keep a bare `MockNetwork` only for
+   request-shape and invalid-input assertions.
 8. **Drive UI tests with string launch arguments** checked in the app entry
    point's `make*()` factories (`--mock-network`), so the harness is the same
    code path production uses.

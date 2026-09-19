@@ -3,13 +3,31 @@ import Foundation
 /// A mock `NetworkProtocol` that serves canned responses for the Trafiklab
 /// endpoints described in `Designs/API-Instructions.md`.
 ///
+/// Every dataset is configured as JSON strings in the endpoint's wire format
+/// — the same shape `Trafiklab` decodes — so fixtures read like captured API
+/// responses. The fixtures never round-trip through the API's Swift models or
+/// a JSON decoder: the mock stores them as collections of JSON strings
+/// (`[String]` for the nearby list, `[String: String]` for the per-area-id,
+/// per-trip-key, and name-keyed stop-group configs), picks the entry to serve
+/// straight from the dictionary, and joins the chosen strings into the
+/// endpoint's response envelope (`Data("{...}".utf8)`). The model under test
+/// therefore runs its real production decode path on bytes written exactly
+/// like the fixture. Served stop groups come back in name order; the real API
+/// orders them busiest-first, a detail the mock doesn't replicate.
+///
+/// Any timestamp string in a fixture may use a relative marker (`"now"`,
+/// `"now+2"`, `"now-10"`, in minutes) that is resolved to an absolute
+/// Trafiklab timestamp when the service is created, so previews and UI tests
+/// always show fresh times. Malformed fixture JSON traps at creation with the
+/// fixture named, so a broken fixture fails loudly rather than silently
+/// serving an empty response.
+///
 /// Mirrors `MockNearbyServer`: it responds to the ResRobot nearby-stops path
-/// with a JSON-encoded `NearbyStopsResponse` and to the Trafiklab Timetables
-/// departures path with a JSON-encoded `DeparturesResponse`, and throws
-/// `NoResponseConfigured` for anything else. Matching is by URL path suffix so
-/// the request's query parameters (including the API key) don't affect the
-/// response, which keeps the mock usable from tests where `Bundle.main` has
-/// no key configured.
+/// and to the Trafiklab Stop Lookup, Timetables departures, and Trips paths,
+/// and throws `NoResponseConfigured` for anything else. Matching is by URL
+/// path so the request's query parameters (including the API key) don't
+/// affect the response, which keeps the mock usable from tests where
+/// `Bundle.main` has no key configured.
 ///
 /// Use it directly as the network injected into a view model, or wrap it in a
 /// `CombinedNetwork` route to mix it with other mock servers (as the app's
@@ -19,371 +37,535 @@ struct MockTrafiklabService: NetworkProtocol {
     /// The base URL this server is responsible for (matched by `CombinedNetwork`).
     let baseURL: URL
 
-    /// The nearby stops returned from the nearby-stops endpoint.
-    let nearbyStops: [StopLocation]
+    /// The stops served from the nearby-stops endpoint: one JSON string per
+    /// `StopLocation`, in ResRobot's wire shape, joined into the
+    /// `NearbyStopsResponse` envelope when served. Defaults to
+    /// ``defaultNearbyStopsJSON`` so previews, the `--mock-network` UI-test
+    /// harness, and unit tests all share one canned dataset.
+    let nearbyStops: [String]
 
-    /// The departures returned from the Timetables departures endpoint, keyed
-    /// by the area id in the request path (`/departures/{areaId}`). An area id
-    /// with no entry returns an empty departures list, matching the real API.
-    /// Defaults to ``defaultDeparturesByAreaId`` so previews, the `--mock-network`
+    /// The rows served from the Timetables departures endpoint: area id to
+    /// a JSON string holding that area's `CallAtLocation` rows in the
+    /// Timetables wire shape. An area id with no entry returns an empty
+    /// departures list, matching the real API. Defaults to
+    /// ``defaultDeparturesByAreaIdJSON`` so previews, the `--mock-network`
     /// UI-test harness, and unit tests all share one canned dataset.
-    let departuresByAreaId: [String: [CallAtLocation]]
+    let departuresByAreaId: [String: String]
 
-    /// The trips returned from the Trips endpoint, keyed by `"{tripId}/{startDate}"`
-    /// (the path segments after `/trips/`). A trip id with no entry returns an
-    /// empty trip, matching the real API. Defaults to ``defaultTripsByKey`` so
-    /// the Live Trip screen renders canned data in previews and UI tests.
-    let tripsByKey: [String: Trip]
+    /// The trips served from the Trips endpoint: `"{tripId}/{startDate}"` to
+    /// a JSON string holding the `Trip` in the Trips wire shape. A trip id
+    /// with no entry returns an empty trip, matching the real API. Defaults
+    /// to ``defaultTripsByKeyJSON`` so the Live Trip screen renders canned
+    /// data in previews and UI tests.
+    let tripsByKey: [String: String]
 
-    /// The stop groups returned from the Stop Lookup name-search endpoint,
-    /// filtered client-side by name against the request's `{searchValue}` so
-    /// the mock reflects the real endpoint's behaviour. Defaults to
-    /// ``defaultStopGroups`` so previews, the `--mock-network` UI-test harness,
-    /// and unit tests all share one canned dataset.
-    let stopGroups: [StopGroup]
+    /// The stop groups served from the Stop Lookup endpoints: stop group name
+    /// to a JSON string holding the `StopGroup` in the Stop Lookup wire shape
+    /// (the name repeats inside the JSON, which is fine). The name-search
+    /// endpoint picks the entries whose *key* contains the search value
+    /// (case-insensitive substring, like the real endpoint) — no searching
+    /// inside the JSON strings. Defaults to ``defaultStopGroupsByNameJSON``
+    /// so previews, the `--mock-network` UI-test harness, and unit tests all
+    /// share one canned dataset.
+    let stopGroupsByName: [String: String]
 
     /// Creates a mock Trafiklab service.
     /// - Parameters:
     ///   - baseURL: The base URL this server responds for.
-    ///   - nearbyStops: The stops to return from the nearby endpoint.
-    ///   - departuresByAreaId: The departures to return per area id from the
-    ///     departures endpoint; area ids with no entry return an empty list.
-    ///   - tripsByKey: The trips to return from the Trips endpoint, keyed by
-    ///     `"{tripId}/{startDate}"`; trip ids with no entry return an empty trip.
-    ///   - stopGroups: The stop groups to return from the Stop Lookup name
-    ///     search endpoint, filtered by name against the search value.
+    ///   - nearbyStops: One JSON string per nearby `StopLocation`, in
+    ///     ResRobot's wire shape.
+    ///   - departuresByAreaId: Area id to a JSON string of `CallAtLocation`
+    ///     rows in the Timetables wire shape; area ids with no entry return
+    ///     an empty list.
+    ///   - tripsByKey: `"{tripId}/{startDate}"` to a JSON string holding the
+    ///     `Trip` in the Trips wire shape; trip ids with no entry return an
+    ///     empty trip.
+    ///   - stopGroupsByName: Stop group name to a JSON string holding the
+    ///     `StopGroup` in the Stop Lookup wire shape; the name may repeat
+    ///     inside the JSON.
     init(
         baseURL: URL = URL(string: "https://api.resrobot.se")!,
-        nearbyStops: [StopLocation] = MockTrafiklabService.defaultNearbyStops,
-        departuresByAreaId: [String: [CallAtLocation]] = MockTrafiklabService.defaultDeparturesByAreaId,
-        tripsByKey: [String: Trip] = MockTrafiklabService.defaultTripsByKey,
-        stopGroups: [StopGroup] = MockTrafiklabService.defaultStopGroups
+        nearbyStops: [String] = MockTrafiklabService.defaultNearbyStopsJSON,
+        departuresByAreaId: [String: String] = MockTrafiklabService.defaultDeparturesByAreaIdJSON,
+        tripsByKey: [String: String] = MockTrafiklabService.defaultTripsByKeyJSON,
+        stopGroupsByName: [String: String] = MockTrafiklabService.defaultStopGroupsByNameJSON
     ) {
         self.baseURL = baseURL
-        self.nearbyStops = nearbyStops
-        self.departuresByAreaId = departuresByAreaId
-        self.tripsByKey = tripsByKey
-        self.stopGroups = stopGroups
+        self.nearbyStops = Self.resolved(nearbyStops, fixture: "nearbyStops")
+        self.departuresByAreaId = Self.resolved(departuresByAreaId, fixture: "departuresByAreaId")
+        self.tripsByKey = Self.resolved(tripsByKey, fixture: "tripsByKey")
+        self.stopGroupsByName = Self.resolved(stopGroupsByName, fixture: "stopGroupsByName")
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         guard let url = request.url else { throw NoResponseConfigured() }
 
         if request.httpMethod == "GET", url.path.hasSuffix("location.nearbystops") {
-            let payload = NearbyStopsResponse(StopLocation: nearbyStops)
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let body = """
+            {
+              "StopLocation":[\(nearbyStops.joined(separator: ","))]
+            }
+            """
+            return Self.ok(Data(body.utf8), url: url)
         }
 
         if request.httpMethod == "GET", url.path.contains("/stops/name/") {
-            let groups = self.stopGroups(for: url)
-            let payload = NationalStopGroupResponse(
-                timestamp: "2099-01-01T12:00:00",
-                query: NationalStopGroupResponse.StopLookupQuery(
-                    queryTime: "2099-01-01T12:00:00",
-                    query: self.searchValue(for: url)
-                ),
-                stop_groups: groups
-            )
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let value = searchValue(for: url)
+            let body = """
+                {
+                  "timestamp":"2099-01-01T12:00:00",
+                  "query":{
+                    "queryTime":"2099-01-01T12:00:00",
+                    "query":\(Self.jsonValue(value))
+                  },
+                  "stop_groups":[\(servingStopGroups(value).joined(separator: ","))]
+                }
+                """
+            return Self.ok(Data(body.utf8), url: url)
         }
 
         if request.httpMethod == "GET", url.path.hasSuffix("/stops/list") {
-            let payload = NationalStopGroupResponse(
-                timestamp: "2099-01-01T12:00:00",
-                query: NationalStopGroupResponse.StopLookupQuery(
-                    queryTime: "2099-01-01T12:00:00",
-                    query: nil
-                ),
-                stop_groups: stopGroups
-            )
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let body = """
+                {
+                  "timestamp":"2099-01-01T12:00:00",
+                  "query":{
+                    "queryTime":"2099-01-01T12:00:00"
+                  },
+                  "stop_groups":[\(servingStopGroups(nil).joined(separator: ","))]
+                }
+                """
+            return Self.ok(Data(body.utf8), url: url)
         }
 
         if request.httpMethod == "GET", url.path.contains("/departures/") {
-            let departures = self.departures(for: url)
-            let payload = DeparturesResponse(
-                timestamp: "2099-01-01T12:00:00",
-                query: TimetableQuery(queryTime: "2099-01-01T12:00:00", query: nil),
-                stops: [],
-                departures: departures
-            )
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let rows = departuresByAreaId[areaId(for: url) ?? ""] ?? "[]"
+            let body = """
+                {
+                  "timestamp":"2099-01-01T12:00:00",
+                  "query":{
+                    "queryTime":"2099-01-01T12:00:00"
+                  },
+                  "stops":[],
+                  "departures":\(rows)
+                }
+                """
+            return Self.ok(Data(body.utf8), url: url)
         }
 
         if request.httpMethod == "GET", url.path.contains("/trips/") {
-            let trip = self.trip(for: url)
-            let payload = TripResponse(
-                timestamp: "2099-01-01T12:00:00",
-                query: TripResponse.TripQuery(queryTime: "2099-01-01T12:00:00", query: nil),
-                trip: trip
-            )
-            let data = try JSONEncoder().encode(payload)
-            let response = HTTPURLResponse(
-                url: url,
-                statusCode: 200,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (data, response)
+            let trip = tripsByKey[tripKey(for: url) ?? ""] ?? #"{"stops":[]}"#
+            let body = """
+                {
+                  "timestamp":"2099-01-01T12:00:00",
+                  "query":{
+                    "queryTime":"2099-01-01T12:00:00"
+                  },
+                  "trip":\(trip)
+                }
+                """
+            return Self.ok(Data(body.utf8), url: url)
         }
 
         throw NoResponseConfigured()
     }
 
-    /// Extracts the `{areaId}` path segment from a departures URL
-    /// (`.../departures/{areaId}` or `.../departures/{areaId}/{time}`) and
-    /// returns the configured departures for it, defaulting to empty.
-    private func departures(for url: URL) -> [CallAtLocation] {
-        let segments = url.path.split(separator: "/").map(String.init)
-        guard let departuresIndex = segments.lastIndex(of: "departures"),
-              segments.count > departuresIndex + 1 else {
-            return []
-        }
-        let areaId = segments[departuresIndex + 1]
-        return departuresByAreaId[areaId] ?? []
+    // MARK: - Request paths
+
+    /// The `{areaId}` of a departures URL, or `nil` when the path doesn't
+    /// match one.
+    private func areaId(for url: URL) -> String? {
+        url.path.firstMatch(of: #/departures/([^/]+)/#).map { String($0.output.1) }
     }
 
-    /// Extracts the `{tripId}/{startDate}` key from a trips URL
-    /// (`.../trips/{tripId}/{startDate}`) and returns the configured trip for
-    /// it, defaulting to an empty trip.
-    private func trip(for url: URL) -> Trip? {
-        let segments = url.path.split(separator: "/").map(String.init)
-        guard let tripsIndex = segments.lastIndex(of: "trips"),
-              segments.count > tripsIndex + 2 else {
-            return nil
+    /// The `"{tripId}/{startDate}"` key of a trips URL, or `nil` when the
+    /// path doesn't match one.
+    private func tripKey(for url: URL) -> String? {
+        url.path.firstMatch(of: #/trips/([^/]+)/([^/]+)/#).map {
+            "\($0.output.1)/\($0.output.2)"
         }
-        let key = "\(segments[tripsIndex + 1])/\(segments[tripsIndex + 2])"
-        return tripsByKey[key] ?? Trip(stops: [])
     }
 
-    /// Extracts the `{searchValue}` path segment from a Stop Lookup name
-    /// search URL (`.../stops/name/{searchValue}`) for the response's `query`
-    /// field. Returns `nil` when the segment can't be found.
+    /// The `{searchValue}` of a Stop Lookup name search URL, or `nil` when
+    /// the path doesn't match one. The client percent-encodes the search
+    /// value into the path segment, so decode it back before filtering.
     private func searchValue(for url: URL) -> String? {
-        let segments = url.path.split(separator: "/").map(String.init)
-        guard let nameIndex = segments.lastIndex(of: "name"),
-              segments.count > nameIndex + 1 else {
-            return nil
+        url.path.firstMatch(of: #/stops/name/([^/]+)/#).flatMap {
+            $0.output.1.removingPercentEncoding
         }
-        // The client percent-encodes the search value into the path segment,
-        // so decode it back before filtering.
-        return segments[nameIndex + 1].removingPercentEncoding
     }
 
-    /// Extracts the `{searchValue}` path segment from a Stop Lookup name search
-    /// URL (`.../stops/name/{searchValue}`) and returns the configured stop
-    /// groups whose name contains it (case-insensitive). An empty filter returns
-    /// all groups, matching the real endpoint's broadest match.
-    private func stopGroups(for url: URL) -> [StopGroup] {
-        guard let value = searchValue(for: url), !value.isEmpty else {
-            return stopGroups
+    // MARK: - Stop Lookup filtering
+
+    /// The stop groups to serve for a name search: the entries whose name key
+    /// contains `searchValue` (case-insensitive), or every entry when the
+    /// value is missing or empty, in name order. Matching runs on the
+    /// dictionary keys, so the group JSON strings are never searched.
+    private func servingStopGroups(_ searchValue: String?) -> [String] {
+        let needle = searchValue?.lowercased() ?? ""
+        return stopGroupsByName
+            .filter { needle.isEmpty || $0.key.lowercased().contains(needle) }
+            .sorted { $0.key < $1.key }
+            .map(\.value)
+    }
+
+    // MARK: - Fixture handling
+
+    /// The Trafiklab timestamp format `YYYY-MM-DDTHH:mm:ss` pinned to
+    /// Europe/Stockholm, the same configuration `LocalDate` parses with, so a
+    /// resolved marker re-reads as the instant it meant.
+    private static let timestampStyle = Date.ISO8601FormatStyle
+        .iso8601(timeZone: TimeZone(identifier: "Europe/Stockholm")!)
+        .year()
+        .month()
+        .day()
+        .time(includingFractionalSeconds: false)
+
+    /// Resolves each fixture's relative timestamp markers and validates its
+    /// JSON at creation, trapping with the fixture named: a broken fixture is
+    /// a programming error in the test or preview that wired it, and a loud
+    /// failure at creation beats a decoding error surfacing later as the
+    /// model's failure string. The validation is a syntax check only — the
+    /// fixture string is stored and served exactly as written.
+    private static func resolved(_ fixtures: [String], fixture: String) -> [String] {
+        fixtures.map { resolved($0, fixture: fixture) }
+    }
+
+    /// The `[String: String]` variant of ``resolved(_:fixture:)``, resolving
+    /// and validating each value.
+    private static func resolved(_ fixtures: [String: String], fixture: String) -> [String: String] {
+        fixtures.mapValues { resolved($0, fixture: fixture) }
+    }
+
+    /// Resolves one fixture's relative timestamp markers and validates its
+    /// JSON syntax, trapping with the fixture named when it doesn't parse.
+    private static func resolved(_ json: String, fixture: String) -> String {
+        let resolved = resolvingRelativeTimestamps(in: json)
+        guard (try? JSONSerialization.jsonObject(with: Data(resolved.utf8))) != nil else {
+            fatalError("MockTrafiklabService: invalid \(fixture) JSON")
         }
-        let needle = value.lowercased()
-        return stopGroups.filter { $0.name.lowercased().contains(needle) }
+        return resolved
     }
 
-    /// A stable set of stop groups used by default for the Stop Lookup name
-    /// search endpoint, matching the shape the Trafiklab API returns
-    /// (`average_daily_stop_times`, `transport_modes`, child `stops`).
-    static let defaultStopGroups: [StopGroup] = [
-        StopGroup(
-            id: "740000001",
-            name: "Medborgarplatsen",
-            area_type: "META_STOP",
-            average_daily_stop_times: 850,
-            transport_modes: ["BUS", "METRO", "TRAM"],
-            stops: [
-                StopRef(id: "740000001", name: "Medborgarplatsen", lat: 59.3139, lon: 18.0720)
-            ]
-        ),
-        StopGroup(
-            id: "740000002",
-            name: "Slussen",
-            area_type: "META_STOP",
-            average_daily_stop_times: 1200,
-            transport_modes: ["BUS", "METRO", "TRAM", "BOAT"],
-            stops: [
-                StopRef(id: "740000002", name: "Slussen", lat: 59.3199, lon: 18.0717)
-            ]
-        ),
-        StopGroup(
-            id: "740000004",
-            name: "Odenplan",
-            area_type: "META_STOP",
-            average_daily_stop_times: 950,
-            transport_modes: ["BUS", "METRO", "TRAIN"],
-            stops: [
-                StopRef(id: "740000004", name: "Odenplan", lat: 59.3429, lon: 18.0496)
-            ]
-        )
+    /// Replaces every relative timestamp marker (`"now"`, `"now+2"`,
+    /// `"now-10"`) in a fixture with an absolute Trafiklab timestamp the given
+    /// number of minutes from `now`. Markers match any quoted string in the
+    /// fixture, so fixtures must not use those exact spellings as literal
+    /// values.
+    private static func resolvingRelativeTimestamps(in json: String, now: Date = Date()) -> String {
+        json.replacing(/"now(?:([+-])([0-9]+))?"/) { match in
+            let sign = match.output.1?.first == "-" ? -1 : 1
+            let minutes = sign * (match.output.2.flatMap { Int($0) } ?? 0)
+            let date = now.addingTimeInterval(TimeInterval(minutes) * 60)
+            return "\"\(date.formatted(timestampStyle))\""
+        }
+    }
+
+    /// Quotes a string for embedding in a response envelope, escaping the
+    /// characters JSON forbids raw inside a string. `nil` becomes `null`.
+    private static func jsonValue(_ string: String?) -> String {
+        guard let string else { return "null" }
+        let escaped = string
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        return "\"\(escaped)\""
+    }
+
+    /// Wraps a JSON body in a `200` response with a JSON content type.
+    private static func ok(_ body: Data, url: URL) -> (Data, URLResponse) {
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        return (body, response)
+    }
+
+    // MARK: - Default fixtures
+
+    /// A stable set of nearby stops served by default, matching the shape
+    /// ResRobot returns (`dist` in meters, `lat`/`lon` as strings).
+    static let defaultNearbyStopsJSON: [String] = [
+        """
+        {
+            "id": "740000001",
+            "extId": "740000001",
+            "name": "Medborgarplatsen",
+            "lat": "59.3139",
+            "lon": "18.0720",
+            "dist": 180,
+            "weight": 100,
+            "products": 1024
+        }
+        """,
+        """
+        {
+            "id": "740000002",
+            "extId": "740000002",
+            "name": "Slussen",
+            "lat": "59.3199",
+            "lon": "18.0717",
+            "dist": 420,
+            "weight": 200,
+            "products": 1024
+        }
+        """,
+        """
+        {
+            "id": "740000003",
+            "extId": "740000003",
+            "name": "Folkungagatan",
+            "lat": "59.3128",
+            "lon": "18.0760",
+            "dist": 550,
+            "weight": 30,
+            "products": 1024
+        }
+        """
     ]
-    /// A stable set of nearby stops used by default in tests, matching the
-    /// shape ResRobot returns (`dist` in meters, `lat`/`lon` as strings).
-    static let defaultNearbyStops: [StopLocation] = [
-        StopLocation(
-            rawId: "740000001",
-            extId: "740000001",
-            name: "Medborgarplatsen",
-            lat: "59.3139",
-            lon: "18.0720",
-            dist: 180,
-            weight: 100,
-            products: 1024
-        ),
-        StopLocation(
-            rawId: "740000002",
-            extId: "740000002",
-            name: "Slussen",
-            lat: "59.3199",
-            lon: "18.0717",
-            dist: 420,
-            weight: 200,
-            products: 1024
-        ),
-        StopLocation(
-            rawId: "740000003",
-            extId: "740000003",
-            name: "Folkungagatan",
-            lat: "59.3128",
-            lon: "18.0760",
-            dist: 550,
-            weight: 30,
-            products: 1024
-        )
-    ]
-
-    /// The default departures served per area id, keyed to ``defaultNearbyStops``
-    /// by their `extId`. The first two stops share the sample rows; the third
-    /// (`Folkungagatan`) is intentionally absent so its board shows the empty
-    /// state. A computed property so the relative timestamps stay fresh.
-    static var defaultDeparturesByAreaId: [String: [CallAtLocation]] {
-        let rows = sampleDepartures
-        return [
-            "740000001": rows,
-            "740000002": rows
-        ]
-    }
-
-    /// The default trips served by the Trips endpoint, keyed by
-    /// `"{tripId}/{startDate}"`. Each sample departure's `trip` references one of
-    /// these so tapping a row opens a populated Live Trip screen in previews and
-    /// UI tests. A computed property so the relative stop times stay fresh.
-    static var defaultTripsByKey: [String: Trip] {
-        [
-            "900001/2099-01-01": sampleTrip(routeDesignation: "3", direction: "Karolinska sjukhuset", delaySeconds: 0, transportMode: "BUS"),
-            "900002/2099-01-01": sampleTrip(routeDesignation: "7", direction: "Ropsten", delaySeconds: 180, transportMode: "TRAM")
-        ]
-    }
 
     /// A handful of departures exercising the row variants the Stop board
-    /// renders: an on-time bus, a delayed tram, and a cancelled metro.
-    static var sampleDepartures: [CallAtLocation] {
+    /// renders: an on-time bus, a delayed tram, and a cancelled metro. Their
+    /// timestamps are relative markers so previews and UI tests always show
+    /// fresh times.
+    static let sampleDeparturesJSON = """
         [
-            CallAtLocation(
-                scheduled: Self.futureTimestamp(minutesFromNow: 2),
-                realtime: Self.futureTimestamp(minutesFromNow: 2),
-                delay: 0,
-                canceled: false,
-                is_realtime: true,
-                route: Route(designation: "3", transport_mode: "BUS", direction: "Karolinska sjukhuset", name: nil),
-                agency: nil,
-                trip: TripRef(trip_id: "900001", start_date: "2099-01-01"),
-                stop: nil,
-                scheduled_platform: nil,
-                realtime_platform: nil,
-                alerts: nil
-            ),
-            CallAtLocation(
-                scheduled: Self.futureTimestamp(minutesFromNow: 5),
-                realtime: Self.futureTimestamp(minutesFromNow: 8),
-                delay: 180,
-                canceled: false,
-                is_realtime: true,
-                route: Route(designation: "7", transport_mode: "TRAM", direction: "Ropsten", name: nil),
-                agency: nil,
-                trip: TripRef(trip_id: "900002", start_date: "2099-01-01"),
-                stop: nil,
-                scheduled_platform: nil,
-                realtime_platform: nil,
-                alerts: nil
-            ),
-            CallAtLocation(
-                scheduled: Self.futureTimestamp(minutesFromNow: 9),
-                realtime: nil,
-                delay: nil,
-                canceled: true,
-                is_realtime: false,
-                route: Route(designation: "T14", transport_mode: "METRO", direction: "Fruängen", name: nil),
-                agency: nil,
-                trip: nil,
-                stop: nil,
-                scheduled_platform: nil,
-                realtime_platform: nil,
-                alerts: nil
-            )
+            {
+                "scheduled": "now+2",
+                "realtime": "now+2",
+                "delay": 0,
+                "canceled": false,
+                "is_realtime": true,
+                "route": {
+                    "designation": "3",
+                    "transport_mode": "BUS",
+                    "direction": "Karolinska sjukhuset"
+                },
+                "trip": {
+                    "trip_id": "900001",
+                    "start_date": "2099-01-01"
+                }
+            },
+            {
+                "scheduled": "now+5",
+                "realtime": "now+8",
+                "delay": 180,
+                "canceled": false,
+                "is_realtime": true,
+                "route": {
+                    "designation": "7",
+                    "transport_mode": "TRAM",
+                    "direction": "Ropsten"
+                },
+                "trip": {
+                    "trip_id": "900002",
+                    "start_date": "2099-01-01"
+                }
+            },
+            {
+                "scheduled": "now+9",
+                "canceled": true,
+                "is_realtime": false,
+                "route": {
+                    "designation": "T14",
+                    "transport_mode": "METRO",
+                    "direction": "Fruängen"
+                }
+            }
         ]
-    }
+        """
 
-    /// Formats a timestamp `minutesFromNow` minutes ahead as the Trafiklab
-    /// realtime format `YYYY-MM-DDTHH:mm:ss` in the current time zone.
-    static func futureTimestamp(minutesFromNow: Int) -> LocalDate {
-        return LocalDate(date: Date().addingTimeInterval(TimeInterval(minutesFromNow) * 60))
-    }
+    /// The default departures served per area id, keyed to
+    /// ``defaultNearbyStopsJSON`` by the stops' `extId`. The first two stops
+    /// share ``sampleDeparturesJSON``; the third (`Folkungagatan`) is
+    /// intentionally absent so its board shows the empty state.
+    static let defaultDeparturesByAreaIdJSON: [String: String] = [
+        "740000001": Self.sampleDeparturesJSON,
+        "740000002": Self.sampleDeparturesJSON
+    ]
 
-    /// A canned trip exercising the Live Trip track's passed/current/upcoming
-    /// states: two stops already passed, the current stop arriving soon, then
-    /// upcoming stops ending at the destination. `delaySeconds` shifts every
-    /// realtime time by that amount so the delay pill renders in the screen.
-    static func sampleTrip(routeDesignation: String, direction: String, delaySeconds: Int, transportMode: TransportMode? = nil) -> Trip {
-        let names = ["Skanstull", "Medborgarplatsen", "Slussen", "Gamla stan", direction]
-        let offsets = [-10, 6, 13, 21, 30]
-        let stops = (0..<names.count).map { index in
-            TripStop(
-                id: "\(routeDesignation)-\(index)",
-                name: names[index],
-                lat: nil,
-                lon: nil,
-                scheduled: Self.futureTimestamp(minutesFromNow: offsets[index]),
-                realtime: Self.futureTimestamp(minutesFromNow: offsets[index] + delaySeconds / 60),
-                delay: delaySeconds,
-                canceled: false,
-                is_realtime: delaySeconds != 0
-            )
+    /// The default trips served by the Trips endpoint, keyed by
+    /// `"{tripId}/{startDate}"`. Each sample departure's `trip` in
+    /// ``sampleDeparturesJSON`` references one of these so tapping a row
+    /// opens a populated Live Trip screen in previews and UI tests. The stop
+    /// times are relative markers (the tram's realtime times shifted by its
+    /// 3-minute delay) so the track's passed/current/upcoming states render.
+    static let defaultTripsByKeyJSON: [String: String] = [
+        "900001/2099-01-01": """
+        {
+            "id": "3",
+            "trip_id": "900001",
+            "start_date": "2099-01-01",
+            "route": {
+                "designation": "3",
+                "transport_mode": "BUS",
+                "direction": "Karolinska sjukhuset"
+            },
+            "stops": [
+                {
+                    "id": "3-0",
+                    "name": "Skanstull",
+                    "scheduled": "now-10",
+                    "realtime": "now-10",
+                    "delay": 0,
+                    "canceled": false,
+                    "is_realtime": false
+                },
+                {
+                    "id": "3-1",
+                    "name": "Medborgarplatsen",
+                    "scheduled": "now+6",
+                    "realtime": "now+6",
+                    "delay": 0,
+                    "canceled": false,
+                    "is_realtime": false
+                },
+                {
+                    "id": "3-2",
+                    "name": "Slussen",
+                    "scheduled": "now+13",
+                    "realtime": "now+13",
+                    "delay": 0,
+                    "canceled": false,
+                    "is_realtime": false
+                },
+                {
+                    "id": "3-3",
+                    "name": "Gamla stan",
+                    "scheduled": "now+21",
+                    "realtime": "now+21",
+                    "delay": 0,
+                    "canceled": false,
+                    "is_realtime": false
+                },
+                {
+                    "id": "3-4",
+                    "name": "Karolinska sjukhuset",
+                    "scheduled": "now+30",
+                    "realtime": "now+30",
+                    "delay": 0,
+                    "canceled": false,
+                    "is_realtime": false
+                }
+            ]
         }
-        return Trip(
-            id: routeDesignation,
-            trip_id: routeDesignation,
-            start_date: "2099-01-01",
-            route: Route(designation: routeDesignation, transport_mode: transportMode, direction: direction, name: nil),
-            stops: stops
-        )
-    }
+        """,
+        "900002/2099-01-01": """
+        {
+            "id": "7",
+            "trip_id": "900002",
+            "start_date": "2099-01-01",
+            "route": {
+                "designation": "7",
+                "transport_mode": "TRAM",
+                "direction": "Ropsten"
+            },
+            "stops": [
+                {
+                    "id": "7-0",
+                    "name": "Skanstull",
+                    "scheduled": "now-10",
+                    "realtime": "now-7",
+                    "delay": 180,
+                    "canceled": false,
+                    "is_realtime": true
+                },
+                {
+                    "id": "7-1",
+                    "name": "Medborgarplatsen",
+                    "scheduled": "now+6",
+                    "realtime": "now+9",
+                    "delay": 180,
+                    "canceled": false,
+                    "is_realtime": true
+                },
+                {
+                    "id": "7-2",
+                    "name": "Slussen",
+                    "scheduled": "now+13",
+                    "realtime": "now+16",
+                    "delay": 180,
+                    "canceled": false,
+                    "is_realtime": true
+                },
+                {
+                    "id": "7-3",
+                    "name": "Gamla stan",
+                    "scheduled": "now+21",
+                    "realtime": "now+24",
+                    "delay": 180,
+                    "canceled": false,
+                    "is_realtime": true
+                },
+                {
+                    "id": "7-4",
+                    "name": "Ropsten",
+                    "scheduled": "now+30",
+                    "realtime": "now+33",
+                    "delay": 180,
+                    "canceled": false,
+                    "is_realtime": true
+                }
+            ]
+        }
+        """
+    ]
+
+    /// A stable set of stop groups served by default for the Stop Lookup
+    /// endpoints, matching the shape the Trafiklab API returns
+    /// (`average_daily_stop_times`, `transport_modes`, child `stops`), keyed
+    /// by the group's name (which repeats inside the JSON).
+    static let defaultStopGroupsByNameJSON: [String: String] = [
+        "Medborgarplatsen": """
+        {
+            "id": "740000001",
+            "name": "Medborgarplatsen",
+            "area_type": "META_STOP",
+            "average_daily_stop_times": 850,
+            "transport_modes": ["BUS", "METRO", "TRAM"],
+            "stops": [
+                {
+                    "id": "740000001",
+                    "name": "Medborgarplatsen",
+                    "lat": 59.3139,
+                    "lon": 18.0720
+                }
+            ]
+        }
+        """,
+        "Slussen": """
+        {
+            "id": "740000002",
+            "name": "Slussen",
+            "area_type": "META_STOP",
+            "average_daily_stop_times": 1200,
+            "transport_modes": ["BUS", "METRO", "TRAM", "BOAT"],
+            "stops": [
+                {
+                    "id": "740000002",
+                    "name": "Slussen",
+                    "lat": 59.3199,
+                    "lon": 18.0717
+                }
+            ]
+        }
+        """,
+        "Odenplan": """
+        {
+            "id": "740000004",
+            "name": "Odenplan",
+            "area_type": "META_STOP",
+            "average_daily_stop_times": 950,
+            "transport_modes": ["BUS", "METRO", "TRAIN"],
+            "stops": [
+                {
+                    "id": "740000004",
+                    "name": "Odenplan",
+                    "lat": 59.3429,
+                    "lon": 18.0496
+                }
+            ]
+        }
+        """
+    ]
 }
