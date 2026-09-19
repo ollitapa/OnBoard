@@ -53,23 +53,21 @@ final class SearchModel {
         // replaced us (`.task(id:)` starts the new task before cancelling the
         // old one), so bail out early and leave the flag alone: setting it
         // here would clobber the replacement's `true` with a stale `false`.
-        defer {
-            if !Task.isCancelled {
-                isLoading = false
-            }
-        }
-
-        // This delay is a simple debounce to avoid hammering the API with every keystroke.
-        try? await Task.sleep(for: .milliseconds(400))
-        guard !Task.isCancelled else { return }
+        defer { if !Task.isCancelled { isLoading = false } }
 
         do {
+            // This delay is a simple debounce to avoid hammering the API with every keystroke.
+            try await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+
             let api = Trafiklab(network: network)
             let response = try await api.searchStops(named: trimmed)
             guard !Task.isCancelled else { return }
             results = response.stop_groups
             failure = nil
-        } catch {
+        } catch is CancellationError {
+            // Task was cancelled, ignore.
+        }  catch {
             results = []
             failure = String(describing: error)
         }

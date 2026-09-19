@@ -36,6 +36,15 @@ struct LocationPermissionsModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .overlay {
+                if let _ = model.failure {
+                    LocationDeniedView(
+                        onOpenSettings: Self.openSettings,
+                        onManualSearch: onManualSearch
+                    )
+                    .transition(.opacity)
+                }
+            }
+            .overlay {
                 switch model.status {
                 case .notDetermined:
                     LocationExplanationView(onTap: model.requestAuthorization)
