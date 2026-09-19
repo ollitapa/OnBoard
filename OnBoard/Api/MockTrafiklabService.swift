@@ -252,23 +252,12 @@ struct MockTrafiklabService: NetworkProtocol {
     /// fixture, so fixtures must not use those exact spellings as literal
     /// values.
     private static func resolvingRelativeTimestamps(in json: String, now: Date = Date()) -> String {
-        var resolved = ""
-        resolved.reserveCapacity(json.count)
-        var cursor = json.startIndex
-        /// Matches a relative timestamp marker in a fixture: the quoted word `now`
-        /// with an optional signed minute offset, e.g. `"now"`, `"now+2"`, `"now-10"`.
-        for match in json.matches(of: /"now(?:([+-])([0-9]+))?"/) {
-            resolved += json[cursor..<match.range.lowerBound]
+        json.replacing(/"now(?:([+-])([0-9]+))?"/) { match in
             let sign = match.output.1?.first == "-" ? -1 : 1
             let minutes = sign * (match.output.2.flatMap { Int($0) } ?? 0)
             let date = now.addingTimeInterval(TimeInterval(minutes) * 60)
-            resolved += "\""
-            resolved += date.formatted(timestampStyle)
-            resolved += "\""
-            cursor = match.range.upperBound
+            return "\"\(date.formatted(timestampStyle))\""
         }
-        resolved += json[cursor...]
-        return resolved
     }
 
     /// Quotes a string for embedding in a response envelope, escaping the
