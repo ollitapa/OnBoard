@@ -21,6 +21,7 @@
 ### Network Layer
 
 - **Protocol-oriented**: All network operations should conform to `NetworkProtocol`
+- **API keys come from a bundled env file, not source**: `Trafiklab` reads its keys through `Secrets`, which parses the `KEY=VALUE` env file bundled with the app: the git-ignored `OnBoard/Secrets.env` (see the README's "API keys" section). The file-system-synchronized target bundles the file as a resource automatically. The key accessors (`Secrets.realtimeKey`/`resrobotKey`) are throwing computed properties: a missing or empty key throws `SecretMissingForKey(key:)` when a request is built, so it surfaces through the view model's `failure` handling instead of silently sending an empty key.
 - **Dependency injection**: Inject `NetworkProtocol` through the SwiftUI environment: read it with `@Environment(\.network)` at the call site and publish it with `.environment(\.network, network)`. The environment default is `LiveNetwork`, so views render in previews/tests without an explicit value; previews/tests override it.
 - **Live implementation**: `LiveNetwork` uses `URLSession.shared` for production
 - **Mock implementation**: `MockNetwork` provides handler registration and request tracking for testing
