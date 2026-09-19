@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import OnBoard
 
-struct PrintingNetworkTests {
+struct LoggingNetworkTests {
 
     @Test func forwardsRequestAndResponseUntouched() async throws {
         var mock = MockNetwork()
@@ -12,7 +12,7 @@ struct PrintingNetworkTests {
                 statusCode: 200
             )
         }
-        let network = mock.printing()
+        let network = mock.logging()
         let request = URLRequest(url: URL(string: "https://api.example.com/stops/nearby")!)
 
         let (data, response) = try await network.data(for: request)
@@ -31,7 +31,7 @@ struct PrintingNetworkTests {
                 statusCode: 200
             )
         }
-        let network = PrintingNetwork(wrapped: mock)
+        let network = LoggingNetwork(wrapped: mock)
         let request = URLRequest(url: URL(string: "https://api.example.com")!)
 
         let (data, _) = try await network.data(for: request)
@@ -44,7 +44,7 @@ struct PrintingNetworkTests {
         mock.registerHandler { _ in
             (Data("not json".utf8), MockNetwork.makeResponse(json: "{}").1)
         }
-        let network = mock.printing()
+        let network = mock.logging()
         let request = URLRequest(url: URL(string: "https://api.example.com")!)
 
         let (data, _) = try await network.data(for: request)

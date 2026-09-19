@@ -1,26 +1,31 @@
 import Foundation
+import OSLog
 import Synchronization
 
 extension NetworkProtocol {
-    /// Wraps this network in a `PrintingNetwork` that prints every request
-    /// and its response to the console.
-    func printing() -> some NetworkProtocol {
-        PrintingNetwork(wrapped: self)
+    /// Wraps this network in a `LoggingNetwork` that logs every request
+    /// and its response through OSLog.
+    func logging() -> some NetworkProtocol {
+        LoggingNetwork(wrapped: self)
     }
 }
 
-/// A decorating `NetworkProtocol` that prints the request it sends and the
-/// response it receives. Every request/response pair is tagged with a
-/// `#number` from a mutex-guarded counter, so a response can be matched to
-/// its request even when several calls are in flight and their logs
+/// A decorating `NetworkProtocol` that logs the request it sends and the
+/// response it receives through OSLog. Every request/response pair is tagged
+/// with a `#number` from a mutex-guarded counter, so a response can be matched
+/// to its request even when several calls are in flight and their logs
 /// interleave. JSON response bodies are decoded with a generic
-/// `JSONSerialization`-based pretty printer; non-JSON bodies print as plain
+/// `JSONSerialization`-based pretty printer; non-JSON bodies log as plain
 /// UTF-8 text.
-struct PrintingNetwork: NetworkProtocol {
+struct LoggingNetwork: NetworkProtocol {
 
     let wrapped: any NetworkProtocol
 
     private let counter = RequestCounter()
+    private let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "OnBoard",
+        category: "LoggingNetwork"
+    )
 
     init(wrapped: any NetworkProtocol) {
         self.wrapped = wrapped
@@ -28,11 +33,10 @@ struct PrintingNetwork: NetworkProtocol {
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let number = counter.next()
-        print("→ #\(number) \(method(of: request)) \(request.url?.absoluteString ?? "<no url>")")
+        logger.log("→ #\(number, privacy: .public) \(method(of: request), privacy: .public) \(requestLine(of: request), privacy: .public)")
         let (data, response) = try await wrapped.data(for: request)
-        print("← #\(number) \(status(of: response))")
-        print(body(of: data))
-        print()
+        logger.log("← #\(number, privacy: .public) \(status(of: response), privacy: .public)")
+        logger.log("\(body(of: data), privacy: .public)")
         return (data, response)
     }
 
@@ -55,11 +59,22 @@ struct PrintingNetwork: NetworkProtocol {
         request.httpMethod ?? "GET"
     }
 
+    /// The request's scheme, host, and path. The query is redacted because it
+    /// carries the API key and OSLog output persists in the unified log.
+    private func requestLine(of request: URLRequest) -> String {
+        guard let url = request.url else { return "<no url>" }
+        var line = "\(url.scheme ?? "")://\(url.host ?? "")\(url.path)"
+        if url.query != nil {
+            line += "?<redacted query>"
+        }
+        return line
+    }
+
     private func status(of response: URLResponse) -> String {
         guard let http = response as? HTTPURLResponse else {
             return "Response \(response)"
         }
-        return "\(http.statusCode) \(http.url?.absoluteString ?? "")"
+        return "\(http.statusCode) \(http.url?.path ?? "")"
     }
 
     private func body(of data: Data) -> String {
