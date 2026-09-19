@@ -41,7 +41,15 @@ struct Trafiklab {
     /// - Parameter searchValue: At least one character matched against stop group names.
     /// - Returns: Matching stop groups, busiest first.
     func searchStops(named searchValue: String) async throws -> NationalStopGroupResponse {
-        let path = "stops/name/\(searchValue)"
+        // Percent-encode the query into the path segment: a raw "/" or "?"
+        // in the search text would otherwise split or terminate the path and
+        // hit the wrong endpoint.
+        guard let encoded = searchValue.addingPercentEncoding(
+            withAllowedCharacters: CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/?"))
+        ) else {
+            throw TrafiklabInvalidURL()
+        }
+        let path = "stops/name/\(encoded)"
         let request = try realtimeRequest(path: path)
         return try await decode(request)
     }
