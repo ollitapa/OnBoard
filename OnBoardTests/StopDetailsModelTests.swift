@@ -207,8 +207,11 @@ struct StopDetailsModelTests {
             route: Route(
                 designation: designation,
                 transport_mode: transportMode,
+                transport_mode_code: nil,
                 direction: direction,
-                name: name
+                name: name,
+                origin: nil,
+                destination: nil
             ),
             agency: nil,
             trip: tripId.map { TripRef(trip_id: $0, start_date: "2099-01-01", technical_number: nil) },
