@@ -1,25 +1,14 @@
 import Observation
 import Foundation
 
-struct Stop: Codable, Identifiable, Equatable, Hashable {
+struct Stop: Codable, Identifiable, Equatable, Hashable, Sendable {
     var id: String
     var name: String
     var latitude: Double
     var longitude: Double
-    
-    /// Computed distance text for display (e.g., "180 m")
-    var distanceText: String {
-        // This would be calculated from user location in a real implementation
-        // For now, return a placeholder
-        return ""
-    }
-    
-    /// Computed minutes to walk (for the green time chip)
-    var minutesToWalk: Int? {
-        // This would be calculated from user location in a real implementation
-        // For now, return nil to hide the chip
-        return nil
-    }
+    /// Distance from the query point in meters, as ResRobot reports it.
+    /// `nil` for stops constructed without one (mock data).
+    var distance: Int? = nil
 }
 
 @MainActor
@@ -61,5 +50,18 @@ extension Stop {
         self.name = location.name
         self.latitude = Double(location.lat) ?? 0
         self.longitude = Double(location.lon) ?? 0
+        self.distance = location.dist
+    }
+
+    /// The distance for the row subtitle: meters under 1 km, otherwise
+    /// kilometers with at most one decimal. `nil` when the stop carries no
+    /// distance (ResRobot always sends one for nearby results).
+    var distanceLabel: String? {
+        guard let distance else { return nil }
+        if distance < 1000 {
+            return "\(distance) m"
+        }
+        let kilometers = Double(distance) / 1000
+        return kilometers.formatted(.number.precision(.fractionLength(0...1))) + " km"
     }
 }

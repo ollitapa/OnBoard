@@ -112,6 +112,22 @@ struct SearchModelTests {
         #expect(model.failure != nil)
     }
 
+    @Test func searchEncodesPathReservedCharacters() async throws {
+        // Given: a query containing characters reserved in a URL path. With the
+        // mock filtering by name, only the stop whose name matches survives.
+        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let model = SearchModel()
+
+        // When: searching for a term with a slash and a question mark.
+        await model.search(named: "slu/ssen?x", network: network)
+
+        // Then: the request reached the endpoint as a single path segment and
+        // the mock decoded it back; the filter yields no matches rather than
+        // a malformed request.
+        #expect(model.failure == nil)
+        #expect(model.results == [])
+    }
+
     @Test func searchAfterErrorReplacesResultsOnSuccess() async throws {
         // Given: a failed search leaves a failure string.
         let failingNetwork = MockNetwork()
@@ -127,6 +143,23 @@ struct SearchModelTests {
         #expect(model.failure == nil)
         let names = model.results.map(\.name)
         #expect(names == ["Slussen"])
+    }
+
+    @Test func cancelledSearchLeavesLoadingFlagToReplacementTask() async throws {
+        // Given: a search in flight whose replacement is already loading. The
+        // replacement sets `isLoading` before the cancelled task resumes.
+        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let model = SearchModel()
+        model.isLoading = true
+
+        // When: a cancelled task runs the same method (as `.task(id:)` does to
+        // the previous query's task when the text changes).
+        let cancelled = Task { await model.search(named: "Slussen", network: network) }
+        cancelled.cancel()
+        await cancelled.value
+
+        // Then: the cancelled run did not clobber the replacement's flag.
+        #expect(model.isLoading == true)
     }
 
     // MARK: - recents

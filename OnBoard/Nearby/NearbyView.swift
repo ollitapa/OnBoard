@@ -76,20 +76,13 @@ private struct NearbyStopRow: View {
                 Text(stop.name)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.ink)
-                Text(stop.distanceText)
-                    .font(.caption)
-                    .foregroundStyle(.inkSoft)
+                if let distance = stop.distanceLabel {
+                    Text(distance)
+                        .font(.caption)
+                        .foregroundStyle(.inkSoft)
+                }
             }
             Spacer()
-            // Time chip - placeholder for future implementation
-            if let minutes = stop.minutesToWalk {
-                Text("\(minutes) min")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.statusGreen)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.statusGreenTint, in: Capsule())
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 11)
