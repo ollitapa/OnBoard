@@ -24,10 +24,11 @@ struct NearbyView: View {
                         VStack(alignment: .leading) {
                             Text(stop.name)
                                 .font(.headline)
-                            Text("ID: \(stop.id)")
-                                .font(.subheadline)
-                            Text("Lat: \(stop.latitude), Lon: \(stop.longitude)")
-                                .font(.caption)
+                            if let distance = stop.distanceLabel {
+                                Text(distance)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }

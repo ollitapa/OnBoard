@@ -6,6 +6,9 @@ struct Stop: Codable, Identifiable, Equatable, Hashable {
     var name: String
     var latitude: Double
     var longitude: Double
+    /// Distance from the query point in meters, as ResRobot reports it.
+    /// `nil` for stops constructed without one (mock data).
+    var distance: Int? = nil
 }
 
 @MainActor
@@ -47,5 +50,18 @@ extension Stop {
         self.name = location.name
         self.latitude = Double(location.lat) ?? 0
         self.longitude = Double(location.lon) ?? 0
+        self.distance = location.dist
+    }
+
+    /// The distance for the row subtitle: meters under 1 km, otherwise
+    /// kilometers with at most one decimal. `nil` when the stop carries no
+    /// distance (ResRobot always sends one for nearby results).
+    var distanceLabel: String? {
+        guard let distance else { return nil }
+        if distance < 1000 {
+            return "\(distance) m"
+        }
+        let kilometers = Double(distance) / 1000
+        return kilometers.formatted(.number.precision(.fractionLength(0...1))) + " km"
     }
 }
