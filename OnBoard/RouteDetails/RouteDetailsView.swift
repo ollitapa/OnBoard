@@ -154,9 +154,14 @@ private struct TripNodes: View {
     let calls: [TripCall]
     let now: Date
 
-    @State private var markerOffset: CGFloat?
+    @Namespace private var markerSpace
 
     private var currentPosition: TransportPosition? { calls.currentStopIndex(now: now) }
+
+    /// The identity shared by the marker wherever it appears, so SwiftUI
+    /// animates it moving from one row to the next rather than fading out
+    /// and back in.
+    private static let markerID = "vehicleMarker"
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -177,31 +182,17 @@ private struct TripNodes: View {
                                 .transition(.opacity)
                         }
                     }
-                    .background(MarkerAnchor(isActive: isTarget(index)))
-                }
-            }
-            if let markerOffset {
-                TransportModeMarker(mode: route.transportMode)
-                    .offset(y: markerOffset - 14)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.default, value: currentPosition)
-        .coordinateSpace(name: "TripTrack")
-        .onPreferenceChange(MarkerOffsetKey.self) { offset in
-            guard let offset else {
-                markerOffset = nil
-                return
-            }
-            if markerOffset == offset { return }
-            if markerOffset == nil {
-                markerOffset = offset
-            } else {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.85)) {
-                    markerOffset = offset
+                    .overlay(alignment: .leading) {
+                        if isTarget(index) {
+                            TransportModeMarker(mode: route.transportMode)
+                                .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
+                                .transition(.opacity)
+                        }
+                    }
                 }
             }
         }
+        .animation(.spring(response: 0.6, dampingFraction: 0.85), value: currentPosition)
     }
 
     /// Whether this row is the stop the vehicle is at or heading to next — the
@@ -232,11 +223,11 @@ private struct TripNodes: View {
     }
 }
 
-/// The transport mode marker shown at the current stop, matching the storyboard's
-/// `bus-marker` • a small square with the mode icon, sitting on the line over
-/// the node. Rendered once for the whole track (not as an overlay on every
-/// node) and offset to the stop the vehicle is at or heading to, so a single
-/// marker animates sliding along the track as the journey progresses.
+/// The transport mode marker shown at the stop the vehicle is at or heading
+/// to, matching the storyboard's `bus-marker` • a small square with the mode
+/// icon, sitting on the line over the node. It is part of the target row and
+/// matched by geometry across rows, so SwiftUI animates it sliding along the
+/// track as the journey progresses.
 private struct TransportModeMarker: View {
 
     let mode: TransportMode?
@@ -259,36 +250,6 @@ private struct TransportModeMarker: View {
             .accessibilityLabel("Vehicle is here")
     }
 }
-
-/// The vertical midpoint of the node the vehicle is at or heading to, measured
-/// in the track's coordinate space, reported by ``MarkerAnchor`` so the marker
-/// can sit on that node.
-private struct MarkerOffsetKey: PreferenceKey {
-
-    static var defaultValue: CGFloat? = nil
-
-    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
-        value = nextValue() ?? value
-    }
-}
-
-/// A clear background reporting the vertical midpoint of the node it is
-/// attached to via ``MarkerOffsetKey``; inactive on every node but the one
-/// the marker targets.
-private struct MarkerAnchor: View {
-
-    let isActive: Bool
-
-    var body: some View {
-        GeometryReader { proxy in
-            Color.clear.preference(
-                key: MarkerOffsetKey.self,
-                value: isActive ? proxy.frame(in: .named("TripTrack")).midY : nil
-            )
-        }
-    }
-}
-
 /// One `stop-node` from the storyboard: a dot on the line, the stop name, and
 /// an optional subtitle. Passed nodes fade; the current node carries the bus
 /// marker and an "in X min" subtitle; the first node wears a hollow origin
