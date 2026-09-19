@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// The Stop board screen ("Step 2 \u2192 Tap a stop \u2192 live departure board" in
+/// The Stop board screen ("Step 2 → Tap a stop → live departure board" in
 /// `Designs/storyboard.html`).
 ///
 /// Shows a dark header with the stop name and an "updated just now" meta line,
@@ -281,7 +281,7 @@ extension TransportMode {
 /// The toolbar star on the Stop board that saves/removes the current stop as a
 /// favourite, matching the storyboard's "tap the star on any stop page". The
 /// filled state reflects the shared ``FavoritesModel``; the line labels seen
-/// on the board are captured into the favourite so the row shows a "Lines \u2026"
+/// on the board are captured into the favourite so the row shows a "Lines …"
 /// subtitle.
 private struct FavoriteToggle: View {
     @Environment(\.modelContext) var modelContext

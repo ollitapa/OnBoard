@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// The view model for the Stop board screen (`Designs/storyboard.html`,
-/// "Step 2 \u2014 Stop board").
+/// "Step 2 — Stop board").
 ///
 /// Loads realtime departures for a stop group id via `Trafiklab.departures`
 /// and stores the raw `CallAtLocation` rows for the view to render. Mirrors

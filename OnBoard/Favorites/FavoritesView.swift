@@ -1,11 +1,11 @@
 import SwiftUI
 import SwiftData
 
-/// The Favourites tab ("Step 4 \u2192 Save a stop \u2192 skip the search next time" in
+/// The Favourites tab ("Step 4 → Save a stop → skip the search next time" in
 /// `Designs/storyboard.html`).
 ///
 /// Shows the saved stops as rows matching the storyboard's `fav-row`: a star,
-/// the stop name, and a "Lines \u2026" subtitle, plus a dashed empty hint when no
+/// the stop name, and a "Lines …" subtitle, plus a dashed empty hint when no
 /// stops are saved. Tapping a row opens the stop's live departure board
 /// (``StopDetailsView``). The view is driven by ``FavoritesModel`` and reads
 /// its shared model from the SwiftUI environment (`@Environment(FavoritesModel.self)`),
@@ -83,7 +83,7 @@ private struct FavoritesList: View {
     }
 }
 
-/// One `fav-row` from the storyboard: a star, the stop name, and a "Lines \u2026"
+/// One `fav-row` from the storyboard: a star, the stop name, and a "Lines …"
 /// subtitle.
 private struct FavoriteRow: View {
     let favorite: Favorite
