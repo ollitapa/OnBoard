@@ -16,8 +16,6 @@ struct FavoritesView: View {
     var body: some View {
         FavoritesContent(model: favoritesModel)
             .navigationTitle("Favourites")
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Color.panel, for: .navigationBar)
     }
 }
 
@@ -75,7 +73,6 @@ private struct FavoritesList: View {
         }
         .listStyle(.plain)
         .listRowBackground(Color.panel)
-        .scrollContentBackground(Color.paper)
         .background(Color.paper)
         .navigationDestination(for: Favorite.self) { favorite in
             StopDetailsView(stopId: favorite.id, stopName: favorite.name)
@@ -107,7 +104,6 @@ private struct FavoriteRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 10)
         .padding(.horizontal, 18)
-        .background(Color.panel)
     }
 }
 

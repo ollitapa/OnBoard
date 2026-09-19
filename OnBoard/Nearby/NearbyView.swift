@@ -28,9 +28,6 @@ struct NearbyView: View {
             }
         }
         .navigationTitle("Nearby Stops")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarBackground(Color.panel, for: .navigationBar)
         .navigationDestination(for: Stop.self) { stop in
             StopDetailsView(stopId: stop.id, stopName: stop.name)
         }
@@ -57,10 +54,10 @@ private struct NearbyStopsList: View {
             NavigationLink(value: stop) {
                 NearbyStopRow(stop: stop)
             }
+            .listRowSeparator(.hidden)
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .listRowBackground(Color.panel)
-        .scrollContentBackground(Color.paper)
         .background(Color.paper)
     }
 }
@@ -94,17 +91,6 @@ private struct NearbyStopRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 11)
         .padding(.horizontal, 13)
-        .background(Color.panel)
-        .overlay(
-            Rectangle()
-                .fill(Color.accent)
-                .frame(width: 3)
-                .padding(.vertical, 4),
-            alignment: .leading
-        )
-        .cornerRadius(10)
-        .listRowInsets(EdgeInsets(top: 4, leading: 18, bottom: 4, trailing: 18))
-        .listRowSeparator(.hidden)
     }
 }
 

@@ -52,7 +52,6 @@ struct StopDetailsView: View {
             }
         }
         .navigationTitle(stopName)
-        .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: RouteDetails.self) { route in
             RouteDetailsView(route: route)
         }
@@ -66,8 +65,6 @@ struct StopDetailsView: View {
                 )
             }
         }
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarBackground(Color.panel, for: .navigationBar)
         .task {
             await model.loadDepartures(network: network, areaId: stopId)
         }
@@ -99,7 +96,6 @@ private struct DeparturesList: View {
             .listRowBackground(Color.panel)
         }
         .listStyle(.plain)
-        .scrollContentBackground(Color.paper)
         .background(Color.paper)
     }
 }
@@ -197,7 +193,7 @@ private struct Countdown: View {
             }
             return date.formatted(date: .omitted, time: .shortened)
         }
-        return departure.scheduled
+        return departure.scheduled.date.formatted()
     }
 }
 
@@ -243,7 +239,7 @@ private struct ModeBlip: View {
         if let mode {
             Image(systemName: mode.icon)
                 .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.panel)
+                .foregroundStyle(.accentDeep)
                 .padding(2)
                 .frame(width: 19, height: 19)
                 .background(Color.panel, in: Circle())

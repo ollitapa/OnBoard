@@ -53,8 +53,6 @@ struct RouteDetailsView: View {
         }
         .navigationTitle(Self.title(route))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarBackground(Color.panel, for: .navigationBar)
         .task(id: loadingTrigger) {
             await model.loadTrip(
                 network: network,

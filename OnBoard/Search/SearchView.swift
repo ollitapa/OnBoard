@@ -25,8 +25,6 @@ struct SearchView: View {
         )
         .navigationTitle("Search")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarBackground(Color.panel, for: .navigationBar)
         .searchable(text: $query, prompt: "Search stop or line")
         .onSubmit(of: .search) { handleSubmit() }
         .task(id: query) {
@@ -105,7 +103,6 @@ private struct SearchResultsList: View {
         }
         .listStyle(.plain)
         .listRowBackground(Color.panel)
-        .scrollContentBackground(Color.paper)
         .background(Color.paper)
         .navigationDestination(for: StopGroup.self) { group in
             StopDetailsView(stopId: group.id, stopName: group.name)
@@ -185,7 +182,7 @@ private struct RecentsSection: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(Color.paper)
+            .scrollContentBackground(.visible)
             .background(Color.paper)
         }
     }
