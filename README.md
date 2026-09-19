@@ -141,8 +141,8 @@ The checklist, in the order we'd apply it to a new app:
    load/mutate methods**, one aggregate root per feature, created on demand.
 7. **Serve tests/previews from a feature-specific mock service**
    (`MockTrafiklabService`) configured by JSON strings in each endpoint's
-   wire shape (one per stop/stop group, one per area id / trip key), served
-   by joining the chosen strings into the response envelope — never
+   wire shape (one per stop, one per area id / trip key / stop-group name),
+   served by joining the chosen strings into the response envelope — never
    converted into the API's Swift models, so the app's real `Codable` decode
    path is what parses them. Keep a bare `MockNetwork` only for
    request-shape and invalid-input assertions.

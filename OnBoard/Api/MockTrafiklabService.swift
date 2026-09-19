@@ -7,11 +7,13 @@ import Foundation
 /// — the same shape `Trafiklab` decodes — so fixtures read like captured API
 /// responses. The fixtures never round-trip through the API's Swift models or
 /// a JSON decoder: the mock stores them as collections of JSON strings
-/// (`[String]` for stop/nearby lists, `[String: String]` for the per-area-id
-/// and per-trip-key configs), picks and filters entries textually, and serves
-/// them by joining the chosen strings into the endpoint's response envelope
-/// (`Data("{...}".utf8)`). The model under test therefore runs its real
-/// production decode path on bytes written exactly like the fixture.
+/// (`[String]` for the nearby list, `[String: String]` for the per-area-id,
+/// per-trip-key, and name-keyed stop-group configs), picks the entry to serve
+/// straight from the dictionary, and joins the chosen strings into the
+/// endpoint's response envelope (`Data("{...}".utf8)`). The model under test
+/// therefore runs its real production decode path on bytes written exactly
+/// like the fixture. Served stop groups come back in name order; the real API
+/// orders them busiest-first, a detail the mock doesn't replicate.
 ///
 /// Any timestamp string in a fixture may use a relative marker (`"now"`,
 /// `"now+2"`, `"now-10"`, in minutes) that is resolved to an absolute
@@ -57,13 +59,15 @@ struct MockTrafiklabService: NetworkProtocol {
     /// data in previews and UI tests.
     let tripsByKey: [String: String]
 
-    /// The stop groups served from the Stop Lookup endpoints: one JSON
-    /// string per `StopGroup`. The name-search endpoint filters the strings
-    /// textually by their `"name"` value (case-insensitive substring, like
-    /// the real endpoint) before joining them into the response. Defaults to
-    /// ``defaultStopGroupsJSON`` so previews, the `--mock-network` UI-test
-    /// harness, and unit tests all share one canned dataset.
-    let stopGroups: [String]
+    /// The stop groups served from the Stop Lookup endpoints: stop group name
+    /// to a JSON string holding the `StopGroup` in the Stop Lookup wire shape
+    /// (the name repeats inside the JSON, which is fine). The name-search
+    /// endpoint picks the entries whose *key* contains the search value
+    /// (case-insensitive substring, like the real endpoint) — no searching
+    /// inside the JSON strings. Defaults to ``defaultStopGroupsByNameJSON``
+    /// so previews, the `--mock-network` UI-test harness, and unit tests all
+    /// share one canned dataset.
+    let stopGroupsByName: [String: String]
 
     /// Creates a mock Trafiklab service.
     /// - Parameters:
@@ -76,21 +80,21 @@ struct MockTrafiklabService: NetworkProtocol {
     ///   - tripsByKey: `"{tripId}/{startDate}"` to a JSON string holding the
     ///     `Trip` in the Trips wire shape; trip ids with no entry return an
     ///     empty trip.
-    ///   - stopGroups: One JSON string per `StopGroup`; the group's own
-    ///     `"name"` must come before any nested child-stop names so the
-    ///     textual search filter finds the right one.
+    ///   - stopGroupsByName: Stop group name to a JSON string holding the
+    ///     `StopGroup` in the Stop Lookup wire shape; the name may repeat
+    ///     inside the JSON.
     init(
         baseURL: URL = URL(string: "https://api.resrobot.se")!,
         nearbyStops: [String] = MockTrafiklabService.defaultNearbyStopsJSON,
         departuresByAreaId: [String: String] = MockTrafiklabService.defaultDeparturesByAreaIdJSON,
         tripsByKey: [String: String] = MockTrafiklabService.defaultTripsByKeyJSON,
-        stopGroups: [String] = MockTrafiklabService.defaultStopGroupsJSON
+        stopGroupsByName: [String: String] = MockTrafiklabService.defaultStopGroupsByNameJSON
     ) {
         self.baseURL = baseURL
         self.nearbyStops = Self.resolved(nearbyStops, fixture: "nearbyStops")
         self.departuresByAreaId = Self.resolved(departuresByAreaId, fixture: "departuresByAreaId")
         self.tripsByKey = Self.resolved(tripsByKey, fixture: "tripsByKey")
-        self.stopGroups = Self.resolved(stopGroups, fixture: "stopGroups")
+        self.stopGroupsByName = Self.resolved(stopGroupsByName, fixture: "stopGroupsByName")
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
@@ -114,7 +118,7 @@ struct MockTrafiklabService: NetworkProtocol {
                     "queryTime":"\(Self.cannedTimestamp)",
                     "query":\(Self.jsonValue(value))
                   },
-                  "stop_groups":[\(matchingStopGroups(value).joined(separator: ","))]
+                  "stop_groups":[\(servingStopGroups(value).joined(separator: ","))]
                 }
                 """
             return Self.ok(Data(body.utf8), url: url)
@@ -127,7 +131,7 @@ struct MockTrafiklabService: NetworkProtocol {
                   "query":{
                     "queryTime":"\(Self.cannedTimestamp)"
                   },
-                  "stop_groups":[\(stopGroups.joined(separator: ","))]
+                  "stop_groups":[\(servingStopGroups(nil).joined(separator: ","))]
                 }
                 """
             return Self.ok(Data(body.utf8), url: url)
@@ -205,34 +209,18 @@ struct MockTrafiklabService: NetworkProtocol {
         return segments[nameIndex + 1].removingPercentEncoding
     }
 
-    // MARK: - Textual filtering
+    // MARK: - Stop Lookup filtering
 
-    /// The stop groups whose `"name"` value contains `searchValue`
-    /// (case-insensitive), read straight off each group's JSON string without
-    /// decoding — the group's own name is the first `"name"` in the string,
-    /// before any nested child-stop names. An empty or missing value returns
-    /// all groups, matching the real endpoint's broadest match.
-    private func matchingStopGroups(_ searchValue: String?) -> [String] {
-        guard let value = searchValue, !value.isEmpty else {
-            return stopGroups
-        }
-        let needle = value.lowercased()
-        return stopGroups.filter { group in
-            Self.nameValue(in: group)?.lowercased().contains(needle) ?? false
-        }
-    }
-
-    /// Reads the first `"name"` value out of a stop group's JSON string
-    /// textually — no JSON decoding. Fixtures write the group's own name
-    /// before any nested child-stop names, so the first match is the right
-    /// one. Returns `nil` when no `"name"` key is found.
-    private static func nameValue(in groupJSON: String) -> String? {
-        guard let key = groupJSON.range(of: "\"name\":") else { return nil }
-        let afterKey = groupJSON[key.upperBound...]
-        guard let openQuote = afterKey.firstIndex(of: "\"") else { return nil }
-        let afterOpen = afterKey[afterKey.index(after: openQuote)...]
-        guard let closeQuote = afterOpen.firstIndex(of: "\"") else { return nil }
-        return String(afterOpen[afterOpen.startIndex..<closeQuote])
+    /// The stop groups to serve for a name search: the entries whose name key
+    /// contains `searchValue` (case-insensitive), or every entry when the
+    /// value is missing or empty, in name order. Matching runs on the
+    /// dictionary keys, so the group JSON strings are never searched.
+    private func servingStopGroups(_ searchValue: String?) -> [String] {
+        let needle = searchValue?.lowercased() ?? ""
+        return stopGroupsByName
+            .filter { needle.isEmpty || $0.key.lowercased().contains(needle) }
+            .sorted { $0.key < $1.key }
+            .map(\.value)
     }
 
     // MARK: - Fixture handling
@@ -555,11 +543,10 @@ struct MockTrafiklabService: NetworkProtocol {
 
     /// A stable set of stop groups served by default for the Stop Lookup
     /// endpoints, matching the shape the Trafiklab API returns
-    /// (`average_daily_stop_times`, `transport_modes`, child `stops`). Each
-    /// group's own `"name"` is written before its child stops' names so the
-    /// textual search filter finds the right one.
-    static let defaultStopGroupsJSON: [String] = [
-        """
+    /// (`average_daily_stop_times`, `transport_modes`, child `stops`), keyed
+    /// by the group's name (which repeats inside the JSON).
+    static let defaultStopGroupsByNameJSON: [String: String] = [
+        "Medborgarplatsen": """
         {
             "id": "740000001",
             "name": "Medborgarplatsen",
@@ -576,7 +563,7 @@ struct MockTrafiklabService: NetworkProtocol {
             ]
         }
         """,
-        """
+        "Slussen": """
         {
             "id": "740000002",
             "name": "Slussen",
@@ -593,7 +580,7 @@ struct MockTrafiklabService: NetworkProtocol {
             ]
         }
         """,
-        """
+        "Odenplan": """
         {
             "id": "740000004",
             "name": "Odenplan",

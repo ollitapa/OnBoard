@@ -9,7 +9,7 @@ struct SearchModelTests {
 
     @Test func searchSuccess() async throws {
         // Given: a controlled dataset where "slu" matches only "Slussen".
-        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
+        let network = MockTrafiklabService(stopGroupsByName: Self.searchDatasetByNameJSON)
         let model = SearchModel()
 
         // When
@@ -24,21 +24,21 @@ struct SearchModelTests {
 
     @Test func searchMatchesMultipleBySubstring() async throws {
         // Given: a controlled dataset where "l" matches both stop names.
-        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
+        let network = MockTrafiklabService(stopGroupsByName: Self.searchDatasetByNameJSON)
         let model = SearchModel()
 
         // When
         await model.search(named: "l", network: network)
 
-        // Then: results keep the configured (busiest-first) order.
+        // Then: results come back in the mock's name order.
         let names = model.results.map(\.name)
-        #expect(names == ["Slussen", "Odenplan"])
+        #expect(names == ["Odenplan", "Slussen"])
         #expect(model.failure == nil)
     }
 
     @Test func searchExactMatch() async throws {
         // Given
-        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
+        let network = MockTrafiklabService(stopGroupsByName: Self.searchDatasetByNameJSON)
         let model = SearchModel()
 
         // When
@@ -52,7 +52,7 @@ struct SearchModelTests {
 
     @Test func searchNoMatches() async throws {
         // Given
-        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
+        let network = MockTrafiklabService(stopGroupsByName: Self.searchDatasetByNameJSON)
         let model = SearchModel()
 
         // When
@@ -66,7 +66,7 @@ struct SearchModelTests {
     @Test func searchBlankQueryClearsWithoutRequest() async throws {
         // Given: a model with prior recents. A blank query returns early
         // before any request is made, so results clear and no failure is set.
-        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
+        let network = MockTrafiklabService(stopGroupsByName: Self.searchDatasetByNameJSON)
         let model = SearchModel()
         model.recordRecent("Medborgarplatsen")
 
@@ -120,7 +120,7 @@ struct SearchModelTests {
         #expect(model.failure != nil)
 
         // When: a subsequent successful search clears the failure.
-        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
+        let network = MockTrafiklabService(stopGroupsByName: Self.searchDatasetByNameJSON)
         await model.search(named: "Slussen", network: network)
 
         // Then
@@ -132,7 +132,7 @@ struct SearchModelTests {
     @Test func cancelledSearchLeavesLoadingFlagToReplacementTask() async throws {
         // Given: a search in flight whose replacement is already loading. The
         // replacement sets `isLoading` before the cancelled task resumes.
-        let network = MockTrafiklabService(stopGroups: Self.searchDatasetJSON)
+        let network = MockTrafiklabService(stopGroupsByName: Self.searchDatasetByNameJSON)
         let model = SearchModel()
         model.isLoading = true
 
@@ -190,11 +190,12 @@ struct SearchModelTests {
 
     // MARK: - Helpers
 
-    /// A small, ordered set of stop groups for tests that need a controlled,
-    /// predictable dataset (busiest first, matching the API's ordering), as a
-    /// multiline-JSON fixture in the Stop Lookup wire shape.
-    static let searchDatasetJSON = [
-        """
+    /// A small set of stop groups for tests that need a controlled,
+    /// predictable dataset, as name-keyed JSON fixtures in the Stop Lookup
+    /// wire shape (the name repeats inside the JSON). Served results come
+    /// back in name order.
+    static let searchDatasetByNameJSON = [
+        "Slussen": """
         {
         "id": "740000002",
         "name": "Slussen",
@@ -211,7 +212,7 @@ struct SearchModelTests {
         ]
         }
         """,
-        """
+        "Odenplan": """
         {
         "id": "740000004",
         "name": "Odenplan",
