@@ -117,7 +117,7 @@ private struct DepartureRow: View {
             LineBadge(departure: departure)
             VStack(alignment: .leading, spacing: 6) {
                 Text(departure.destination)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.ink)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -141,14 +141,14 @@ private struct StatusPill: View {
     var body: some View {
         if departure.canceled == true {
             Text("Cancelled")
-                .font(.caption2.weight(.bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(.statusRed)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(Color.statusRedTint, in: Capsule())
         } else if let delay = departure.delayMinutes {
             Text(delay.label)
-                .font(.caption2.weight(.bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(delay.minutes < 0 ? .statusGreen : .statusYellow)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
@@ -171,15 +171,15 @@ private struct Countdown: View {
     var body: some View {
         if departure.canceled == true {
             Text("Cancelled")
-                .font(.subheadline.weight(.semibold))
+                .font(.body.weight(.semibold))
                 .foregroundStyle(.inkSoft)
                 .strikethrough()
         } else {
             Text(Self.text(for: departure))
-                .font(.title3.weight(.bold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(.ink)
                 .monospacedDigit()
-                .frame(minWidth: 44, alignment: .trailing)
+                .frame(minWidth: 48, alignment: .trailing)
         }
     }
 
@@ -212,10 +212,10 @@ private struct LineBadge: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             Text(departure.lineLabel)
-                .font(.callout.weight(.heavy))
+                .font(.body.weight(.heavy))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
-                .frame(minWidth: 42, minHeight: 40)
+                .frame(minWidth: 46, minHeight: 44)
                 .background(Color.accentDeep, in: RoundedRectangle(cornerRadius: 11))
             ModeBlip(mode: departure.route?.transport_mode)
         }
@@ -242,10 +242,10 @@ private struct ModeBlip: View {
     var body: some View {
         if let mode {
             Image(systemName: mode.icon)
-                .font(.system(size: 8, weight: .bold))
+                .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(.panel)
                 .padding(2)
-                .frame(width: 19, height: 19)
+                .frame(width: 20, height: 20)
                 .background(Color.panel, in: Circle())
                 .overlay(Circle().strokeBorder(Color.panel, lineWidth: 2))
                 .offset(x: 5, y: 5)
@@ -300,6 +300,7 @@ private struct FavoriteToggle: View {
             )
         } label: {
             Image(systemName: model.contains(stopId) ? "star.fill" : "star")
+                .font(.title3)
                 .foregroundStyle(model.contains(stopId) ? .star : .inkSoft)
                 .accessibilityLabel(model.contains(stopId) ? "Remove favourite" : "Add favourite")
         }

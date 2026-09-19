@@ -74,11 +74,11 @@ private struct NearbyStopRow: View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(stop.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.ink)
                 if let distance = stop.distanceLabel {
                     Text(distance)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.inkSoft)
                 }
             }

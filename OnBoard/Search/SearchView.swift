@@ -123,18 +123,18 @@ private struct SearchResultRow: View {
         HStack(alignment: .center, spacing: 11) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(group.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.ink)
                 if !group.modeSummary.isEmpty {
                     Text(group.modeSummary)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.inkSoft)
                 }
             }
             Spacer(minLength: 8)
             ForEach(group.modeIcons, id: \.self) { icon in
                 Image(systemName: icon)
-                    .font(.callout)
+                    .font(.body)
                     .foregroundStyle(.inkSoft)
             }
         }
@@ -175,10 +175,10 @@ private struct RecentsSection: View {
                     HStack {
                         Text("Recent searches")
                             .foregroundStyle(.ink)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.body.weight(.semibold))
                         Spacer()
                         Button("Clear", action: onClear)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.inkSoft)
                     }
                     .padding(.horizontal, 18)
@@ -197,11 +197,12 @@ private struct RecentRow: View {
     let term: String
 
     var body: some View {
-        HStack(alignment: .center, spacing: 11) {
+        HStack(alignment: .center, spacing: 12) {
             Image(systemName: "clock.arrow.circlepath")
+                .font(.body)
                 .foregroundStyle(.inkSoft)
             Text(term)
-                .font(.subheadline)
+                .font(.body)
                 .foregroundStyle(.ink)
             Spacer(minLength: 0)
         }
