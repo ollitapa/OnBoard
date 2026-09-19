@@ -45,6 +45,7 @@ private struct FavoritesContent: View {
                 FavoritesList(model: model)
             }
         }
+        .background(Color.paper)
         .onAppear {
             model.loadFavorites(context: modelContext)
         }
@@ -63,6 +64,8 @@ private struct FavoritesList: View {
                 NavigationLink(value: favorite) {
                     FavoriteRow(favorite: favorite)
                 }
+                .listRowBackground(Color.panel)
+
             }
             .onDelete { indexSet in
                 let ids = indexSet.map { model.favorites[$0].id }
@@ -72,7 +75,6 @@ private struct FavoritesList: View {
             }
         }
         .listStyle(.plain)
-        .listRowBackground(Color.panel)
         .background(Color.paper)
         .navigationDestination(for: Favorite.self) { favorite in
             StopDetailsView(stopId: favorite.id, stopName: favorite.name)

@@ -53,6 +53,7 @@ struct RouteDetailsView: View {
         }
         .navigationTitle(Self.title(route))
         .navigationBarTitleDisplayMode(.inline)
+        .background(Color.paper)
         .task(id: loadingTrigger) {
             await model.loadTrip(
                 network: network,
@@ -87,10 +88,6 @@ private struct TripTrack: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                DelayPill(delayMinutes: route.delayMinutes)
-                    .padding(.horizontal, 18)
-                    .padding(.top, 16)
-                    .padding(.bottom, 10)
                 TripNodes(route: route, stops: stops)
                     .padding(.horizontal, 18)
                     .padding(.bottom, 24)
@@ -146,7 +143,7 @@ private struct TripNodes: View {
                             isFinal: index == stops.count - 1
                         )
                         .overlay {
-                            TransportModeMarker(mode: route.transportMode)
+                            TransportModeMarker(mode: route.transportMode, delayMinutes: nil)
                         }
 
                     case .betweenStops(let before, _) where before == index:
@@ -156,7 +153,7 @@ private struct TripNodes: View {
                             isCurrent: false,
                             isFinal: index == stops.count - 1
                         )
-                        TransportModeMarker(mode: route.transportMode)
+                        TransportModeMarker(mode: route.transportMode, delayMinutes: route.delayMinutes)
 
                     default:
                         StopNode(
@@ -190,26 +187,32 @@ private struct TripNodes: View {
 private struct TransportModeMarker: View {
 
     let mode: TransportMode?
+    let delayMinutes: DelayTime?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer(minLength: 20)
-            RoundedRectangle(cornerRadius: 7)
-                .fill(Color.accent)
-                .frame(width: 28, height: 28)
-                .overlay(
-                    Group {
-                        if let mode {
-                            Image(systemName: mode.icon)
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(.white)
+            HStack(spacing: 6) {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(Color.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(
+                        Group {
+                            if let mode {
+                                Image(systemName: mode.icon)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
                         }
-                    }
-                )
-                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.panel, lineWidth: 3))
-                .offset(x: -7)
-                .accessibilityLabel("Vehicle is here")
+                    )
+                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.panel, lineWidth: 3))
+                    .offset(x: -7)
+                    .accessibilityLabel("Vehicle is here")
+
+                DelayPill(delayMinutes: delayMinutes)
+            }
             Spacer(minLength: 20)
+
         }
     }
 }

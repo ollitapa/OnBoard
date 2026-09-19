@@ -57,6 +57,7 @@ struct StopDetailsView: View {
                 DeparturesList(departures: model.departures)
             }
         }
+        .background(Color.paper)
         .navigationSubtitle(model.lastUpdatedText)
         .navigationTitle(stopName)
         .navigationDestination(for: RouteDetails.self) { route in
@@ -102,7 +103,7 @@ private struct DeparturesList: View {
                 }
             }
             .listRowSeparator(.visible)
-            .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+            .listRowInsets(EdgeInsets(top: 24, leading: 16, bottom: 24, trailing: 16))
             .listRowBackground(Color.panel)
         }
         .listStyle(.plain)
@@ -248,13 +249,15 @@ private struct ModeBlip: View {
     var body: some View {
         if let mode {
             Image(systemName: mode.icon)
-                .font(.system(size: 9, weight: .bold))
+                .resizable()
+                .font(.title.weight(.heavy))
+                .aspectRatio(contentMode: .fit)
+                .padding(5)
+                .frame(width: 30, height: 30)
                 .foregroundStyle(.accentDeep)
-                .padding(2)
-                .frame(width: 20, height: 20)
                 .background(Color.panel, in: Circle())
-                .overlay(Circle().strokeBorder(Color.panel, lineWidth: 2))
-                .offset(x: 5, y: 5)
+                .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
+                .offset(x: 10, y: 15)
         }
     }
 }

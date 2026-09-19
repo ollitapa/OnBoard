@@ -33,7 +33,7 @@ struct LocationExplanationView: View {
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
 
-            Text("Next Bus uses your location to show the nearest stops as soon as you open the app.")
+            Text("OnBoard uses your location to show the nearest stops as soon as you open the app.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -46,7 +46,7 @@ struct LocationExplanationView: View {
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background(Color.paper)
     }
 }
 
@@ -91,7 +91,7 @@ struct LocationDeniedView: View {
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background(Color.paper)
     }
 }
 

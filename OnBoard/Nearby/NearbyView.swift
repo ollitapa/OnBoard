@@ -54,11 +54,10 @@ private struct NearbyStopsList: View {
             NavigationLink(value: stop) {
                 NearbyStopRow(stop: stop)
             }
-            .listRowSeparator(.hidden)
+            .listRowBackground(Color.panel)
         }
+        .scrollContentBackground(.hidden)
         .listStyle(.insetGrouped)
-        .listRowBackground(Color.panel)
-        .background(Color.paper)
     }
 }
 

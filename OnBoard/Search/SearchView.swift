@@ -100,9 +100,9 @@ private struct SearchResultsList: View {
             NavigationLink(value: group) {
                 SearchResultRow(group: group)
             }
+            .listRowBackground(Color.panel)
         }
         .listStyle(.plain)
-        .listRowBackground(Color.panel)
         .background(Color.paper)
         .navigationDestination(for: StopGroup.self) { group in
             StopDetailsView(stopId: group.id, stopName: group.name)
@@ -135,9 +135,9 @@ private struct SearchResultRow: View {
                     .foregroundStyle(.inkSoft)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 10)
         .padding(.horizontal, 18)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -180,9 +180,10 @@ private struct RecentsSection: View {
                     }
                     .padding(.horizontal, 18)
                 }
+                .listRowBackground(Color.panel)
             }
+            .scrollContentBackground(.hidden)
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.visible)
             .background(Color.paper)
         }
     }
@@ -205,7 +206,6 @@ private struct RecentRow: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 18)
-        .background(Color.panel)
     }
 }
 
