@@ -9,8 +9,10 @@ import Foundation
 /// a JSON decoder: the mock stores them as collections of JSON strings
 /// (`[String]` for the nearby list, `[String: String]` for the per-area-id,
 /// per-trip-key, and name-keyed stop-group configs), picks the entry to serve
-/// straight from the dictionary, and joins the chosen strings into the
-/// endpoint's response envelope (`Data("{...}".utf8)`). The model under test
+/// straight from the dictionary, and either joins the chosen strings into the
+/// endpoint's response envelope or serves the stored string verbatim as the
+/// full response body (the trips fixture is a complete `TripResponse`).
+/// The model under test
 /// therefore runs its real production decode path on bytes written exactly
 /// like the fixture. Served stop groups come back in name order; the real API
 /// orders them busiest-first, a detail the mock doesn't replicate.
@@ -53,8 +55,10 @@ struct MockTrafiklabService: NetworkProtocol {
     let departuresByAreaId: [String: String]
 
     /// The trips served from the Trips endpoint: `"{tripId}/{startDate}"` to
-    /// a JSON string holding the `Trip` in the Trips wire shape. A trip id
-    /// with no entry returns an empty trip, matching the real API. Defaults
+    /// a JSON string holding the full `TripResponse` in the Trips wire shape
+    /// (`agency`, `route`, `trip`, and `calls` — one call per stop, with the
+    /// arrival/departure pairs the real endpoint sends). A trip id with no
+    /// entry returns an empty `calls` list, matching the real API. Defaults
     /// to ``defaultTripsByKeyJSON`` so the Live Trip screen renders canned
     /// data in previews and UI tests.
     let tripsByKey: [String: String]
@@ -78,8 +82,9 @@ struct MockTrafiklabService: NetworkProtocol {
     ///     rows in the Timetables wire shape; area ids with no entry return
     ///     an empty list.
     ///   - tripsByKey: `"{tripId}/{startDate}"` to a JSON string holding the
-    ///     `Trip` in the Trips wire shape; trip ids with no entry return an
-    ///     empty trip.
+    ///     full `TripResponse` in the Trips wire shape (`agency`, `route`,
+    ///     `trip`, and `calls`); trip ids with no entry return an empty
+    ///     `calls` list.
     ///   - stopGroupsByName: Stop group name to a JSON string holding the
     ///     `StopGroup` in the Stop Lookup wire shape; the name may repeat
     ///     inside the JSON.
@@ -153,16 +158,8 @@ struct MockTrafiklabService: NetworkProtocol {
         }
 
         if request.httpMethod == "GET", url.path.contains("/trips/") {
-            let trip = tripsByKey[tripKey(for: url) ?? ""] ?? #"{"stops":[]}"#
-            let body = """
-                {
-                  "timestamp":"2099-01-01T12:00:00",
-                  "query":{
-                    "queryTime":"2099-01-01T12:00:00"
-                  },
-                  "trip":\(trip)
-                }
-                """
+            let body = tripsByKey[tripKey(for: url) ?? ""]
+                ?? #"{"timestamp":"2099-01-01T12:00:00","calls":[]}"#
             return Self.ok(Data(body.utf8), url: url)
         }
 
@@ -387,64 +384,94 @@ struct MockTrafiklabService: NetworkProtocol {
     /// The default trips served by the Trips endpoint, keyed by
     /// `"{tripId}/{startDate}"`. Each sample departure's `trip` in
     /// ``sampleDeparturesJSON`` references one of these so tapping a row
-    /// opens a populated Live Trip screen in previews and UI tests. The stop
+    /// opens a populated Live Trip screen in previews and UI tests. The call
     /// times are relative markers (the tram's realtime times shifted by its
     /// 3-minute delay) so the track's passed/current/upcoming states render.
     static let defaultTripsByKeyJSON: [String: String] = [
         "900001/2099-01-01": """
         {
-            "id": "3",
-            "trip_id": "900001",
-            "start_date": "2099-01-01",
+            "timestamp": "2099-01-01T12:00:00",
+            "query": {
+                "queryTime": "2099-01-01T12:00:00",
+                "query": "900001"
+            },
+            "agency": {
+                "id": "505000000000000001",
+                "name": "Storstockholms Lokaltrafik",
+                "operator": "Nobina"
+            },
             "route": {
                 "designation": "3",
+                "transport_mode_code": 700,
                 "transport_mode": "BUS",
-                "direction": "Karolinska sjukhuset"
+                "direction": "Karolinska sjukhuset",
+                "origin": { "id": "3-0", "name": "Skanstull" },
+                "destination": { "id": "3-4", "name": "Karolinska sjukhuset" }
             },
-            "stops": [
+            "trip": {
+                "trip_id": "900001",
+                "start_date": "2099-01-01",
+                "technical_number": 3
+            },
+            "calls": [
                 {
-                    "id": "3-0",
-                    "name": "Skanstull",
-                    "scheduled": "now-10",
-                    "realtime": "now-10",
-                    "delay": 0,
-                    "canceled": false,
+                    "scheduledArrival": "now-10",
+                    "realtimeArrival": "now-10",
+                    "arrivalDelay": 0,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now-10",
+                    "realtimeDeparture": "now-10",
+                    "departureDelay": 0,
+                    "departureCanceled": false,
+                    "stop": { "id": "3-0", "name": "Skanstull", "lat": 59.3114, "lon": 18.0745 },
                     "is_realtime": false
                 },
                 {
-                    "id": "3-1",
-                    "name": "Medborgarplatsen",
-                    "scheduled": "now+6",
-                    "realtime": "now+6",
-                    "delay": 0,
-                    "canceled": false,
+                    "scheduledArrival": "now+6",
+                    "realtimeArrival": "now+6",
+                    "arrivalDelay": 0,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now+6",
+                    "realtimeDeparture": "now+6",
+                    "departureDelay": 0,
+                    "departureCanceled": false,
+                    "stop": { "id": "3-1", "name": "Medborgarplatsen", "lat": 59.3139, "lon": 18.0720 },
                     "is_realtime": false
                 },
                 {
-                    "id": "3-2",
-                    "name": "Slussen",
-                    "scheduled": "now+13",
-                    "realtime": "now+13",
-                    "delay": 0,
-                    "canceled": false,
+                    "scheduledArrival": "now+13",
+                    "realtimeArrival": "now+13",
+                    "arrivalDelay": 0,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now+13",
+                    "realtimeDeparture": "now+13",
+                    "departureDelay": 0,
+                    "departureCanceled": false,
+                    "stop": { "id": "3-2", "name": "Slussen", "lat": 59.3199, "lon": 18.0717 },
                     "is_realtime": false
                 },
                 {
-                    "id": "3-3",
-                    "name": "Gamla stan",
-                    "scheduled": "now+21",
-                    "realtime": "now+21",
-                    "delay": 0,
-                    "canceled": false,
+                    "scheduledArrival": "now+21",
+                    "realtimeArrival": "now+21",
+                    "arrivalDelay": 0,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now+21",
+                    "realtimeDeparture": "now+21",
+                    "departureDelay": 0,
+                    "departureCanceled": false,
+                    "stop": { "id": "3-3", "name": "Gamla stan", "lat": 59.3252, "lon": 18.0711 },
                     "is_realtime": false
                 },
                 {
-                    "id": "3-4",
-                    "name": "Karolinska sjukhuset",
-                    "scheduled": "now+30",
-                    "realtime": "now+30",
-                    "delay": 0,
-                    "canceled": false,
+                    "scheduledArrival": "now+30",
+                    "realtimeArrival": "now+30",
+                    "arrivalDelay": 0,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now+30",
+                    "realtimeDeparture": "now+30",
+                    "departureDelay": 0,
+                    "departureCanceled": false,
+                    "stop": { "id": "3-4", "name": "Karolinska sjukhuset", "lat": 59.3372, "lon": 18.0281 },
                     "is_realtime": false
                 }
             ]
@@ -452,58 +479,88 @@ struct MockTrafiklabService: NetworkProtocol {
         """,
         "900002/2099-01-01": """
         {
-            "id": "7",
-            "trip_id": "900002",
-            "start_date": "2099-01-01",
+            "timestamp": "2099-01-01T12:00:00",
+            "query": {
+                "queryTime": "2099-01-01T12:00:00",
+                "query": "900002"
+            },
+            "agency": {
+                "id": "505000000000000001",
+                "name": "Storstockholms Lokaltrafik",
+                "operator": "Nobina"
+            },
             "route": {
                 "designation": "7",
+                "transport_mode_code": 900,
                 "transport_mode": "TRAM",
-                "direction": "Ropsten"
+                "direction": "Ropsten",
+                "origin": { "id": "7-0", "name": "Skanstull" },
+                "destination": { "id": "7-4", "name": "Ropsten" }
             },
-            "stops": [
+            "trip": {
+                "trip_id": "900002",
+                "start_date": "2099-01-01",
+                "technical_number": 7
+            },
+            "calls": [
                 {
-                    "id": "7-0",
-                    "name": "Skanstull",
-                    "scheduled": "now-10",
-                    "realtime": "now-7",
-                    "delay": 180,
-                    "canceled": false,
+                    "scheduledArrival": "now-10",
+                    "realtimeArrival": "now-7",
+                    "arrivalDelay": 180,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now-10",
+                    "realtimeDeparture": "now-7",
+                    "departureDelay": 180,
+                    "departureCanceled": false,
+                    "stop": { "id": "7-0", "name": "Skanstull", "lat": 59.3114, "lon": 18.0745 },
                     "is_realtime": true
                 },
                 {
-                    "id": "7-1",
-                    "name": "Medborgarplatsen",
-                    "scheduled": "now+6",
-                    "realtime": "now+9",
-                    "delay": 180,
-                    "canceled": false,
+                    "scheduledArrival": "now+6",
+                    "realtimeArrival": "now+9",
+                    "arrivalDelay": 180,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now+6",
+                    "realtimeDeparture": "now+9",
+                    "departureDelay": 180,
+                    "departureCanceled": false,
+                    "stop": { "id": "7-1", "name": "Medborgarplatsen", "lat": 59.3139, "lon": 18.0720 },
                     "is_realtime": true
                 },
                 {
-                    "id": "7-2",
-                    "name": "Slussen",
-                    "scheduled": "now+13",
-                    "realtime": "now+16",
-                    "delay": 180,
-                    "canceled": false,
+                    "scheduledArrival": "now+13",
+                    "realtimeArrival": "now+16",
+                    "arrivalDelay": 180,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now+13",
+                    "realtimeDeparture": "now+16",
+                    "departureDelay": 180,
+                    "departureCanceled": false,
+                    "stop": { "id": "7-2", "name": "Slussen", "lat": 59.3199, "lon": 18.0717 },
                     "is_realtime": true
                 },
                 {
-                    "id": "7-3",
-                    "name": "Gamla stan",
-                    "scheduled": "now+21",
-                    "realtime": "now+24",
-                    "delay": 180,
-                    "canceled": false,
+                    "scheduledArrival": "now+21",
+                    "realtimeArrival": "now+24",
+                    "arrivalDelay": 180,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now+21",
+                    "realtimeDeparture": "now+24",
+                    "departureDelay": 180,
+                    "departureCanceled": false,
+                    "stop": { "id": "7-3", "name": "Gamla stan", "lat": 59.3252, "lon": 18.0711 },
                     "is_realtime": true
                 },
                 {
-                    "id": "7-4",
-                    "name": "Ropsten",
-                    "scheduled": "now+30",
-                    "realtime": "now+33",
-                    "delay": 180,
-                    "canceled": false,
+                    "scheduledArrival": "now+30",
+                    "realtimeArrival": "now+33",
+                    "arrivalDelay": 180,
+                    "arrivalCanceled": false,
+                    "scheduledDeparture": "now+30",
+                    "realtimeDeparture": "now+33",
+                    "departureDelay": 180,
+                    "departureCanceled": false,
+                    "stop": { "id": "7-4", "name": "Ropsten", "lat": 59.3269, "lon": 18.0959 },
                     "is_realtime": true
                 }
             ]

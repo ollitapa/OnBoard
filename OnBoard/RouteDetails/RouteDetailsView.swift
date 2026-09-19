@@ -32,7 +32,7 @@ struct RouteDetailsView: View {
                     Text(failure)
                         .foregroundStyle(.inkSoft)
                 }
-            } else if model.stops.isEmpty {
+            } else if model.calls.isEmpty {
                 if model.isLoading {
                     ProgressView()
                         .tint(.accent)
@@ -47,7 +47,7 @@ struct RouteDetailsView: View {
             } else {
                 TripTrack(
                     route: route,
-                    stops: model.stops
+                    calls: model.calls
                 )
             }
         }
@@ -83,12 +83,12 @@ struct RouteDetailsView: View {
 private struct TripTrack: View {
 
     let route: RouteDetails
-    let stops: [TripStop]
+    let calls: [TripCall]
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                TripNodes(route: route, stops: stops)
+                TripNodes(route: route, calls: calls)
                     .padding(.horizontal, 18)
                     .padding(.bottom, 24)
             }
@@ -125,22 +125,22 @@ private struct DelayPill: View {
 private struct TripNodes: View {
 
     let route: RouteDetails
-    let stops: [TripStop]
+    let calls: [TripCall]
 
-    private var currentPosition: TransportPosition? { stops.currentStopIndex() }
+    private var currentPosition: TransportPosition? { calls.currentStopIndex() }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             line
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
+                ForEach(Array(calls.enumerated()), id: \.element.id) { index, call in
                     switch currentPosition {
                     case .atStop(let currentIndex):
                         StopNode(
-                            stop: stop,
-                            isPassed: stops.isPassed(at: index),
+                            call: call,
+                            isPassed: calls.isPassed(at: index),
                             isCurrent: index == currentIndex,
-                            isFinal: index == stops.count - 1
+                            isFinal: index == calls.count - 1
                         )
                         .overlay {
                             TransportModeMarker(mode: route.transportMode, delayMinutes: nil)
@@ -148,19 +148,19 @@ private struct TripNodes: View {
 
                     case .betweenStops(let before, _) where before == index:
                         StopNode(
-                            stop: stop,
-                            isPassed: stops.isPassed(at: index),
+                            call: call,
+                            isPassed: calls.isPassed(at: index),
                             isCurrent: false,
-                            isFinal: index == stops.count - 1
+                            isFinal: index == calls.count - 1
                         )
                         TransportModeMarker(mode: route.transportMode, delayMinutes: route.delayMinutes)
 
                     default:
                         StopNode(
-                            stop: stop,
-                            isPassed: stops.isPassed(at: index),
+                            call: call,
+                            isPassed: calls.isPassed(at: index),
                             isCurrent: false,
-                            isFinal: index == stops.count - 1
+                            isFinal: index == calls.count - 1
                         )
                     }
                 }
@@ -222,7 +222,7 @@ private struct TransportModeMarker: View {
 /// marker and an "in X min" subtitle.
 private struct StopNode: View {
 
-    let stop: TripStop
+    let call: TripCall
     let isPassed: Bool
     let isCurrent: Bool
     let isFinal: Bool
@@ -231,10 +231,10 @@ private struct StopNode: View {
         HStack(alignment: .center, spacing: 14) {
             nodeDot
             VStack(alignment: .leading, spacing: 2) {
-                Text(stop.name ?? "")
+                Text(call.stop?.name ?? "")
                     .font(.body.weight(isPassed ? .regular : .semibold))
                     .foregroundStyle(isPassed ? .inkSoft : .ink)
-                    .strikethrough(stop.canceled == true)
+                    .strikethrough(call.isCanceled)
                 if let subtitle = subtitle {
                     Text(subtitle)
                         .font(.subheadline)
@@ -267,24 +267,24 @@ private struct StopNode: View {
     }
 
     /// The subtitle text for a node: the final stop shows "Final stop"; the
-    /// current stop shows "Arriving in X min"; cancelled stops show "Cancelled".
+    /// current stop shows "Arriving in X min"; cancelled calls show "Cancelled".
     private var subtitle: String? {
-        if stop.canceled == true {
+        if call.isCanceled {
             return "Cancelled"
         }
         if isFinal {
             return "Final stop"
         }
-        if isCurrent, let minutes = Self.minutesUntil(stop) {
+        if isCurrent, let minutes = Self.minutesUntil(call) {
             return minutes <= 0 ? "Departing now" : "Arriving in \(minutes) min"
         }
         return nil
     }
 
-    /// Whole minutes until the stop's departure from now, or `nil` when the
+    /// Whole minutes until the call's departure from now, or `nil` when the
     /// time can't be parsed.
-    static func minutesUntil(_ stop: TripStop) -> Int? {
-        guard let date = stop.date else { return nil }
+    static func minutesUntil(_ call: TripCall) -> Int? {
+        guard let date = call.date else { return nil }
         let minutes = Calendar.current.dateComponents([.minute], from: Date(), to: date).minute
         return minutes
     }

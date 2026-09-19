@@ -211,7 +211,7 @@ struct StopDetailsModelTests {
                 name: name
             ),
             agency: nil,
-            trip: tripId.map { TripRef(trip_id: $0, start_date: "2099-01-01") },
+            trip: tripId.map { TripRef(trip_id: $0, start_date: "2099-01-01", technical_number: nil) },
             stop: nil,
             scheduled_platform: nil,
             realtime_platform: nil,

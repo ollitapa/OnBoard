@@ -193,6 +193,13 @@ struct StopRef: Codable, Equatable, Identifiable, Hashable, Sendable {
     var lon: Double
 }
 
+/// A named stop reference without coordinates, e.g. a route's origin or
+/// destination.
+struct StopNameRef: Codable, Equatable, Identifiable, Sendable {
+    var id: String?
+    var name: String?
+}
+
 /// Top-level response for ResRobot Nearby Stops.
 struct NearbyStopsResponse: Codable, Equatable, Sendable {
     var StopLocation: [StopLocation]
@@ -248,6 +255,7 @@ struct TimetableStop: Codable, Equatable, Identifiable, Sendable {
     var name: String
     var lat: Double
     var lon: Double
+    var area_id: String?
     var transport_modes: [String]?
     var alerts: [Alert]?
 }
@@ -278,10 +286,16 @@ struct Route: Codable, Equatable, Sendable {
     var designation: String?
     /// `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT`.
     var transport_mode: TransportMode?
+    /// The GTFS extended route type, e.g. `700` (bus) or `401` (metro).
+    var transport_mode_code: Int?
     /// Destination text; may change mid-route.
     var direction: String?
     /// Set only for lines known by name rather than number.
     var name: String?
+    /// The route's first stop.
+    var origin: StopNameRef?
+    /// The route's last stop.
+    var destination: StopNameRef?
 }
 
 struct TransportMode: Codable, Equatable, Hashable, Sendable, ExpressibleByStringLiteral {
@@ -305,11 +319,13 @@ struct TransportMode: Codable, Equatable, Hashable, Sendable, ExpressibleByStrin
 
 /// Operator branding for a departure/arrival row.
 struct Agency: Codable, Equatable, Sendable {
+    /// Agency id matching GTFS Sweden 3.
+    var id: String?
     var name: String?
     var operator_: String?
 
     enum CodingKeys: String, CodingKey {
-        case name
+        case id, name
         case operator_ = "operator"
     }
 }
@@ -318,6 +334,7 @@ struct Agency: Codable, Equatable, Sendable {
 struct TripRef: Codable, Equatable, Sendable {
     var trip_id: String
     var start_date: String
+    var technical_number: Int?
 }
 
 /// A platform/läge, e.g. "Läge C".
@@ -326,17 +343,23 @@ struct Platform: Codable, Equatable, Sendable {
     var designation: String?
 }
 
-/// A service message for a stop or departure.
-struct Alert: Codable, Equatable, Identifiable, Sendable {
-    var id: String
+/// A service message for a stop or call, e.g. `CONSTRUCTION` or
+/// `MAINTENANCE`.
+struct Alert: Codable, Equatable, Sendable {
+    var type: String?
+    var title: String?
     var text: String?
 }
 
-/// Top-level response for Trafiklab Trips (beta).
+/// Top-level response for Trafiklab Trips (beta): the trip's agency, route,
+/// and one call per stop along the journey.
 struct TripResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: TripQuery?
-    var trip: Trip?
+    var agency: Agency?
+    var route: Route?
+    var trip: TripRef?
+    var calls: [TripCall]?
 
     struct TripQuery: Codable, Equatable, Sendable {
         var queryTime: String
@@ -344,25 +367,31 @@ struct TripResponse: Codable, Equatable, Sendable {
     }
 }
 
-/// A single trip with its stop-by-stop schedule.
-struct Trip: Codable, Equatable, Identifiable, Sendable {
-    var id: String?
-    var trip_id: String?
-    var start_date: String?
-    var route: Route?
-    var stops: [TripStop]
-}
+/// One scheduled stop along a trip, splitting the vehicle's arrival and
+/// departure into their scheduled/realtime/delay/canceled pairs. Only the
+/// first call lacks a distinct arrival and only the last lacks a distinct
+/// departure; intermediate stops carry both.
+struct TripCall: Codable, Equatable, Identifiable, Sendable {
+    var id: String {
+        let fallback = [scheduledArrival?.date, scheduledDeparture?.date]
+            .compactMap { $0 }
+            .map { String($0.timeIntervalSinceReferenceDate) }
+            .joined(separator: "-")
+        return stop?.id ?? fallback
+    }
 
-/// One scheduled stop along a trip, with delay/ETA per stop.
-struct TripStop: Codable, Equatable, Identifiable, Sendable {
-    var id: String
-    var name: String?
-    var lat: Double?
-    var lon: Double?
-    var scheduled: LocalDate?
-    var realtime: LocalDate?
-    var delay: Int?
-    var canceled: Bool?
+    var scheduledArrival: LocalDate?
+    var realtimeArrival: LocalDate?
+    var arrivalDelay: Int?
+    var arrivalCanceled: Bool?
+    var scheduledDeparture: LocalDate?
+    var realtimeDeparture: LocalDate?
+    var departureDelay: Int?
+    var departureCanceled: Bool?
+    var stop: TimetableStop?
+    var scheduled_platform: Platform?
+    var realtime_platform: Platform?
+    var alerts: [Alert]?
     var is_realtime: Bool?
 }
 
