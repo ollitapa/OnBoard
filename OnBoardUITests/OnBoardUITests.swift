@@ -31,7 +31,7 @@ final class OnBoardUITests: XCTestCase {
         // The nearby tab is selected by default and renders the stop names
         // served by `MockTrafiklabService.defaultNearbyStopsJSON`.
         let firstStop = app.staticTexts["Medborgarplatsen"]
-        let secondStop = app.staticTexts["Slussen"]
+        let secondStop = app.staticTexts["Odenplan"]
 
         XCTAssertTrue(firstStop.waitForExistence(timeout: 10),
                      "Expected the first mock stop to appear in the nearby list.")

@@ -103,9 +103,9 @@ struct RouteDetailsModelTests {
 
     @Test func tripCallDateFallsBackToArrivalAtFinalStop() throws {
         let call = Self.call(
-            scheduledDeparture: nil,
             scheduledArrival: "2099-01-01T12:00:00",
-            realtimeArrival: "2099-01-01T12:05:00"
+            realtimeArrival: "2099-01-01T12:05:00",
+            scheduledDeparture: nil,
         )
         let date = try #require(call.date)
         let calendar = Calendar(identifier: .gregorian)
@@ -116,8 +116,8 @@ struct RouteDetailsModelTests {
     @Test func tripCallDelayMinutesNilWithoutRealtime() {
         let call = Self.call(
             scheduledDeparture: "2099-01-01T12:00:00",
+            departureDelay: 180,
             isRealtime: false,
-            departureDelay: 180
         )
         #expect(call.delayMinutes == nil)
     }
@@ -125,8 +125,8 @@ struct RouteDetailsModelTests {
     @Test func tripCallDelayMinutesRoundsPositiveUp() {
         let call = Self.call(
             scheduledDeparture: "2099-01-01T12:00:00",
+            departureDelay: 181,
             isRealtime: true,
-            departureDelay: 181
         )
         #expect(call.delayMinutes?.minutes == 4)
     }
