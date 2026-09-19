@@ -112,6 +112,22 @@ struct SearchModelTests {
         #expect(model.failure != nil)
     }
 
+    @Test func searchEncodesPathReservedCharacters() async throws {
+        // Given: a query containing characters reserved in a URL path. With the
+        // mock filtering by name, only the stop whose name matches survives.
+        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let model = SearchModel()
+
+        // When: searching for a term with a slash and a question mark.
+        await model.search(named: "slu/ssen?x", network: network)
+
+        // Then: the request reached the endpoint as a single path segment and
+        // the mock decoded it back; the filter yields no matches rather than
+        // a malformed request.
+        #expect(model.failure == nil)
+        #expect(model.results == [])
+    }
+
     @Test func searchAfterErrorReplacesResultsOnSuccess() async throws {
         // Given: a failed search leaves a failure string.
         let failingNetwork = MockNetwork()

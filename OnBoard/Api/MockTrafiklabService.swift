@@ -193,7 +193,9 @@ struct MockTrafiklabService: NetworkProtocol {
               segments.count > nameIndex + 1 else {
             return nil
         }
-        return segments[nameIndex + 1]
+        // The client percent-encodes the search value into the path segment,
+        // so decode it back before filtering.
+        return segments[nameIndex + 1].removingPercentEncoding
     }
 
     /// Extracts the `{searchValue}` path segment from a Stop Lookup name search
