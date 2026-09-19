@@ -4,8 +4,9 @@ import Foundation
 ///
 /// Wraps the four endpoints the app needs — Stop Lookup, ResRobot Nearby Stops,
 /// Timetables, and Trips (beta) — behind a single struct that depends only on a
-/// `NetworkProtocol` for transport. API keys are read from the app's Info.plist
-/// (no secrets are committed in source); init takes nothing but the network.
+/// `NetworkProtocol` for transport. API keys are read from the env file bundled
+/// with the build (`Secrets.env`, with the committed `Secrets.example.env` as a
+/// bogus-key fallback); init takes nothing but the network.
 ///
 /// Both products authenticate via a query-string parameter rather than a header:
 /// the realtime APIs use `key`, ResRobot uses `accessId`.
@@ -17,21 +18,21 @@ struct Trafiklab {
     /// Base URL for ResRobot v2.1 (Nearby Stops).
     private static let resrobotBase = URL(string: "https://api.resrobot.se/v2.1/")!
 
-    /// The realtime-API key, read from the app's Info.plist under `TrafiklabRealtimeKey`.
+    /// The realtime-API key, read from the bundled env file's `TRAFIKLAB_REALTIME_KEY`.
     private let realtimeKey: String
 
-    /// The ResRobot key, read from the app's Info.plist under `TrafiklabResrobotKey`.
+    /// The ResRobot key, read from the bundled env file's `TRAFIKLAB_RESROBOT_KEY`.
     private let resrobotKey: String
 
     /// The transport used to perform requests.
     private let network: NetworkProtocol
 
-    /// Creates a client backed by the given network.
+    /// Creates a client backed by the given network and the app's bundled keys.
     /// - Parameter network: The `NetworkProtocol` used to perform requests.
-    init(network: some NetworkProtocol) {
+    init(network: some NetworkProtocol, secrets: Secrets = Secrets()) {
         self.network = network
-        self.realtimeKey = Self.infoValue(forKey: "TrafiklabRealtimeKey")
-        self.resrobotKey = Self.infoValue(forKey: "TrafiklabResrobotKey")
+        self.realtimeKey = secrets.realtimeKey
+        self.resrobotKey = secrets.resrobotKey
     }
 
     // MARK: - Stop Lookup (Search screen)
@@ -143,11 +144,6 @@ struct Trafiklab {
     private func decode<T: Decodable>(_ request: URLRequest) async throws -> T {
         let (data, _) = try await network.data(for: request)
         return try JSONDecoder().decode(T.self, from: data)
-    }
-
-    /// Reads a string value from the main bundle's Info.plist.
-    private static func infoValue(forKey key: String) -> String {
-        (Bundle.main.infoDictionary?[key] as? String) ?? ""
     }
 }
 

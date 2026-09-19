@@ -124,3 +124,8 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Secrets
+# Real API keys live in OnBoard/Secrets.env (see OnBoard/Secrets.example.env);
+# only the example file with bogus keys is committed.
+OnBoard/Secrets.env
