@@ -400,8 +400,13 @@ struct LocalDate: Codable, Hashable, Sendable {
         try container.encode(Self.formatter.format(date))
     }
 
+    /// The Trafiklab APIs send timestamps without a zone designator
+    /// (`YYYY-MM-DDTHH:mm:ss`) in Swedish local time, matching the GTFS Sweden
+    /// data they are built from. Pin the zone rather than following the
+    /// device, so a traveller outside Sweden sees the same departure instants
+    /// the boards on the platform show.
     private static let formatter = Date.ISO8601FormatStyle
-        .iso8601(timeZone: .current)
+        .iso8601(timeZone: TimeZone(identifier: "Europe/Stockholm")!)
         .year()
         .month()
         .day()
