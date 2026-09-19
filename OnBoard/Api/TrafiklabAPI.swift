@@ -148,10 +148,12 @@ struct Trafiklab {
         return URLRequest(url: resolved)
     }
 
+    private static let decoder = JSONDecoder()
+
     /// Performs a request and decodes its JSON body.
     private func decode<T: Decodable>(_ request: URLRequest) async throws -> T {
         let (data, _) = try await network.data(for: request)
-        return try JSONDecoder().decode(T.self, from: data)
+        return try Self.decoder.decode(T.self, from: data)
     }
 }
 
