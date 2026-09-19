@@ -193,38 +193,40 @@ struct SearchModelTests {
     /// A small, ordered set of stop groups for tests that need a controlled,
     /// predictable dataset (busiest first, matching the API's ordering), as a
     /// multiline-JSON fixture in the Stop Lookup wire shape.
-    static let searchDatasetJSON = """
-        [
-            {
-                "id": "740000002",
-                "name": "Slussen",
-                "area_type": "META_STOP",
-                "average_daily_stop_times": 1200,
-                "transport_modes": ["BUS", "METRO"],
-                "stops": [
-                    {
-                        "id": "740000002",
-                        "name": "Slussen",
-                        "lat": 59.3199,
-                        "lon": 18.0717
-                    }
-                ]
-            },
-            {
-                "id": "740000004",
-                "name": "Odenplan",
-                "area_type": "META_STOP",
-                "average_daily_stop_times": 950,
-                "transport_modes": ["BUS", "TRAIN"],
-                "stops": [
-                    {
-                        "id": "740000004",
-                        "name": "Odenplan",
-                        "lat": 59.3429,
-                        "lon": 18.0496
-                    }
-                ]
-            }
-        ]
+    static let searchDatasetJSON = [
         """
+        {
+        "id": "740000002",
+        "name": "Slussen",
+        "area_type": "META_STOP",
+        "average_daily_stop_times": 1200,
+        "transport_modes": ["BUS", "METRO"],
+        "stops": [
+        {
+        "id": "740000002",
+        "name": "Slussen",
+        "lat": 59.3199,
+        "lon": 18.0717
+        }
+        ]
+        }
+        """,
+        """
+        {
+        "id": "740000004",
+        "name": "Odenplan",
+        "area_type": "META_STOP",
+        "average_daily_stop_times": 950,
+        "transport_modes": ["BUS", "TRAIN"],
+        "stops": [
+        {
+        "id": "740000004",
+        "name": "Odenplan",
+        "lat": 59.3429,
+        "lon": 18.0496
+        }
+        ]
+        }
+        """
+    ]
 }

@@ -10,12 +10,9 @@ struct RouteDetailsModelTests {
         // requests. The expected stops are decoded from the service's stored
         // fixture so the comparison isn't affected by the fixture's relative
         // timestamps being re-evaluated.
-        let network = MockTrafiklabService(tripsByKey: MockTrafiklabService.defaultTripsJSON)
-        let config = try JSONDecoder().decode(
-            [String: Trip].self,
-            from: Data(network.tripsByKey.utf8)
-        )
-        let trip = try #require(config["900001/2099-01-01"])
+        let network = MockTrafiklabService(tripsByKey: MockTrafiklabService.defaultTripsByKeyJSON)
+        let fixture = try #require(network.tripsByKey["900001/2099-01-01"])
+        let trip = try JSONDecoder().decode(Trip.self, from: Data(fixture.utf8))
         let model = RouteDetailsModel()
         // When
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
@@ -28,7 +25,7 @@ struct RouteDetailsModelTests {
     @Test func loadTripEmptyWhenResponseHasNoTrip() async throws {
         // Given: a service whose trips dict has no entry for the requested key,
         // so the mock returns an empty trip and the model surfaces an empty list.
-        let network = MockTrafiklabService(tripsByKey: "{}")
+        let network = MockTrafiklabService(tripsByKey: [:])
         let model = RouteDetailsModel()
         // When
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
