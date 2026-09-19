@@ -21,12 +21,17 @@ struct MainView: View {
                 NavigationStack {
                     NearbyView()
                 }
+                .locationPermissions(onManualSearch: {
+                    selectedTab = .search
+                })
             }
+
             Tab("Favorites", systemImage: "star.fill", value: .favorites) {
                 NavigationStack {
                     FavoritesView()
                 }
             }
+
             Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
                 NavigationStack {
                     SearchView()

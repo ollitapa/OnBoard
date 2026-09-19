@@ -57,6 +57,34 @@ struct StopDetailsModelTests {
         #expect(model.isLoading == false)
     }
 
+    @Test func loadDeparturesSetsLastUpdated() async throws {
+        // Given
+        let network = MockTrafiklabService(departuresByAreaId: ["740000001": []])
+        let model = StopDetailsModel()
+        #expect(model.lastUpdated == nil)
+
+        // When
+        await model.loadDepartures(network: network, areaId: "740000001")
+
+        // Then: the successful load stamps the update time.
+        let lastUpdated = try #require(model.lastUpdated)
+        #expect(abs(lastUpdated.timeIntervalSinceNow) < 5)
+    }
+
+    @Test func failedLoadDoesNotStampLastUpdated() async throws {
+        // Given: a previous successful load stamped the update time.
+        let good = MockTrafiklabService(departuresByAreaId: ["740000001": []])
+        let model = StopDetailsModel()
+        await model.loadDepartures(network: good, areaId: "740000001")
+        let stamp = try #require(model.lastUpdated)
+
+        // When: a refresh fails.
+        await model.loadDepartures(network: MockNetwork(), areaId: "740000001")
+
+        // Then: the stamp still reflects the last *successful* load.
+        #expect(model.lastUpdated == stamp)
+    }
+
     @Test func loadDeparturesInvalidJSON() async throws {
         // Given: a handler that returns non-matching JSON for the departures path.
         var network = MockNetwork()

@@ -22,6 +22,18 @@ final class StopDetailsModel {
     /// The departures returned for the loaded stop, in API order (soonest first).
     var departures: [CallAtLocation] = []
 
+    /// When the most recent successful load completed, for the header's
+    private(set) var lastUpdated: Date?
+
+    /// "Updated …" meta line.
+    var lastUpdatedText: String {
+        if let lastUpdated {
+            "Updated \(lastUpdated.formatted(.relative(presentation: .named)))"
+        } else {
+            "Updating…"
+        }
+    }
+
     init() {}
 
     /// Loads departures for the given stop group id via the Trafiklab Timetables API.
@@ -31,13 +43,20 @@ final class StopDetailsModel {
     ///   - areaId: The rikshållplats/meta-stop id (group id, never a child stop id).
     func loadDepartures(network: some NetworkProtocol, areaId: String) async {
         isLoading = true
-        defer { isLoading = false }
+        defer { if !Task.isCancelled { isLoading = false } }
 
         do {
             let api = Trafiklab(network: network)
             let response = try await api.departures(at: areaId)
+
+            // No need to do any updates if task is cancelled.
+            try Task.checkCancellation()
+
             departures = response.departures
+            lastUpdated = Date()
             failure = nil
+        } catch is CancellationError {
+            // Task was cancelled, ignore.
         } catch {
             departures = []
             failure = String(describing: error)

@@ -60,14 +60,20 @@ final class RouteDetailsModel {
     ///   - startDate: The `trip.start_date` from the same `CallAtLocation`.
     func loadTrip(network: some NetworkProtocol, tripId: String, startDate: String) async {
         isLoading = true
-        defer { isLoading = false }
+        defer { if !Task.isCancelled { isLoading = false } }
 
         do {
             let api = Trafiklab(network: network)
             let response = try await api.trip(tripId: tripId, startDate: startDate)
+
+            // No need to do any updates if task is cancelled.
+            try Task.checkCancellation()
+
             stops = response.trip?.stops ?? []
             failure = nil
-        } catch {
+        } catch is CancellationError {
+            // Task was cancelled, ignore.
+        }  catch {
             stops = []
             failure = String(describing: error)
         }

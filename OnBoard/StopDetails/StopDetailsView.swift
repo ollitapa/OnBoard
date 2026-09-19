@@ -25,6 +25,12 @@ struct StopDetailsView: View {
 
     @State private var model = StopDetailsModel()
 
+    /// Bumped after each poll cycle so `.task(id:)` restarts the loop and the
+    /// screen keeps refreshing while it is on screen; the task (and therefore
+    /// the polling) is cancelled when the view disappears. Mirrors
+    /// ``RouteDetailsView``'s refresh trigger.
+    @State private var refreshTrigger = 0
+
     var body: some View {
         Group {
             if let failure = model.failure {
@@ -51,6 +57,7 @@ struct StopDetailsView: View {
                 DeparturesList(departures: model.departures)
             }
         }
+        .navigationSubtitle(model.lastUpdatedText)
         .navigationTitle(stopName)
         .navigationDestination(for: RouteDetails.self) { route in
             RouteDetailsView(route: route)
@@ -65,8 +72,11 @@ struct StopDetailsView: View {
                 )
             }
         }
-        .task {
+        .task(id: refreshTrigger) {
             await model.loadDepartures(network: network, areaId: stopId)
+            // Refresh every 60 seconds
+            try? await Task.sleep(for: .seconds(60))
+            refreshTrigger += 1
         }
     }
 }

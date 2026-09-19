@@ -76,13 +76,13 @@ struct LocalDateTests {
 
         // Then: decoding surfaces the guard's DecodingError rather than a
         // crash or a sentinel date.
-        await #expect(throws: DecodingError.self) {
+        #expect(throws: DecodingError.self) {
             _ = try JSONDecoder().decode(LocalDate.self, from: data)
         }
     }
 
     @Test func malformedStringThrows() async {
-        await #expect(throws: (any Error).self) {
+        #expect(throws: (any Error).self) {
             _ = try LocalDate(string: "not-a-date")
         }
     }
