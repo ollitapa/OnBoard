@@ -97,6 +97,16 @@ extension CLAuthorizationStatus {
 
 extension LocationAuthorization: LocationManagerDelegate {
 
+    // The three delegate callbacks below are `nonisolated` because the
+    // `LocationManager` protocol is actor-agnostic, but they hop straight to
+    // the main actor via `MainActor.assumeIsolated`. That is safe **only**
+    // because `LiveLocationManager` wraps a `CLLocationManager` created on the
+    // main actor, and CoreLocation delivers delegate callbacks on the thread
+    // the manager was created on (the main queue for an app). If you copy this
+    // into an app that creates its manager off-main or uses a
+    // non-main-queue delegate, `assumeIsolated` becomes a runtime crash —
+    // switch to `Task { @MainActor in … }` there and accept the hop.
+
     nonisolated func locationManager(
         _ manager: any LocationManager,
         didChangeAuthorization status: CLAuthorizationStatus
@@ -129,11 +139,16 @@ extension LocationAuthorization: LocationManagerDelegate {
 
 /// The usage description the app declares in its Info.plist, surfaced for the
 /// permission explanation view. Returns an empty string when the key is
-/// absent so previews and tests don't crash on an unconfigured bundle.
+/// absent so previews and tests don't crash on an unconfigured bundle — but
+/// asserts in debug builds, because a missing usage description is a
+/// configuration error (the system permission prompt requires it), and an
+/// empty explanation view renders silently broken.
 extension LocationAuthorization {
 
     /// The value of the `NSLocationWhenInUseUsageDescription` Info.plist key.
     static var usageDescription: String {
-        (Bundle.main.infoDictionary?["NSLocationWhenInUseUsageDescription"] as? String) ?? ""
+        let value = Bundle.main.infoDictionary?["NSLocationWhenInUseUsageDescription"] as? String ?? ""
+        assert(!value.isEmpty, "NSLocationWhenInUseUsageDescription is missing from Info.plist")
+        return value
     }
 }

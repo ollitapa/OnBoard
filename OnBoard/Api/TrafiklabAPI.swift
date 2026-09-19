@@ -4,8 +4,10 @@ import Foundation
 ///
 /// Wraps the four endpoints the app needs — Stop Lookup, ResRobot Nearby Stops,
 /// Timetables, and Trips (beta) — behind a single struct that depends only on a
-/// `NetworkProtocol` for transport. API keys are read from the app's Info.plist
-/// (no secrets are committed in source); init takes nothing but the network.
+/// `NetworkProtocol` for transport. API keys are read from the env file bundled
+/// with the build (`Secrets.env`, see the README's "API keys" section); a missing
+/// key throws when a request is built, surfacing as the caller's load failure
+/// rather than an empty-key request.
 ///
 /// Both products authenticate via a query-string parameter rather than a header:
 /// the realtime APIs use `key`, ResRobot uses `accessId`.
@@ -17,21 +19,20 @@ struct Trafiklab {
     /// Base URL for ResRobot v2.1 (Nearby Stops).
     private static let resrobotBase = URL(string: "https://api.resrobot.se/v2.1/")!
 
-    /// The realtime-API key, read from the app's Info.plist under `TrafiklabRealtimeKey`.
-    private let realtimeKey: String
-
-    /// The ResRobot key, read from the app's Info.plist under `TrafiklabResrobotKey`.
-    private let resrobotKey: String
+    /// The app's API keys, read when a request is built so a missing key
+    /// surfaces as a load failure instead of an empty-key request.
+    private let secrets: Secrets
 
     /// The transport used to perform requests.
     private let network: NetworkProtocol
 
-    /// Creates a client backed by the given network.
-    /// - Parameter network: The `NetworkProtocol` used to perform requests.
-    init(network: some NetworkProtocol) {
+    /// Creates a client backed by the given network and the app's bundled keys.
+    /// - Parameters:
+    ///   - network: The `NetworkProtocol` used to perform requests.
+    ///   - secrets: The keys to authenticate with.
+    init(network: some NetworkProtocol, secrets: Secrets = Secrets()) {
         self.network = network
-        self.realtimeKey = Self.infoValue(forKey: "TrafiklabRealtimeKey")
-        self.resrobotKey = Self.infoValue(forKey: "TrafiklabResrobotKey")
+        self.secrets = secrets
     }
 
     // MARK: - Stop Lookup (Search screen)
@@ -40,7 +41,15 @@ struct Trafiklab {
     /// - Parameter searchValue: At least one character matched against stop group names.
     /// - Returns: Matching stop groups, busiest first.
     func searchStops(named searchValue: String) async throws -> NationalStopGroupResponse {
-        let path = "stops/name/\(searchValue)"
+        // Percent-encode the query into the path segment: a raw "/" or "?"
+        // in the search text would otherwise split or terminate the path and
+        // hit the wrong endpoint.
+        guard let encoded = searchValue.addingPercentEncoding(
+            withAllowedCharacters: CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/?"))
+        ) else {
+            throw TrafiklabInvalidURL()
+        }
+        let path = "stops/name/\(encoded)"
         let request = try realtimeRequest(path: path)
         return try await decode(request)
     }
@@ -71,7 +80,7 @@ struct Trafiklab {
         components.queryItems = [
             URLQueryItem(name: "originCoordLat", value: String(latitude)),
             URLQueryItem(name: "originCoordLong", value: String(longitude)),
-            URLQueryItem(name: "accessId", value: resrobotKey),
+            URLQueryItem(name: "accessId", value: try secrets.resrobotKey),
             URLQueryItem(name: "format", value: "json"),
             URLQueryItem(name: "maxNo", value: String(maxResults)),
             URLQueryItem(name: "r", value: String(radius))
@@ -134,7 +143,7 @@ struct Trafiklab {
               var components = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
             throw TrafiklabInvalidURL()
         }
-        components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "key", value: realtimeKey)]
+        components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "key", value: try secrets.realtimeKey)]
         guard let resolved = components.url else { throw TrafiklabInvalidURL() }
         return URLRequest(url: resolved)
     }
@@ -144,33 +153,28 @@ struct Trafiklab {
         let (data, _) = try await network.data(for: request)
         return try JSONDecoder().decode(T.self, from: data)
     }
-
-    /// Reads a string value from the main bundle's Info.plist.
-    private static func infoValue(forKey key: String) -> String {
-        (Bundle.main.infoDictionary?[key] as? String) ?? ""
-    }
 }
 
 /// Errors thrown by `Trafiklab`.
-struct TrafiklabInvalidURL: Error { }
+struct TrafiklabInvalidURL: Error, Sendable { }
 
 
 // MARK: - Response models
 
 /// Top-level response for Stop Lookup (`NationalStopGroupResponse`).
-struct NationalStopGroupResponse: Codable, Equatable {
+struct NationalStopGroupResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: StopLookupQuery
     var stop_groups: [StopGroup]
 
-    struct StopLookupQuery: Codable, Equatable {
+    struct StopLookupQuery: Codable, Equatable, Sendable {
         var queryTime: String
         var query: String?
     }
 }
 
 /// A national stop group / meta-stop returned by Stop Lookup.
-struct StopGroup: Codable, Equatable, Identifiable, Hashable {
+struct StopGroup: Codable, Equatable, Identifiable, Hashable, Sendable {
     var id: String
     var name: String
     var area_type: String
@@ -180,7 +184,7 @@ struct StopGroup: Codable, Equatable, Identifiable, Hashable {
 }
 
 /// A child stop reference — never use its `id` for Timetables/Trips calls.
-struct StopRef: Codable, Equatable, Identifiable, Hashable {
+struct StopRef: Codable, Equatable, Identifiable, Hashable, Sendable {
     var id: String
     var name: String
     var lat: Double
@@ -188,12 +192,12 @@ struct StopRef: Codable, Equatable, Identifiable, Hashable {
 }
 
 /// Top-level response for ResRobot Nearby Stops.
-struct NearbyStopsResponse: Codable, Equatable {
+struct NearbyStopsResponse: Codable, Equatable, Sendable {
     var StopLocation: [StopLocation]
 }
 
 /// A nearby stop ranked by distance, returned by ResRobot Nearby Stops.
-struct StopLocation: Codable, Equatable, Identifiable {
+struct StopLocation: Codable, Equatable, Identifiable, Sendable {
     /// Use `extId` (the group id) as the stable identifier; the raw `id` is internal.
     var id: String { extId }
 
@@ -215,7 +219,7 @@ struct StopLocation: Codable, Equatable, Identifiable {
 }
 
 /// Top-level response for Trafiklab Timetables departures.
-struct DeparturesResponse: Codable, Equatable {
+struct DeparturesResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: TimetableQuery
     var stops: [TimetableStop]
@@ -223,7 +227,7 @@ struct DeparturesResponse: Codable, Equatable {
 }
 
 /// Top-level response for Trafiklab Timetables arrivals.
-struct ArrivalsResponse: Codable, Equatable {
+struct ArrivalsResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: TimetableQuery
     var stops: [TimetableStop]
@@ -231,13 +235,13 @@ struct ArrivalsResponse: Codable, Equatable {
 }
 
 /// Query metadata shared by the Timetables responses.
-struct TimetableQuery: Codable, Equatable {
+struct TimetableQuery: Codable, Equatable, Sendable {
     var queryTime: String
     var query: String?
 }
 
 /// A physical stop covered by a Timetables area id.
-struct TimetableStop: Codable, Equatable, Identifiable {
+struct TimetableStop: Codable, Equatable, Identifiable, Sendable {
     var id: String
     var name: String
     var lat: Double
@@ -247,7 +251,7 @@ struct TimetableStop: Codable, Equatable, Identifiable {
 }
 
 /// A single departure/arrival row on a stop board.
-struct CallAtLocation: Codable, Equatable, Identifiable {
+struct CallAtLocation: Codable, Equatable, Identifiable, Sendable {
     /// A stable row id derived from the trip; falls back to scheduled time.
     var id: String { trip?.trip_id ?? "\(scheduled)-\(route?.designation ?? "")" }
 
@@ -267,7 +271,7 @@ struct CallAtLocation: Codable, Equatable, Identifiable {
 }
 
 /// Route information for a departure/arrival row.
-struct Route: Codable, Equatable {
+struct Route: Codable, Equatable, Sendable {
     /// The line-badge number, e.g. "3" or "T14".
     var designation: String?
     /// `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT`.
@@ -278,7 +282,7 @@ struct Route: Codable, Equatable {
     var name: String?
 }
 
-struct TransportMode: Codable, Equatable, Hashable, ExpressibleByStringLiteral {
+struct TransportMode: Codable, Equatable, Hashable, Sendable, ExpressibleByStringLiteral {
     /// `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT`.
     var rawMode: String
 
@@ -298,7 +302,7 @@ struct TransportMode: Codable, Equatable, Hashable, ExpressibleByStringLiteral {
 }
 
 /// Operator branding for a departure/arrival row.
-struct Agency: Codable, Equatable {
+struct Agency: Codable, Equatable, Sendable {
     var name: String?
     var operator_: String?
 
@@ -309,37 +313,37 @@ struct Agency: Codable, Equatable {
 }
 
 /// Reference to a trip, needed to open the Live Trip screen.
-struct TripRef: Codable, Equatable {
+struct TripRef: Codable, Equatable, Sendable {
     var trip_id: String
     var start_date: String
 }
 
 /// A platform/läge, e.g. "Läge C".
-struct Platform: Codable, Equatable {
+struct Platform: Codable, Equatable, Sendable {
     var id: String?
     var designation: String?
 }
 
 /// A service message for a stop or departure.
-struct Alert: Codable, Equatable, Identifiable {
+struct Alert: Codable, Equatable, Identifiable, Sendable {
     var id: String
     var text: String?
 }
 
 /// Top-level response for Trafiklab Trips (beta).
-struct TripResponse: Codable, Equatable {
+struct TripResponse: Codable, Equatable, Sendable {
     var timestamp: String
     var query: TripQuery?
     var trip: Trip?
 
-    struct TripQuery: Codable, Equatable {
+    struct TripQuery: Codable, Equatable, Sendable {
         var queryTime: String
         var query: String?
     }
 }
 
 /// A single trip with its stop-by-stop schedule.
-struct Trip: Codable, Equatable, Identifiable {
+struct Trip: Codable, Equatable, Identifiable, Sendable {
     var id: String?
     var trip_id: String?
     var start_date: String?
@@ -348,7 +352,7 @@ struct Trip: Codable, Equatable, Identifiable {
 }
 
 /// One scheduled stop along a trip, with delay/ETA per stop.
-struct TripStop: Codable, Equatable, Identifiable {
+struct TripStop: Codable, Equatable, Identifiable, Sendable {
     var id: String
     var name: String?
     var lat: Double?
@@ -396,8 +400,13 @@ struct LocalDate: Codable, Hashable, Sendable {
         try container.encode(Self.formatter.format(date))
     }
 
+    /// The Trafiklab APIs send timestamps without a zone designator
+    /// (`YYYY-MM-DDTHH:mm:ss`) in Swedish local time, matching the GTFS Sweden
+    /// data they are built from. Pin the zone rather than following the
+    /// device, so a traveller outside Sweden sees the same departure instants
+    /// the boards on the platform show.
     private static let formatter = Date.ISO8601FormatStyle
-        .iso8601(timeZone: .current)
+        .iso8601(timeZone: TimeZone(identifier: "Europe/Stockholm")!)
         .year()
         .month()
         .day()
