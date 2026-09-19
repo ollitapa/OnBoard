@@ -65,6 +65,80 @@ UI tests substitute mocks through launch arguments (`--mock-network`,
 `--skip-location-permission`, `--mock-storage`) checked in `MyApp`, which keeps
 the entry point self-contained.
 
+## Why this architecture
+
+The point of this layout is that **SwiftUI is the framework**: no Combine
+publishers, no coordinator objects, no third-party state containers. The
+constraints and what they buy:
+
+- **No external dependencies** — the whole dependency surface is three
+  protocols (`NetworkProtocol`, `LocationManager`) and SwiftData. Nothing to
+  version, nothing to audit, and the same code teaches you the platform
+  primitives an MVVM/TCA layer would otherwise wrap.
+- **`@Observable` models over `ObservableObject`/`@Published`** — granular
+  tracking means a screen re-renders only for the properties its body reads,
+  and models stay plain Swift (no `@Published` wrappers, no `objectWillChange`).
+- **Dependencies on methods, not `init`** — a model's `init` takes nothing, so
+  constructing one in a view (`@State var model = Model()`) or a test
+  (`Model()`) never needs a container or factory; the load call receives the
+  transport (`loadStops(network:…)`), which is also the seam a test injects
+  through.
+- **The environment is the composition root's delivery mechanism** — the app
+  entry point is the only place that decides *which* implementations exist;
+  everything downstream reads an abstraction. Views get previews for free
+  because the environment's defaults are the live implementations, and
+  previews/tests override exactly the values they need.
+- **Feature folders over type folders** — a screen's model, view, and
+  presentation extensions live together, so adding a feature is adding a
+  folder, and deleting one removes everything it owns. Only cross-cutting
+  infrastructure (`Network/`, `Location/`, `Api/`) sits outside.
+
+## Replicating this in your app
+
+The checklist, in the order we'd apply it to a new app:
+
+1. **Model each dependency as a small protocol** with one live implementation
+   (`LiveNetwork`) and no globals. If you can't name a second implementation
+   you'd want (mock, preview stub, cache-decorated), you don't need the
+   protocol yet.
+2. **Publish it with `@Entry` on `EnvironmentValues`, defaulting to the live
+   implementation**, so views and previews render without wiring:
+   `@Entry var network: NetworkProtocol = LiveNetwork()`.
+3. **One `@MainActor @Observable final class` per screen**, `init()` taking
+   nothing, a single load lifecycle per fetch, errors surfaced as
+   `failure: String?` rather than thrown.
+4. **Load in `.task`/`.task(id:)`, never in the model's `init` or a factory**,
+   so SwiftUI owns the async lifetime and cancels it for you.
+5. **Inject shared, cross-screen models (`FavoritesModel`) from the owning
+   view with `@State` + `.environment(model)`**, read with
+   `@Environment(Model.self)`.
+6. **Persist through the environment's `ModelContext` passed into
+   load/mutate methods**, one aggregate root per feature, created on demand.
+7. **Serve tests/previews from a feature-specific mock service**
+   (`MockTrafiklabService`) that round-trips real `Codable` types for the real
+   endpoint paths, and keep a bare `MockNetwork` only for request-shape
+   and invalid-input assertions.
+8. **Drive UI tests with string launch arguments** checked in the app entry
+   point's `make*()` factories (`--mock-network`), so the harness is the same
+   code path production uses.
+
+### How the pieces fit
+
+```mermaid
+flowchart TD
+    MyApp["MyApp (composition root)\nbuilds LiveNetwork, ModelContainer,\nLocationAuthorization"] -->|".environment(\.network)"| ENV
+    MyApp -->|".modelContainer"| ENV["SwiftUI environment"]
+    MyApp -->|".environment(model)"| ENV
+    ENV -->|"@Environment(\.network)"| VIEW["Screen view\n.task { await model.load(network: …) }"]
+    ENV -->|"@Environment(Model.self)"| VIEW
+    VIEW -->|"load(network:)"| MODEL["@MainActor @Observable model\nfailure / isLoading / rows"]
+    MODEL -->|"builds client from transport"| API["Trafiklab client\n(endpoints + Codable types)"]
+    API -->|"data(for:)"| NET["NetworkProtocol"]
+    NET --> LIVE["LiveNetwork (URLSession)"]
+    NET --> MOCK["MockTrafiklabService / MockNetwork\n(unit tests, previews, UI tests via --mock-network)"]
+    MODEL -->|"mutate(context:)"| STORE["SwiftData ModelContext\n(StoredFavorites aggregate)"]
+```
+
 ## API keys
 
 The app reads its Trafiklab API keys from a `Secrets.env` file bundled with the
