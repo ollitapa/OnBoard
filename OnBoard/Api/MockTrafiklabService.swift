@@ -113,9 +113,9 @@ struct MockTrafiklabService: NetworkProtocol {
             let value = searchValue(for: url)
             let body = """
                 {
-                  "timestamp":"\(Self.cannedTimestamp)",
+                  "timestamp":"2099-01-01T12:00:00",
                   "query":{
-                    "queryTime":"\(Self.cannedTimestamp)",
+                    "queryTime":"2099-01-01T12:00:00",
                     "query":\(Self.jsonValue(value))
                   },
                   "stop_groups":[\(servingStopGroups(value).joined(separator: ","))]
@@ -127,9 +127,9 @@ struct MockTrafiklabService: NetworkProtocol {
         if request.httpMethod == "GET", url.path.hasSuffix("/stops/list") {
             let body = """
                 {
-                  "timestamp":"\(Self.cannedTimestamp)",
+                  "timestamp":"2099-01-01T12:00:00",
                   "query":{
-                    "queryTime":"\(Self.cannedTimestamp)"
+                    "queryTime":"2099-01-01T12:00:00"
                   },
                   "stop_groups":[\(servingStopGroups(nil).joined(separator: ","))]
                 }
@@ -141,9 +141,9 @@ struct MockTrafiklabService: NetworkProtocol {
             let rows = departuresByAreaId[areaId(for: url) ?? ""] ?? "[]"
             let body = """
                 {
-                  "timestamp":"\(Self.cannedTimestamp)",
+                  "timestamp":"2099-01-01T12:00:00",
                   "query":{
-                    "queryTime":"\(Self.cannedTimestamp)"
+                    "queryTime":"2099-01-01T12:00:00"
                   },
                   "stops":[],
                   "departures":\(rows)
@@ -156,9 +156,9 @@ struct MockTrafiklabService: NetworkProtocol {
             let trip = tripsByKey[tripKey(for: url) ?? ""] ?? #"{"stops":[]}"#
             let body = """
                 {
-                  "timestamp":"\(Self.cannedTimestamp)",
+                  "timestamp":"2099-01-01T12:00:00",
                   "query":{
-                    "queryTime":"\(Self.cannedTimestamp)"
+                    "queryTime":"2099-01-01T12:00:00"
                   },
                   "trip":\(trip)
                 }
@@ -209,10 +209,6 @@ struct MockTrafiklabService: NetworkProtocol {
     }
 
     // MARK: - Fixture handling
-
-    /// The fixed `timestamp`/`queryTime` stamped into response envelopes, in
-    /// the Trafiklab realtime format.
-    private static let cannedTimestamp = "2099-01-01T12:00:00"
 
     /// The Trafiklab timestamp format `YYYY-MM-DDTHH:mm:ss` pinned to
     /// Europe/Stockholm, the same configuration `LocalDate` parses with, so a
