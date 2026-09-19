@@ -40,11 +40,14 @@ struct PrintingNetwork: NetworkProtocol {
     /// every request through the wrapper draws from the same sequence even
     /// when calls run concurrently.
     final class RequestCounter: Sendable {
-        private let count = Mutex(0)
+        private let count = Mutex<Int>(0)
 
         /// Returns the next number in the sequence, starting at 1.
         func next() -> Int {
-            count.withLock { $0 += 1 }
+            count.withLock {
+                $0 += 1
+                return $0
+            }
         }
     }
 
