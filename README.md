@@ -55,7 +55,12 @@ The core patterns:
   and injects it with `.modelContainer(container)`; views hand the
   environment's `ModelContext` to their model's load/mutate methods. Each
   feature persists one aggregate root (e.g. `StoredFavorites` with a cascading
-  relationship to `[Favorite]`).
+  relationship to `[Favorite]`). A container that fails to open crashes at
+  startup **by choice** — the app has no working persistence without it, and a
+  loud failure beats silently dropped writes. An app that can rebuild its
+  store (or migrate a stale schema) should catch and recreate the container
+  there instead; that policy is a product decision, so it is written down
+  rather than inherited.
 - **Presentation on the domain type**: display logic (transport mode icons,
   labels, parsed dates) lives in computed properties on the value types via
   `Type+Feature.swift` extensions next to their consumers, so it is shared
