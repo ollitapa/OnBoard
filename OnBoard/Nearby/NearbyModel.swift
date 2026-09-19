@@ -1,19 +1,28 @@
 import Observation
 import Foundation
 
-struct Stop: Codable, Identifiable, Equatable, Hashable {
+struct Stop: Codable, Identifiable, Equatable, Hashable, Sendable {
     var id: String
     var name: String
     var latitude: Double
     var longitude: Double
+    /// Distance from the query point in meters, as ResRobot reports it.
+    var distance: Int?
 }
 
 @MainActor
 @Observable
 final class NearbyModel {
 
+    /// The most recent transport error, if the last load failed.
     var failure: String?
 
+    /// Whether a load is currently in progress.
+    var isLoading: Bool = false
+
+    /// The nearby stops from the most recent successful load. Kept (not cleared)
+    /// when a refresh fails, so the view can show stale rows with a failure
+    /// banner instead of an empty screen.
     var stops: [Stop] = []
 
     init() {}
@@ -25,13 +34,17 @@ final class NearbyModel {
     ///   - latitude: WGS84 decimal degrees.
     ///   - longitude: WGS84 decimal degrees.
     func loadStops(network: some NetworkProtocol, latitude: Double, longitude: Double) async {
+        isLoading = true
+        defer { isLoading = false }
 
         do {
             let api = Trafiklab(network: network)
             let response = try await api.nearbyStops(latitude: latitude, longitude: longitude)
-            stops = response.StopLocation.map(Stop.init)
+            stops = response.StopLocation.compactMap(Stop.init)
             failure = nil
 
+        } catch is CancellationError {
+            // Task was cancelled, ignore.
         } catch {
             failure = String(describing: error)
         }
@@ -42,10 +55,36 @@ final class NearbyModel {
 extension Stop {
     /// Creates a `Stop` from a ResRobot `StopLocation`, using `extId` (the group id)
     /// as the stable identifier and parsing the string coordinates ResRobot returns.
-    init(_ location: StopLocation) {
+    /// Returns `nil` when either coordinate string can't be parsed, so an
+    /// unlocatable stop is skipped rather than placed at the null island (0, 0).
+    init?(_ location: StopLocation) {
+        guard let latitude = Double(location.lat),
+              let longitude = Double(location.lon) else {
+            return nil
+        }
         self.id = location.extId
         self.name = location.name
-        self.latitude = Double(location.lat) ?? 0
-        self.longitude = Double(location.lon) ?? 0
+        self.latitude = latitude
+        self.longitude = longitude
+        self.distance = location.dist
+    }
+
+    /// The distance for the row subtitle: meters under 1 km, otherwise
+    /// kilometers with at most one decimal. `nil` when the stop carries no
+    /// distance (ResRobot always sends one for nearby results).
+    var distanceLabel: String? {
+        guard let distance else { return nil }
+        if distance < 1000 {
+            return "\(distance) m"
+        }
+        let kilometers = Double(distance) / 1000
+        return kilometers.formatted(.number.precision(.fractionLength(0...1))) + " km"
+    }
+
+    /// Computed minutes to walk (for the green time chip)
+    var minutesToWalk: Int? {
+        // This would be calculated from user location in a real implementation
+        // For now, return nil to hide the chip
+        return nil
     }
 }

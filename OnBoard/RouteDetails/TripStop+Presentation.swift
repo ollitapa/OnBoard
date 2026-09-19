@@ -44,8 +44,8 @@ extension Array where Element == TripStop {
     /// The index of the stop the vehicle is currently at or heading to next:
     /// the first stop whose departure time has not yet passed at `now`. A stop
     /// still ahead by minutes is "current" once the previous stop's time has
-    /// passed, so the bus marker sits on the next un-passed stop \u2014 matching
-    /// the storyboard's "snaps to next stop" behavior (see API-Instructions \u00a75.4).
+    /// passed, so the bus marker sits on the next un-passed stop — matching
+    /// the storyboard's "snaps to next stop" behavior (see API-Instructions ·5.4).
     /// Returns `nil` when the trip is empty or every stop has passed.
     func currentStopIndex(now: Date = Date()) -> TransportPosition? {
         guard !isEmpty else { return nil }

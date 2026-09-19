@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// The Favourites tab ("Step 4 — Save a stop → skip the search next time" in
+/// The Favourites tab ("Step 4 → Save a stop → skip the search next time" in
 /// `Designs/storyboard.html`).
 ///
 /// Shows the saved stops as rows matching the storyboard's `fav-row`: a star,
@@ -31,17 +31,21 @@ private struct FavoritesContent: View {
             if let failure = model.failure {
                 ContentUnavailableView {
                     Label("Couldn't load favourites", systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.ink)
                 } description: {
                     Text(failure)
+                        .foregroundStyle(.inkSoft)
                 }
             } else if model.isLoading {
                 ProgressView()
+                    .tint(.accent)
             } else if model.favorites.isEmpty == true {
                 FavoritesEmptyHint()
             } else {
                 FavoritesList(model: model)
             }
         }
+        .background(Color.paper)
         .onAppear {
             model.loadFavorites(context: modelContext)
         }
@@ -60,6 +64,8 @@ private struct FavoritesList: View {
                 NavigationLink(value: favorite) {
                     FavoriteRow(favorite: favorite)
                 }
+                .listRowBackground(Color.panel)
+
             }
             .onDelete { indexSet in
                 let ids = indexSet.map { model.favorites[$0].id }
@@ -69,6 +75,7 @@ private struct FavoritesList: View {
             }
         }
         .listStyle(.plain)
+        .background(Color.paper)
         .navigationDestination(for: Favorite.self) { favorite in
             StopDetailsView(stopId: favorite.id, stopName: favorite.name)
         }
@@ -81,22 +88,24 @@ private struct FavoriteRow: View {
     let favorite: Favorite
 
     var body: some View {
-        HStack(alignment: .center, spacing: 11) {
+        HStack(alignment: .center, spacing: 12) {
             Image(systemName: "star.fill")
-                .foregroundStyle(.yellow)
-                .font(.callout)
-            VStack(alignment: .leading, spacing: 1) {
+                .foregroundStyle(.star)
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(favorite.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.ink)
                 if !favorite.lineSummary.isEmpty {
                     Text(favorite.lineSummary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                        .foregroundStyle(.inkSoft)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
     }
 }
 
@@ -106,8 +115,10 @@ private struct FavoritesEmptyHint: View {
     var body: some View {
         ContentUnavailableView {
             Label("No favourites yet", systemImage: "star")
+                .foregroundStyle(.ink)
         } description: {
             Text("Add stops by tapping the star on any stop page.")
+                .foregroundStyle(.inkSoft)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

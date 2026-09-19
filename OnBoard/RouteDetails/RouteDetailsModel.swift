@@ -8,12 +8,12 @@ import Observation
 ///
 /// Built from a `CallAtLocation` via ``CallAtLocation.routeDetails``; `nil`
 /// when the departure has no `trip` reference and so can't open the screen.
-struct RouteDetails: Identifiable, Hashable {
+struct RouteDetails: Identifiable, Hashable, Sendable {
     /// `trip.trip_id` from the tapped departure, fed to `Trafiklab.trip`.
     let tripId: String
     /// `trip.start_date` from the tapped departure, fed to `Trafiklab.trip`.
     let startDate: String
-    /// The line-badge label, e.g. "55" or "T14", shown as "Line 55 \u2192 Ropsten".
+    /// The line-badge label, e.g. "55" or "T14", shown as "Line 55 → Ropsten".
     let lineLabel: String
     /// The destination text, shown after the arrow in the header.
     let direction: String
@@ -29,7 +29,7 @@ struct RouteDetails: Identifiable, Hashable {
 }
 
 /// The view model for the Live Trip screen (`Designs/storyboard.html`,
-/// "Step 3 \u2014 Tap a departure \u2192 track the bus stop by stop").
+/// "Step 3 — Tap a departure → track the bus stop by stop").
 ///
 /// Loads a single trip's stop-by-stop schedule via `Trafiklab.trip` and stores
 /// the raw `TripStop` rows for the view to render. Mirrors ``StopDetailsModel``:
@@ -60,14 +60,20 @@ final class RouteDetailsModel {
     ///   - startDate: The `trip.start_date` from the same `CallAtLocation`.
     func loadTrip(network: some NetworkProtocol, tripId: String, startDate: String) async {
         isLoading = true
-        defer { isLoading = false }
+        defer { if !Task.isCancelled { isLoading = false } }
 
         do {
             let api = Trafiklab(network: network)
             let response = try await api.trip(tripId: tripId, startDate: startDate)
+
+            // No need to do any updates if task is cancelled.
+            try Task.checkCancellation()
+
             stops = response.trip?.stops ?? []
             failure = nil
-        } catch {
+        } catch is CancellationError {
+            // Task was cancelled, ignore.
+        }  catch {
             stops = []
             failure = String(describing: error)
         }

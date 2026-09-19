@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// The Stop board screen ("Step 2 — Tap a stop → live departure board" in
+/// The Stop board screen ("Step 2 → Tap a stop → live departure board" in
 /// `Designs/storyboard.html`).
 ///
 /// Shows a dark header with the stop name and an "updated just now" meta line,
@@ -25,30 +25,41 @@ struct StopDetailsView: View {
 
     @State private var model = StopDetailsModel()
 
+    /// Bumped after each poll cycle so `.task(id:)` restarts the loop and the
+    /// screen keeps refreshing while it is on screen; the task (and therefore
+    /// the polling) is cancelled when the view disappears. Mirrors
+    /// ``RouteDetailsView``'s refresh trigger.
+    @State private var refreshTrigger = 0
+
     var body: some View {
         Group {
             if let failure = model.failure {
                 ContentUnavailableView {
                     Label("Couldn't load departures", systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.ink)
                 } description: {
                     Text(failure)
+                        .foregroundStyle(.inkSoft)
                 }
             } else if model.departures.isEmpty {
                 if model.isLoading {
                     ProgressView()
+                        .tint(.accent)
                 } else {
                     ContentUnavailableView(
                         "No departures",
                         systemImage: "tray",
                         description: Text("There are no departures in the next hour.")
                     )
+                    .foregroundStyle(.ink, .inkSoft)
                 }
             } else {
                 DeparturesList(departures: model.departures)
             }
         }
+        .background(Color.paper)
+        .navigationSubtitle(model.lastUpdatedText)
         .navigationTitle(stopName)
-        .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: RouteDetails.self) { route in
             RouteDetailsView(route: route)
         }
@@ -62,8 +73,11 @@ struct StopDetailsView: View {
                 )
             }
         }
-        .task {
+        .task(id: refreshTrigger) {
             await model.loadDepartures(network: network, areaId: stopId)
+            // Refresh every 60 seconds
+            try? await Task.sleep(for: .seconds(60))
+            refreshTrigger += 1
         }
     }
 }
@@ -89,9 +103,11 @@ private struct DeparturesList: View {
                 }
             }
             .listRowSeparator(.visible)
-            .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+            .listRowInsets(EdgeInsets(top: 24, leading: 16, bottom: 24, trailing: 16))
+            .listRowBackground(Color.panel)
         }
         .listStyle(.plain)
+        .background(Color.paper)
     }
 }
 
@@ -108,8 +124,8 @@ private struct DepartureRow: View {
             LineBadge(departure: departure)
             VStack(alignment: .leading, spacing: 6) {
                 Text(departure.destination)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.ink)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 StatusPill(departure: departure)
@@ -132,28 +148,22 @@ private struct StatusPill: View {
     var body: some View {
         if departure.canceled == true {
             Text("Cancelled")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.red)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.statusRed)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
-                .background(Color.red.opacity(0.15), in: Capsule())
+                .background(Color.statusRedTint, in: Capsule())
         } else if let delay = departure.delayMinutes {
             Text(delay.label)
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(delay.minutes < 0 ? .green : .orange)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(delay.minutes < 0 ? .statusGreen : .statusYellow)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .background(
-                    Color(delay.minutes < 0 ? .green : .orange).opacity(0.15),
+                    delay.minutes < 0 ? Color.statusGreenTint : Color.statusYellowTint,
                     in: Capsule()
                 )
         }
-    }
-
-    /// Formats a signed delay value as "+3 min" / "-2 min".
-    static func delayLabel(_ minutes: Int) -> String {
-        let sign = minutes >= 0 ? "+" : ""
-        return "\(sign)\(minutes) min"
     }
 }
 
@@ -168,15 +178,15 @@ private struct Countdown: View {
     var body: some View {
         if departure.canceled == true {
             Text("Cancelled")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.inkSoft)
                 .strikethrough()
         } else {
             Text(Self.text(for: departure))
-                .font(.title3.weight(.bold))
-                .foregroundStyle(.primary)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.ink)
                 .monospacedDigit()
-                .frame(minWidth: 44, alignment: .trailing)
+                .frame(minWidth: 48, alignment: .trailing)
         }
     }
 
@@ -209,11 +219,11 @@ private struct LineBadge: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             Text(departure.lineLabel)
-                .font(.callout.weight(.heavy))
+                .font(.body.weight(.heavy))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
-                .frame(minWidth: 42, minHeight: 40)
-                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 11))
+                .frame(minWidth: 46, minHeight: 44)
+                .background(Color.accentDeep, in: RoundedRectangle(cornerRadius: 11))
             ModeBlip(mode: departure.route?.transport_mode)
         }
         .accessibilityElement(children: .ignore)
@@ -239,13 +249,15 @@ private struct ModeBlip: View {
     var body: some View {
         if let mode {
             Image(systemName: mode.icon)
-                .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.primary)
-                .padding(2)
-                .frame(width: 19, height: 19)
-                .background(.background, in: Circle())
-                .overlay(Circle().strokeBorder(.background, lineWidth: 2))
-                .offset(x: 5, y: 5)
+                .resizable()
+                .font(.title.weight(.heavy))
+                .aspectRatio(contentMode: .fit)
+                .padding(5)
+                .frame(width: 30, height: 30)
+                .foregroundStyle(.accentDeep)
+                .background(Color.panel, in: Circle())
+                .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
+                .offset(x: 10, y: 15)
         }
     }
 }
@@ -297,7 +309,8 @@ private struct FavoriteToggle: View {
             )
         } label: {
             Image(systemName: model.contains(stopId) ? "star.fill" : "star")
-                .foregroundStyle(model.contains(stopId) ? .yellow : .secondary)
+                .font(.title3)
+                .foregroundStyle(model.contains(stopId) ? .star : .inkSoft)
                 .accessibilityLabel(model.contains(stopId) ? "Remove favourite" : "Add favourite")
         }
     }
