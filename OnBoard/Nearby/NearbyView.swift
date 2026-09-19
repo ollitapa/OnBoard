@@ -12,16 +12,16 @@ struct NearbyView: View {
 
     var body: some View {
         Group {
-            if model.stops.isEmpty {
-                if model.failure != nil {
-                    ContentUnavailableView {
-                        Label("Error loading stops", systemImage: "wifi.exclamationmark")
-                            .foregroundStyle(.ink)
-                    } description: {
-                        Text(model.failure ?? "")
-                            .foregroundStyle(.inkSoft)
-                    }
-                } else if location.coordinate == nil {
+            if model.failure != nil {
+                ContentUnavailableView {
+                    Label("Error loading stops", systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.ink)
+                } description: {
+                    Text(model.failure ?? "")
+                        .foregroundStyle(.inkSoft)
+                }
+            } else if model.stops.isEmpty {
+                if location.coordinate == nil {
                     ContentUnavailableView {
                         Label("Waiting for your location", systemImage: "location")
                             .foregroundStyle(.ink)
@@ -117,7 +117,7 @@ private struct NearbyStopRow: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     @Previewable @State var network: NetworkProtocol = mockNetwork()
     @Previewable @State var locationModel: LocationAuthorization = previewLocationAuthorization()
 
@@ -126,4 +126,22 @@ private struct NearbyStopRow: View {
     }
     .environment(\.network, network)
     .environment(locationModel)
+}
+
+#Preview("Failure") {
+    @Previewable @State var locationModel: LocationAuthorization = previewLocationAuthorization()
+
+    NavigationStack {
+        NearbyView()
+    }
+    .environment(\.network, DisconnectedNetwork())
+    .environment(locationModel)
+}
+
+#Preview("Always loading location") {
+    NavigationStack {
+        NearbyView()
+    }
+    .environment(\.network, DisconnectedNetwork())
+    .environment(LocationAuthorization(manager: AlwaysLoadingLocationManager()))
 }

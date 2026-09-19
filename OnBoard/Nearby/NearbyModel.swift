@@ -43,6 +43,8 @@ final class NearbyModel {
             stops = response.StopLocation.compactMap(Stop.init)
             failure = nil
 
+        } catch is CancellationError {
+            // Task was cancelled, ignore.
         } catch {
             failure = String(describing: error)
         }
