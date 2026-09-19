@@ -180,13 +180,27 @@ departures | arrivals: CallAtLocation[]
 | is_realtime | boolean | whether `realtime`/`delay`/`realtime_platform` are live or just copied from scheduled — **check this before styling a row as "on time," or a row with no live data will look falsely confirmed on-time** |
 | route.designation | string | the line-badge number (e.g. "3", "T14") |
 | route.transport_mode | string | `BUS` / `METRO` / `TRAM` / `TRAIN` / `TAXI` / `BOAT` — drives which mode icon renders in the badge |
+| route.transport_mode_code | integer | the GTFS extended route type behind `transport_mode` (e.g. `700` bus, `401` metro) |
 | route.direction | string | destination text — note this can change mid-route ("A via B" → "A" after passing B) |
 | route.name | string | only set for lines known by name rather than number (e.g. Saltsjöbanan) |
+| route.origin / route.destination | stop ref `{id, name}` | the route's first and last stop — unlike `direction`, these don't change mid-route |
+| agency.id | string | agency id matching GTFS Sweden 3 |
 | agency.name / agency.operator | string | operator branding, if ever surfaced |
 | trip.trip_id + trip.start_date | string | **needed to open the Live Trip screen** — pass both to Trafiklab Trips |
+| trip.technical_number | integer | technical trip number; unique in combination with `start_date` + `agency.id` |
 | stop | Stop | which physical stop within the area this call happens at (an area can bundle multiple platforms/modes) |
 | scheduled_platform / realtime_platform | Platform \| null | `{id, designation}` — the "Läge C" text |
 | alerts | Alert[] | service messages for this specific departure |
+
+**`Alert`** (same shape everywhere it appears, also on `Stop`):
+
+| Field | Type | Notes |
+|---|---|---|
+| type | string | cause category, e.g. `MAINTENANCE`, `CONSTRUCTION`, `OTHER_CAUSE` |
+| title | string | headline, e.g. "Stn.medd. Avstängd hiss Hallunda" |
+| text | string | full message |
+
+There is no `id` — don't key UI rows or `Identifiable` conformances on one.
 
 ---
 
@@ -198,6 +212,46 @@ GET https://realtime-api.trafiklab.se/v1/trips/{trip_id}/{start_date}?key={key}
 
 - `trip_id` and `start_date` come straight off a `CallAtLocation.trip` object from the Timetables response — the user reaches this screen by tapping a departure row, so both values are already in hand from the previous call.
 - Marked **beta** — treat the response shape as more likely to change than Stop Lookup/Timetables, and don't be surprised by field additions without notice even beyond the usual policy.
+
+**Response model — `TripResponse`:**
+
+```
+timestamp: string
+query: { queryTime: string, query: string }   // query = trip_id, queryTime = start_date
+agency: Agency
+route: Route
+trip: { trip_id, start_date, technical_number }
+calls: CallAtLocation[]                        // one per stop, in travel order
+```
+
+`agency` and `route` reuse the Timetables shapes (§5.3), and `route.origin`/`route.destination` give the whole journey's endpoints.
+
+**`trip`** — the trip reference itself:
+
+| Field | Type | Notes |
+|---|---|---|
+| trip_id | string | as requested |
+| start_date | string | as requested |
+| technical_number | integer | unique with `start_date` + `agency.id` |
+
+**`CallAtLocation`** — one stop on the journey. Unlike the Timetables variant, a Trips call **splits arrival and departure into separate pairs** (the vehicle arrives, dwells, then departs):
+
+| Field | Type | Maps to storyboard |
+|---|---|---|
+| scheduledArrival | string (`YYYY-MM-DDTHH:mm:ss`) | scheduled arrival |
+| realtimeArrival | string | live arrival — falls back to `scheduledArrival` if no realtime data |
+| arrivalDelay | integer (seconds, can be negative) | `0` when no realtime data |
+| arrivalCanceled | boolean | |
+| scheduledDeparture | string | scheduled departure |
+| realtimeDeparture | string | live departure — falls back to `scheduledDeparture` |
+| departureDelay | integer (seconds, can be negative) | `0` when no realtime data |
+| departureCanceled | boolean | |
+| stop | Stop | `{id, area_id, name, lat, lon}` — where on the route this call happens. Note `area_id` appears only on this variant |
+| scheduled_platform / realtime_platform | Platform \| null | `{id, designation}` — the "Läge C" text |
+| alerts | Alert[] | see the `Alert` table in §5.3 |
+| is_realtime | boolean | whether the realtime/delay fields above are live or copied from scheduled — **same caveat as §5.3: check this before styling a stop as "on time"** |
+
+There is no single `scheduled`/`realtime`/`delay`/`canceled` on a Trips call — a departure can be cancelled while the arrival at the same stop is still serviced, or vice versa. Render passed/current/upcoming from `realtimeDeparture ?? scheduledDeparture` (falling back to the arrival pair at the final stop), and drive the delay pill from `departureDelay ?? arrivalDelay`, gated on `is_realtime`.
 
 ⚠️ **Important gap:** none of the Trafiklab realtime endpoints return a live GPS position for the vehicle. What Trips/Timetables give you is a **stop-by-stop schedule with delay/ETA per stop** — which is enough to build the "passed / current / upcoming" stop list in the storyboard, but **not** enough to animate a bus icon moving continuously along the route line between stops. That would require a separate GTFS-Realtime `VehiclePositions` feed (GTFS Sweden 3 Realtime / GTFS Regional Realtime), which is a protobuf-based feed, not part of these three JSON APIs. Worth deciding early whether the live-trip screen's moving marker is "snaps to next stop" (achievable now) or "smoothly animates between stops" (needs the extra feed).
 

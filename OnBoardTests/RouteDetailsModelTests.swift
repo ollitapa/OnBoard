@@ -7,17 +7,17 @@ struct RouteDetailsModelTests {
 
     @Test func loadTripSuccess() async throws {
         // Given: a canned trip keyed by the same trip id / start date the model
-        // requests. The expected stops are decoded from the service's stored
+        // requests. The expected calls are decoded from the service's stored
         // fixture so the comparison isn't affected by the fixture's relative
         // timestamps being re-evaluated.
         let network = MockTrafiklabService(tripsByKey: MockTrafiklabService.defaultTripsByKeyJSON)
         let fixture = try #require(network.tripsByKey["900001/2099-01-01"])
-        let trip = try JSONDecoder().decode(Trip.self, from: Data(fixture.utf8))
+        let response = try JSONDecoder().decode(TripResponse.self, from: Data(fixture.utf8))
         let model = RouteDetailsModel()
         // When
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
-        #expect(model.stops == trip.stops)
+        #expect(model.calls == response.calls)
         #expect(model.failure == nil)
         #expect(model.isLoading == false)
     }
@@ -30,7 +30,7 @@ struct RouteDetailsModelTests {
         // When
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
-        #expect(model.stops == [])
+        #expect(model.calls == [])
         #expect(model.failure == nil)
     }
 
@@ -42,7 +42,7 @@ struct RouteDetailsModelTests {
         // When
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
-        #expect(model.stops == [])
+        #expect(model.calls == [])
         #expect(model.failure != nil)
         #expect(model.isLoading == false)
     }
@@ -60,7 +60,7 @@ struct RouteDetailsModelTests {
         // When
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
-        #expect(model.stops == [])
+        #expect(model.calls == [])
         #expect(model.failure != nil)
     }
 
@@ -88,90 +88,124 @@ struct RouteDetailsModelTests {
         #expect(route.delayMinutes?.minutes == 3)
     }
 
-    // MARK: - TripStop presentation
+    // MARK: - TripCall presentation
 
-    @Test func tripStopDatePrefersRealtime() throws {
-        let stop = Self.stop(
-            scheduled: "2099-01-01T12:00:00",
-            realtime: "2099-01-01T12:03:00"
+    @Test func tripCallDatePrefersRealtimeDeparture() throws {
+        let call = Self.call(
+            scheduledDeparture: "2099-01-01T12:00:00",
+            realtimeDeparture: "2099-01-01T12:03:00"
         )
-        let date = try #require(stop.date)
+        let date = try #require(call.date)
         let calendar = Calendar(identifier: .gregorian)
         let minute = calendar.dateComponents([.minute], from: date).minute
         #expect(minute == 3)
     }
 
-    @Test func tripStopDelayMinutesNilWithoutRealtime() {
-        let stop = Self.stop(
-            scheduled: "2099-01-01T12:00:00",
-            isRealtime: false,
-            delay: 180
+    @Test func tripCallDateFallsBackToArrivalAtFinalStop() throws {
+        let call = Self.call(
+            scheduledDeparture: nil,
+            scheduledArrival: "2099-01-01T12:00:00",
+            realtimeArrival: "2099-01-01T12:05:00"
         )
-        #expect(stop.delayMinutes == nil)
+        let date = try #require(call.date)
+        let calendar = Calendar(identifier: .gregorian)
+        let minute = calendar.dateComponents([.minute], from: date).minute
+        #expect(minute == 5)
     }
 
-    @Test func tripStopDelayMinutesRoundsPositiveUp() {
-        let stop = Self.stop(
-            scheduled: "2099-01-01T12:00:00",
-            isRealtime: true,
-            delay: 181
+    @Test func tripCallDelayMinutesNilWithoutRealtime() {
+        let call = Self.call(
+            scheduledDeparture: "2099-01-01T12:00:00",
+            isRealtime: false,
+            departureDelay: 180
         )
-        #expect(stop.delayMinutes?.minutes == 4)
+        #expect(call.delayMinutes == nil)
+    }
+
+    @Test func tripCallDelayMinutesRoundsPositiveUp() {
+        let call = Self.call(
+            scheduledDeparture: "2099-01-01T12:00:00",
+            isRealtime: true,
+            departureDelay: 181
+        )
+        #expect(call.delayMinutes?.minutes == 4)
+    }
+
+    @Test func tripCallCanceledFlagsEitherHalf() {
+        #expect(Self.call(departureCanceled: true).isCanceled)
+        #expect(Self.call(arrivalCanceled: true).isCanceled)
+        #expect(!Self.call().isCanceled)
     }
 
     // MARK: - Schedule helpers
 
     @Test func currentStopIndexIsFirstUnpassedStop() {
         let now = Date()
-        let stops = [
-            Self.stop(scheduled: Self.past(now, minutes: 10)),
-            Self.stop(scheduled: Self.past(now, minutes: 2)),
-            Self.stop(scheduled: Self.future(now, minutes: 6)),
-            Self.stop(scheduled: Self.future(now, minutes: 13))
+        let calls = [
+            Self.call(scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(scheduledDeparture: Self.past(now, minutes: 2)),
+            Self.call(scheduledDeparture: Self.future(now, minutes: 6)),
+            Self.call(scheduledDeparture: Self.future(now, minutes: 13))
         ]
-        #expect(stops.currentStopIndex(now: now) == .betweenStops(before: 1, after: 2))
-        #expect(stops.isPassed(at: 0, now: now) == true)
-        #expect(stops.isPassed(at: 1, now: now) == true)
-        #expect(stops.isPassed(at: 2, now: now) == false)
-        #expect(stops.isPassed(at: 3, now: now) == false)
+        #expect(calls.currentStopIndex(now: now) == .betweenStops(before: 1, after: 2))
+        #expect(calls.isPassed(at: 0, now: now) == true)
+        #expect(calls.isPassed(at: 1, now: now) == true)
+        #expect(calls.isPassed(at: 2, now: now) == false)
+        #expect(calls.isPassed(at: 3, now: now) == false)
     }
 
     @Test func currentStopIndexNilWhenAllPassed() {
         let now = Date()
-        let stops = [
-            Self.stop(scheduled: Self.past(now, minutes: 10)),
-            Self.stop(scheduled: Self.past(now, minutes: 2))
+        let calls = [
+            Self.call(scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(scheduledDeparture: Self.past(now, minutes: 2))
         ]
-        #expect(stops.currentStopIndex(now: now) == nil)
-        #expect(stops.isPassed(at: 0, now: now) == true)
+        #expect(calls.currentStopIndex(now: now) == nil)
+        #expect(calls.isPassed(at: 0, now: now) == true)
     }
 
     @Test func currentStopIndexNilForEmptySchedule() {
-        let stops: [TripStop] = []
-        #expect(stops.currentStopIndex() == nil)
+        let calls: [TripCall] = []
+        #expect(calls.currentStopIndex() == nil)
     }
 
     // MARK: - Helpers
 
-    /// Builds a `TripStop` with sensible defaults for tests.
-    static func stop(
-        id: String = "1",
+    /// Builds a `TripCall` with sensible defaults for tests.
+    static func call(
+        stopId: String = "1",
         name: String? = "Test",
-        scheduled: String? = "2099-01-01T12:00:00",
-        realtime: String? = nil,
-        isRealtime: Bool? = nil,
-        delay: Int? = nil,
-        canceled: Bool? = nil
-    ) -> TripStop {
-        TripStop(
-            id: id,
-            name: name,
-            lat: nil,
-            lon: nil,
-            scheduled: try! scheduled.map(LocalDate.init(string:)),
-            realtime: try! realtime.map(LocalDate.init(string:)),
-            delay: delay,
-            canceled: canceled,
+        scheduledArrival: String? = nil,
+        realtimeArrival: String? = nil,
+        arrivalDelay: Int? = nil,
+        arrivalCanceled: Bool? = nil,
+        scheduledDeparture: String? = "2099-01-01T12:00:00",
+        realtimeDeparture: String? = nil,
+        departureDelay: Int? = nil,
+        departureCanceled: Bool? = nil,
+        isRealtime: Bool? = nil
+    ) -> TripCall {
+        TripCall(
+            scheduledArrival: try! scheduledArrival.map(LocalDate.init(string:)),
+            realtimeArrival: try! realtimeArrival.map(LocalDate.init(string:)),
+            arrivalDelay: arrivalDelay,
+            arrivalCanceled: arrivalCanceled,
+            scheduledDeparture: try! scheduledDeparture.map(LocalDate.init(string:)),
+            realtimeDeparture: try! realtimeDeparture.map(LocalDate.init(string:)),
+            departureDelay: departureDelay,
+            departureCanceled: departureCanceled,
+            stop: TimetableStop(
+                id: stopId,
+                name: name ?? "",
+                lat: 0,
+                lon: 0,
+                area_id: nil,
+                transport_modes: nil,
+                alerts: nil
+            ),
+            scheduled_platform: nil,
+            realtime_platform: nil,
+            alerts: nil,
             is_realtime: isRealtime
         )
     }
