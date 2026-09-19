@@ -1,17 +1,34 @@
 {
   "colors" : [
     {
-      "idiom" : "universal",
+      "color" : {
+        "color-space" : "srgb",
+        "components" : {
+          "alpha" : "1.000",
+          "blue" : "0xE5",
+          "green" : "0xF9",
+          "red" : "0xE3"
+        }
+      },
+      "idiom" : "universal"
+    },
+    {
       "appearances" : [
         {
           "appearance" : "luminosity",
-          "value" : "#E3F9E5"
-        },
-        {
-          "appearance" : "dark",
-          "value" : "#07600E"
+          "value" : "dark"
         }
-      ]
+      ],
+      "color" : {
+        "color-space" : "srgb",
+        "components" : {
+          "alpha" : "1.000",
+          "blue" : "0x0E",
+          "green" : "0x60",
+          "red" : "0x07"
+        }
+      },
+      "idiom" : "universal"
     }
   ],
   "info" : {
