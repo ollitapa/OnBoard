@@ -27,18 +27,22 @@ struct RouteDetailsView: View {
             if let failure = model.failure {
                 ContentUnavailableView {
                     Label("Couldn't load the trip", systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.ink)
                 } description: {
                     Text(failure)
+                        .foregroundStyle(.inkSoft)
                 }
             } else if model.stops.isEmpty {
                 if model.isLoading {
                     ProgressView()
+                        .tint(.accent)
                 } else {
                     ContentUnavailableView(
                         "No stops",
                         systemImage: "tray",
                         description: Text("This trip has no scheduled stops.")
                     )
+                    .foregroundStyle(.ink, .inkSoft)
                 }
             } else {
                 TripTrack(
@@ -49,6 +53,7 @@ struct RouteDetailsView: View {
         }
         .navigationTitle(Self.title(route))
         .navigationBarTitleDisplayMode(.inline)
+        .background(Color.paper)
         .task(id: loadingTrigger) {
             await model.loadTrip(
                 network: network,
@@ -83,10 +88,6 @@ private struct TripTrack: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                DelayPill(delayMinutes: route.delayMinutes)
-                    .padding(.horizontal, 18)
-                    .padding(.top, 16)
-                    .padding(.bottom, 10)
                 TripNodes(route: route, stops: stops)
                     .padding(.horizontal, 18)
                     .padding(.bottom, 24)
@@ -104,11 +105,14 @@ private struct DelayPill: View {
     var body: some View {
         if let delayMinutes {
             Text(delayMinutes.label)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.red)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(delayMinutes.minutes < 0 ? .statusGreen : .statusRed)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3)
-                .background(Color.red.opacity(0.15), in: Capsule())
+                .background(
+                    delayMinutes.minutes < 0 ? Color.statusGreenTint : Color.statusRedTint,
+                    in: Capsule()
+                )
         }
     }
 }
@@ -139,7 +143,7 @@ private struct TripNodes: View {
                             isFinal: index == stops.count - 1
                         )
                         .overlay {
-                            TransportModeMarker(mode: route.transportMode)
+                            TransportModeMarker(mode: route.transportMode, delayMinutes: nil)
                         }
 
                     case .betweenStops(let before, _) where before == index:
@@ -149,7 +153,7 @@ private struct TripNodes: View {
                             isCurrent: false,
                             isFinal: index == stops.count - 1
                         )
-                        TransportModeMarker(mode: route.transportMode)
+                        TransportModeMarker(mode: route.transportMode, delayMinutes: route.delayMinutes)
 
                     default:
                         StopNode(
@@ -169,7 +173,7 @@ private struct TripNodes: View {
     /// first/last node.
     private var line: some View {
         Capsule()
-            .fill(Color.secondary.opacity(0.3))
+            .fill(Color.hairline)
             .frame(width: 3)
             .padding(.leading, 4)
             .padding(.top, 16)
@@ -183,26 +187,32 @@ private struct TripNodes: View {
 private struct TransportModeMarker: View {
 
     let mode: TransportMode?
+    let delayMinutes: DelayTime?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer(minLength: 20)
-            RoundedRectangle(cornerRadius: 7)
-                .fill(Color.accentColor)
-                .frame(width: 26, height: 26)
-                .overlay(
-                    Group {
-                        if let mode {
-                            Image(systemName: mode.icon)
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(.white)
+            HStack(spacing: 6) {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(Color.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(
+                        Group {
+                            if let mode {
+                                Image(systemName: mode.icon)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
                         }
-                    }
-                )
-                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(.background, lineWidth: 3))
-                .offset(x: -7)
-                .accessibilityLabel("Vehicle is here")
+                    )
+                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.panel, lineWidth: 3))
+                    .offset(x: -7)
+                    .accessibilityLabel("Vehicle is here")
+
+                DelayPill(delayMinutes: delayMinutes)
+            }
             Spacer(minLength: 20)
+
         }
     }
 }
@@ -220,20 +230,20 @@ private struct StopNode: View {
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             nodeDot
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(stop.name ?? "")
-                    .font(.subheadline.weight(isPassed ? .regular : .semibold))
-                    .foregroundStyle(isPassed ? .secondary : .primary)
+                    .font(.body.weight(isPassed ? .regular : .semibold))
+                    .foregroundStyle(isPassed ? .inkSoft : .ink)
                     .strikethrough(stop.canceled == true)
                 if let subtitle = subtitle {
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                        .foregroundStyle(.inkSoft)
                 }
             }
             Spacer(minLength: 0)
         }
-        .frame(minHeight: 58)
+        .frame(minHeight: 62)
     }
 
     /// The node's dot: a filled grey dot for passed stops, a larger ringed
@@ -241,17 +251,17 @@ private struct StopNode: View {
     /// for upcoming stops • matching the storyboard's `stop-node` states.
     private var nodeDot: some View {
         Circle()
-            .fill(isPassed ? Color.secondary.opacity(0.3) : Color.secondary)
+            .fill(isPassed ? Color.hairline : Color.panel)
             .overlay(
                 Circle()
                     .strokeBorder(
-                        isCurrent ? Color.accentColor : Color.secondary.opacity(0.5),
+                        isCurrent ? Color.accent : Color.hairline,
                         lineWidth: isCurrent ? 3 : 3
                     )
             )
-            .frame(width: isCurrent ? 15 : 11, height: isCurrent ? 15 : 11)
+            .frame(width: isCurrent ? 17 : 12, height: isCurrent ? 17 : 12)
             .shadow(
-                color: isCurrent ? Color.accentColor.opacity(0.35) : .clear,
+                color: isCurrent ? Color.accentTint : .clear,
                 radius: isCurrent ? 5 : 0
             )
     }

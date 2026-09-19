@@ -35,6 +35,18 @@ OnBoard/
 └── RouteDetails/         # RouteDetailsModel + RouteDetailsView
 ```
 
+### Design tokens
+
+The visual language (the storyboard's Ink/Paper/Panel neutral ramp, the magenta
+brand color, and the green/yellow/red status colors) lives in
+`Assets.xcassets` as color sets, each with a light and dark appearance so dark
+mode comes for free. The build setting
+`ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES` makes
+Xcode generate the `Color` accessors automatically (`.ink`, `.panel`,
+`.statusGreen`, …), so **there is no hand-written `Color` extension** — adding
+a color means adding a `.colorset` in the catalog and using the generated
+symbol, nothing else.
+
 The core patterns:
 
 - **Observable models**: each screen's state lives in a `@MainActor

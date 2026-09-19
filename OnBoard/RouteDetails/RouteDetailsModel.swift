@@ -13,7 +13,7 @@ struct RouteDetails: Identifiable, Hashable, Sendable {
     let tripId: String
     /// `trip.start_date` from the tapped departure, fed to `Trafiklab.trip`.
     let startDate: String
-    /// The line-badge label, e.g. "55" or "T14", shown as "Line 55 \u2192 Ropsten".
+    /// The line-badge label, e.g. "55" or "T14", shown as "Line 55 → Ropsten".
     let lineLabel: String
     /// The destination text, shown after the arrow in the header.
     let direction: String
@@ -29,7 +29,7 @@ struct RouteDetails: Identifiable, Hashable, Sendable {
 }
 
 /// The view model for the Live Trip screen (`Designs/storyboard.html`,
-/// "Step 3 \u2014 Tap a departure \u2192 track the bus stop by stop").
+/// "Step 3 — Tap a departure → track the bus stop by stop").
 ///
 /// Loads a single trip's stop-by-stop schedule via `Trafiklab.trip` and stores
 /// the raw `TripStop` rows for the view to render. Mirrors ``StopDetailsModel``:
