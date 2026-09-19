@@ -154,6 +154,37 @@ struct RouteDetailsModelTests {
         #expect(calls.isPassed(at: 3, now: now) == false)
     }
 
+    @Test func currentStopIndexAtStopWithinWindow() {
+        let now = Date()
+        // The vehicle is standing at stop 1, which departs right now.
+        let calls = [
+            Self.call(scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(scheduledDeparture: Self.future(now, minutes: 0)),
+            Self.call(scheduledDeparture: Self.future(now, minutes: 20))
+        ]
+        #expect(calls.currentStopIndex(now: now) == .atStop(index: 1))
+        #expect(calls.isPassed(at: 0, now: now) == true)
+        #expect(calls.isPassed(at: 1, now: now) == false)
+        #expect(calls.isPassed(at: 2, now: now) == false)
+    }
+
+    @Test func currentStopIndexSnapsToNextStopWithinItsWindow() {
+        let now = Date()
+        // Stop 1 departs 10 seconds from now, so `now` sits inside stop 1's
+        // own ±30 s window even though the previous stop departed 2 minutes
+        // ago — the "snaps to next stop" case from API-Instructions §5.4. The
+        // window must be built from the next stop's date, not the previous
+        // stop's.
+        let calls = [
+            Self.call(scheduledDeparture: Self.past(now, minutes: 2)),
+            Self.call(scheduledDeparture: Self.timestamp(now.addingTimeInterval(10))),
+            Self.call(scheduledDeparture: Self.future(now, minutes: 20))
+        ]
+        #expect(calls.currentStopIndex(now: now) == .atStop(index: 1))
+        #expect(calls.isPassed(at: 0, now: now) == true)
+        #expect(calls.isPassed(at: 1, now: now) == false)
+    }
+
     @Test func currentStopIndexNilWhenAllPassed() {
         let now = Date()
         let calls = [
@@ -167,6 +198,13 @@ struct RouteDetailsModelTests {
     @Test func currentStopIndexNilForEmptySchedule() {
         let calls: [TripCall] = []
         #expect(calls.currentStopIndex() == nil)
+    }
+
+    @Test func transportPositionTargetIsStopVehicleIsHeadingTo() {
+        #expect(TransportPosition.atStop(index: 2).targetIndex == 2)
+        #expect(TransportPosition.betweenStops(before: 1, after: 2).targetIndex == 2)
+        #expect(TransportPosition.atStop(index: 2).lowerBoundIndex == 2)
+        #expect(TransportPosition.betweenStops(before: 1, after: 2).lowerBoundIndex == 1)
     }
 
     // MARK: - Helpers

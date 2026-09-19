@@ -53,6 +53,15 @@ enum TransportPosition: Hashable {
         case .atStop(let index), .betweenStops(before: let index, after: _): index
         }
     }
+
+    /// The stop the vehicle is at or heading to next: the stop it is standing
+    /// at when `atStop`, and the upcoming stop when between two stops — the row
+    /// the bus marker sits on.
+    var targetIndex: Int {
+        switch self {
+        case .atStop(let index), .betweenStops(before: _, after: let index): index
+        }
+    }
 }
 
 /// Presentation helpers for the whole trip schedule, answering questions about
@@ -76,7 +85,7 @@ extension Array where Element == TripCall {
                 // Vehicle is at the stop
                 if onStopRange.contains(now) { return .atStop(index: stopIdx) }
                 if let nextDate = nextStop.date {
-                    let onNextStopRange = date.addingTimeInterval(-30)...date.addingTimeInterval(30)
+                    let onNextStopRange = nextDate.addingTimeInterval(-30)...nextDate.addingTimeInterval(30)
                     // Vehicle is at the next stop
                     if onNextStopRange.contains(now) { return .atStop(index: nextIdx) }
                     // Vehicle is between these stops
