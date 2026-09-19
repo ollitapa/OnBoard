@@ -61,16 +61,8 @@ struct SecretsTests {
 
     // MARK: - init(bundle:)
 
-    @Test func bundleFallsBackToExampleFile() throws {
-        // Given: the test host is the app, which bundles no Secrets.env in CI
-        // but does bundle the committed Secrets.example.env.
-        let secrets = Secrets()
-        #expect(try !secrets.realtimeKey.isEmpty)
-        #expect(try !secrets.resrobotKey.isEmpty)
-    }
-
     @Test func missingFileThrowsOnEveryKey() async {
-        // A bundle with no env file resources at all.
+        // Given: a bundle with no env file resource at all.
         let secrets = Secrets(bundle: Bundle(for: EmptyBundleMarker.self))
         #expect(secrets.values.isEmpty)
         await #expect(throws: SecretMissingForKey(key: "TRAFIKLAB_REALTIME_KEY")) {

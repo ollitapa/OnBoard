@@ -2,30 +2,26 @@ import Foundation
 
 /// The app's API keys, loaded from an env file bundled with the build.
 ///
-/// The app target includes a `Secrets.env` file (see `Secrets.example.env`).
-/// Copy the example file to `OnBoard/Secrets.env`, replace the bogus keys with
-/// your own from https://developer.trafiklab.se, and build: the file is copied
-/// into the app bundle as a resource and parsed here. The real `Secrets.env`
-/// is git-ignored; the committed `Secrets.example.env` (bogus keys) is the
-/// fallback so the project builds and runs with no setup.
+/// Create a git-ignored `OnBoard/Secrets.env` with your keys from
+/// https://developer.trafiklab.se (see the README's "API keys" section); the
+/// file is copied into the app bundle as a resource and parsed here. A missing
+/// file leaves `values` empty, so each key accessor throws
+/// ``SecretMissingForKey`` and the failure surfaces on the screen that loads.
 ///
 /// Format: one `KEY=VALUE` per line. Blank lines and lines starting with `#`
 /// are ignored; surrounding whitespace is trimmed; `export KEY=VALUE` is
 /// accepted; values may be wrapped in double quotes.
 struct Secrets {
-    /// The bundled file the app reads its keys from, in fallback order: the
-    /// git-ignored `Secrets.env` first, then the committed `Secrets.example.env`
-    /// with bogus keys.
-    private static let fileNames = ["Secrets", "Secrets.example"]
-    /// The file extension Xcode gives the bundled env files.
+    /// The bundled file the app reads its keys from.
+    private static let fileName = "Secrets"
+    /// The file extension Xcode gives the bundled env file.
     private static let fileExtension = "env"
 
     /// Keys parsed from the bundled env file, keyed by name.
     let values: [String: String]
 
-    /// Loads the keys from `Secrets.env` in the given bundle, falling back to
-    /// `Secrets.example.env` when no `Secrets.env` is bundled.
-    /// - Parameter bundle: The bundle containing the env file resources.
+    /// Loads the keys from `Secrets.env` in the given bundle.
+    /// - Parameter bundle: The bundle containing the env file resource.
     init(bundle: Bundle = .main) {
         self.values = Self.load(from: bundle)
     }
@@ -78,12 +74,10 @@ struct Secrets {
         return value
     }
 
-    /// Reads and parses the first env file the bundle contains, preferring
-    /// `Secrets.env` over the example fallback.
+    /// Reads and parses the bundle's env file, returning no values when the
+    /// file is not bundled.
     private static func load(from bundle: Bundle) -> [String: String] {
-        guard let url = fileNames.lazy.compactMap({
-            bundle.url(forResource: $0, withExtension: fileExtension)
-        }).first,
+        guard let url = bundle.url(forResource: fileName, withExtension: fileExtension),
               let source = try? String(contentsOf: url, encoding: .utf8) else {
             return [:]
         }

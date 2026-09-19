@@ -5,9 +5,9 @@ import Foundation
 /// Wraps the four endpoints the app needs — Stop Lookup, ResRobot Nearby Stops,
 /// Timetables, and Trips (beta) — behind a single struct that depends only on a
 /// `NetworkProtocol` for transport. API keys are read from the env file bundled
-/// with the build (`Secrets.env`, with the committed `Secrets.example.env` as a
-/// bogus-key fallback); a missing key throws when a request is built, surfacing
-/// as the caller's load failure rather than an empty-key request.
+/// with the build (`Secrets.env`, see the README's "API keys" section); a missing
+/// key throws when a request is built, surfacing as the caller's load failure
+/// rather than an empty-key request.
 ///
 /// Both products authenticate via a query-string parameter rather than a header:
 /// the realtime APIs use `key`, ResRobot uses `accessId`.

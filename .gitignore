@@ -126,6 +126,6 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 
 # Secrets
-# Real API keys live in OnBoard/Secrets.env (see OnBoard/Secrets.example.env);
-# only the example file with bogus keys is committed.
+# Real API keys live in the git-ignored OnBoard/Secrets.env; see the README's
+# "API keys" section for the expected contents.
 OnBoard/Secrets.env
