@@ -171,42 +171,39 @@ struct MockTrafiklabService: NetworkProtocol {
 
     // MARK: - Request paths
 
-    /// Extracts the `{areaId}` path segment from a departures URL
+    /// Captures the `{areaId}` path segment of a departures URL
     /// (`.../departures/{areaId}` or `.../departures/{areaId}/{time}`).
-    /// Returns `nil` when the segment can't be found.
+    private static let areaIdPath = /departures\/([^/]+)/
+
+    /// Captures the `{tripId}` and `{startDate}` path segments of a trips
+    /// URL (`.../trips/{tripId}/{startDate}`).
+    private static let tripKeyPath = /trips\/([^/]+)\/([^/]+)/
+
+    /// Captures the `{searchValue}` path segment of a Stop Lookup name search
+    /// URL (`.../stops/name/{searchValue}`).
+    private static let searchValuePath = /stops\/name\/([^/]+)/
+
+    /// The `{areaId}` of a departures URL, or `nil` when the path doesn't
+    /// match one.
     private func areaId(for url: URL) -> String? {
-        let segments = url.path.split(separator: "/").map(String.init)
-        guard let departuresIndex = segments.lastIndex(of: "departures"),
-              segments.count > departuresIndex + 1 else {
-            return nil
-        }
-        return segments[departuresIndex + 1]
+        url.path.firstMatch(of: Self.areaIdPath).map { String($0.output.1) }
     }
 
-    /// Extracts the `{tripId}/{startDate}` key from a trips URL
-    /// (`.../trips/{tripId}/{startDate}`). Returns `nil` when the segments
-    /// can't be found.
+    /// The `"{tripId}/{startDate}"` key of a trips URL, or `nil` when the
+    /// path doesn't match one.
     private func tripKey(for url: URL) -> String? {
-        let segments = url.path.split(separator: "/").map(String.init)
-        guard let tripsIndex = segments.lastIndex(of: "trips"),
-              segments.count > tripsIndex + 2 else {
-            return nil
+        url.path.firstMatch(of: Self.tripKeyPath).map {
+            "\($0.output.1)/\($0.output.2)"
         }
-        return "\(segments[tripsIndex + 1])/\(segments[tripsIndex + 2])"
     }
 
-    /// Extracts the `{searchValue}` path segment from a Stop Lookup name
-    /// search URL (`.../stops/name/{searchValue}`). Returns `nil` when the
-    /// segment can't be found.
+    /// The `{searchValue}` of a Stop Lookup name search URL, or `nil` when
+    /// the path doesn't match one. The client percent-encodes the search
+    /// value into the path segment, so decode it back before filtering.
     private func searchValue(for url: URL) -> String? {
-        let segments = url.path.split(separator: "/").map(String.init)
-        guard let nameIndex = segments.lastIndex(of: "name"),
-              segments.count > nameIndex + 1 else {
-            return nil
+        url.path.firstMatch(of: Self.searchValuePath).map {
+            String($0.output.1).removingPercentEncoding
         }
-        // The client percent-encodes the search value into the path segment,
-        // so decode it back before filtering.
-        return segments[nameIndex + 1].removingPercentEncoding
     }
 
     // MARK: - Stop Lookup filtering
