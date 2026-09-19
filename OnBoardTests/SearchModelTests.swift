@@ -145,6 +145,23 @@ struct SearchModelTests {
         #expect(names == ["Slussen"])
     }
 
+    @Test func cancelledSearchLeavesLoadingFlagToReplacementTask() async throws {
+        // Given: a search in flight whose replacement is already loading. The
+        // replacement sets `isLoading` before the cancelled task resumes.
+        let network = MockTrafiklabService(stopGroups: Self.searchDataset)
+        let model = SearchModel()
+        model.isLoading = true
+
+        // When: a cancelled task runs the same method (as `.task(id:)` does to
+        // the previous query's task when the text changes).
+        let cancelled = Task { await model.search(named: "Slussen", network: network) }
+        cancelled.cancel()
+        await cancelled.value
+
+        // Then: the cancelled run did not clobber the replacement's flag.
+        #expect(model.isLoading == true)
+    }
+
     // MARK: - recents
 
     @Test func recordRecentPrependsAndDedupes() {

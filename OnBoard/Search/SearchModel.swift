@@ -49,14 +49,19 @@ final class SearchModel {
         }
 
         isLoading = true
+        // A cancellation always hands the loading flag to the task that
+        // replaced us (`.task(id:)` starts the new task before cancelling the
+        // old one), so bail out early and leave the flag alone: setting it
+        // here would clobber the replacement's `true` with a stale `false`.
+        defer {
+            if !Task.isCancelled {
+                isLoading = false
+            }
+        }
 
         // This delay is a simple debounce to avoid hammering the API with every keystroke.
         try? await Task.sleep(for: .milliseconds(400))
         guard !Task.isCancelled else { return }
-
-        // If we were cancelled, some other query is already loading,
-        // so we do not need to stet to false.
-        defer { isLoading = false }
 
         do {
             let api = Trafiklab(network: network)
