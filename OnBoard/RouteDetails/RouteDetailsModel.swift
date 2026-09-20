@@ -312,7 +312,7 @@ extension Array where Element == TripCall {
             guard let arrival = call.arrivalDate ?? call.departureDate,
                   let departure = call.departureDate ?? call.arrivalDate else { return nil }
             let dwell = departure.timeIntervalSince(arrival)
-            let departingFrom = arrival.addingTimeInterval(max(dwell * 0.9, dwell - 10))
+            let departingFrom = arrival.addingTimeInterval(Swift.max(dwell * 0.9, dwell - 10))
             return now >= departingFrom ? "Departing now" : "Arrived"
         }
         return nil
