@@ -129,6 +129,10 @@ struct TripStopRow: Identifiable, Equatable, Sendable {
     /// The vehicle is between the previous stop and this one, so the marker
     /// sits at the rows' boundary instead of on the node.
     let isBetweenStops: Bool
+    /// How far the vehicle has travelled from the previous stop's node to this
+    /// one while between stops: 0 as it leaves the previous stop, 1 as it
+    /// pulls up to this one. `nil` unless this row is between stops.
+    let travelProgress: Double?
     let isFirst: Bool
     let isFinal: Bool
     let subtitle: String?
@@ -139,30 +143,46 @@ struct TripStopRow: Identifiable, Equatable, Sendable {
 /// stop is passed) rather than about a single call.
 extension Array where Element == TripCall {
 
-    /// The index of the call the vehicle is currently at or heading to next:
-    /// the first call whose departure time has not yet passed at `now`. A stop
-    /// still ahead by minutes is "current" once the previous call's time has
-    /// passed, so the bus marker sits on the next un-passed stop — matching
-    /// the storyboard's "snaps to next stop" behavior (see API-Instructions § 5.4).
-    /// Returns `nil` when the trip is empty or every call has passed.
+    /// How long the vehicle is still considered to be standing at a stop after
+    /// its departure time: the moment it is scheduled to move on. Stops with a
+    /// real dwell (arrival before departure) read as "at the stop" for that
+    /// whole span; a stop whose arrival and departure coincide gets this much
+    /// presence so the "Arrived"/"Departing now" signage is visible at all.
+    private static let dwellGrace: TimeInterval = 30
+
+    /// The index of the call the vehicle is currently at or heading to next,
+    /// derived from the calls' arrival and departure spans: the vehicle stands
+    /// at a stop from its arrival until shortly after its departure, and
+    /// travels between one stop's departure and the next stop's arrival.
+    /// Returns `nil` when the trip is empty, hasn't started, or has finished.
     func currentStopIndex(now: Date = Date()) -> TransportPosition? {
         guard !isEmpty else { return nil }
 
         // Go through each call and the next call
         for ((stopIdx, stop), (nextIdx, nextStop)) in zip(self.enumerated(), self.enumerated().dropFirst()) {
-            if let date = stop.date {
-                let onStopRange = date.addingTimeInterval(-30)...date.addingTimeInterval(30)
-                // Vehicle is at the stop
-                if onStopRange.contains(now) { return .atStop(index: stopIdx) }
-                if let nextDate = nextStop.date {
-                    let onNextStopRange = nextDate.addingTimeInterval(-30)...nextDate.addingTimeInterval(30)
-                    // Vehicle is at the next stop
-                    if onNextStopRange.contains(now) { return .atStop(index: nextIdx) }
-                    // Vehicle is between these stops
-                    if now > date && now < nextDate { return .betweenStops(before: stopIdx, after: nextIdx) }
-                }
-                // Vehicle is not on the track at all.
-                if now < date { return nil }
+            guard let arrival = stop.arrivalDate ?? stop.departureDate,
+                  let departure = stop.departureDate ?? stop.arrivalDate else { continue }
+
+            // Vehicle is standing at the stop: arrival → departure (+ grace).
+            if now >= arrival, now <= departure.addingTimeInterval(Self.dwellGrace) {
+                return .atStop(index: stopIdx)
+            }
+            // Vehicle is travelling between this stop and the next one.
+            if let nextArrival = nextStop.arrivalDate ?? nextStop.departureDate,
+               now > departure.addingTimeInterval(Self.dwellGrace), now < nextArrival {
+                return .betweenStops(before: stopIdx, after: nextIdx)
+            }
+            // Vehicle is not on the track at all.
+            if now < arrival { return nil }
+        }
+
+        // The final call has no following stop: the vehicle is at the end of
+        // the line from its arrival until shortly after its departure.
+        if let lastCall = last,
+           let arrival = lastCall.arrivalDate ?? lastCall.departureDate {
+            let departure = lastCall.departureDate ?? arrival
+            if now >= arrival, now <= departure.addingTimeInterval(Self.dwellGrace) {
+                return .atStop(index: count - 1)
             }
         }
         return nil
@@ -173,6 +193,24 @@ extension Array where Element == TripCall {
     /// renders straight from the rows with no index comparisons.
     func stopRows(now: Date = Date()) -> [TripStopRow] {
         let position = currentStopIndex(now: now)
+
+        /// How far into the current leg the vehicle is, 0 leaving the previous
+        /// stop and 1 pulling up to the target one, so the view can move the
+        /// marker smoothly instead of snapping between rows.
+        let travelProgress: Double?
+        if case .betweenStops(let before, let after) = position,
+           let legStart = self[before].departureDate ?? self[before].arrivalDate,
+           let legEnd = self[after].arrivalDate ?? self[after].departureDate {
+            let span = legEnd.timeIntervalSince(legStart.addingTimeInterval(Self.dwellGrace))
+            if span > 0 {
+                let elapsed = now.timeIntervalSince(legStart.addingTimeInterval(Self.dwellGrace))
+                travelProgress = min(max(elapsed / span, 0), 1)
+            } else {
+                travelProgress = nil
+            }
+        } else {
+            travelProgress = nil
+        }
 
         return enumerated().map { index, call in
             /// Whether the call at `index` has already been passed at `now`.
@@ -204,6 +242,7 @@ extension Array where Element == TripCall {
                 isCurrent: isCurrent,
                 isTarget: isTarget,
                 isBetweenStops: isTarget && isBetweenStops,
+                travelProgress: isTarget && isBetweenStops ? travelProgress : nil,
                 isFirst: index == 0,
                 isFinal: index == count - 1,
                 subtitle: Self.subtitle(
@@ -220,9 +259,10 @@ extension Array where Element == TripCall {
     /// The subtitle for a row: cancelled calls show "Cancelled"; the final
     /// stop shows "Final stop"; the stop the vehicle is heading to counts down
     /// to its arrival ("Bussen är här om 7 min" in the storyboard), rounded up
-    /// so the last minute reads "Arriving in 1 min" until the vehicle is at
-    /// the stop; the stop the vehicle is standing at counts down to its
-    /// departure. `nil` for every other row.
+    /// so the last minute reads "Arriving in 1 min" until the vehicle pulls up;
+    /// the stop the vehicle is standing at shows "Arrived" for most of its
+    /// dwell and "Departing now" for the last tenth, so the signage follows
+    /// the arrival and estimated departure times. `nil` for every other row.
     private static func subtitle(
         for call: TripCall,
         isTarget: Bool,
@@ -247,12 +287,14 @@ extension Array where Element == TripCall {
                 let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.up))
                 return minutes <= 0 ? "Arriving now" : "Arriving in \(minutes) min"
             }
-            if let date = call.date {
-                let minutes = Calendar.current.dateComponents([.minute], from: now, to: date).minute
-                if let minutes {
-                    return minutes <= 0 ? "Departing now" : "Arriving in \(minutes) min"
-                }
-            }
+            // Standing at the stop: "Arrived" until the last tenth of the
+            // dwell, then "Departing now" — with a momentary stop the whole
+            // (grace-extended) visit reads as departing.
+            guard let arrival = call.arrivalDate ?? call.departureDate,
+                  let departure = call.departureDate ?? call.arrivalDate else { return nil }
+            let dwell = departure.timeIntervalSince(arrival)
+            let departingFrom = arrival.addingTimeInterval(max(dwell * 0.9, dwell - 10))
+            return now >= departingFrom ? "Departing now" : "Arrived"
         }
         return nil
     }

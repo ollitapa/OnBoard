@@ -25,8 +25,9 @@ struct RouteDetailsView: View {
     /// How often the rows are recomputed from the loaded schedule so the
     /// marker's position and the countdown subtitles track the clock between
     /// network polls. Trafiklab only refreshes its realtime data every 60 s,
-    /// so 5 s is fine-grained enough to stay ahead of the vehicle.
-    private static let rowRefreshInterval = 5.0
+    /// so recomputing every second keeps the marker moving smoothly along the
+    /// leg between two stops.
+    private static let rowRefreshInterval = 1.0
 
     var body: some View {
         Group {
@@ -157,8 +158,18 @@ private let betweenStopsRowHeight: CGFloat = 104
 
 /// How far below its row's top edge the bus marker's center sits while the
 /// vehicle is between stops: the whole marker stays inside the row's extra
-/// space instead of overlapping the row above.
+/// space instead of overlapping the row above. The marker interpolates from
+/// the previous row's center towards the top of this row across the leg, so
+/// it glides along the connector instead of sitting at the boundary.
 private let betweenStopsMarkerInset: CGFloat = 10
+
+/// The vertical travel the bus marker covers across a leg between two stops,
+/// in target-row coordinates: from the previous row's node center (half a
+/// normal row above the boundary) down to the marker's resting spot near the
+/// target row's top. The marker leaves the node it departed, glides along the
+/// connector with the leg's progress, then settles onto the target node on
+/// arrival.
+private let markerTravelDistance: CGFloat = stopRowHeight / 2 + betweenStopsRowHeight / 2
 
 /// The list of stop nodes joined by a vertical line, with the bus marker on
 /// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
@@ -192,12 +203,23 @@ private struct TripNodes: View {
                             TransportModeMarker(mode: route.transportMode)
                                 .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
                                 .transition(.opacity)
-                                .offset(y: row.isBetweenStops ? -(betweenStopsRowHeight / 2 - betweenStopsMarkerInset) : 0)
+                                .offset(y: markerOffset(for: row))
                         }
                     }
             }
         }
         .animation(.spring(response: 0.6, dampingFraction: 0.85), value: rows)
+    }
+
+    /// The marker's vertical offset within the target row: resting on the
+    /// node while the vehicle is at the stop, and interpolating down the leg
+    /// from the previous stop's node to this row's boundary while between
+    /// stops, so the marker glides along the connector once a second instead
+    /// of jumping between rows.
+    private func markerOffset(for row: TripStopRow) -> CGFloat {
+        guard row.isBetweenStops, let progress = row.travelProgress else { return 0 }
+        let resting = -(betweenStopsRowHeight / 2 - betweenStopsMarkerInset)
+        return -markerTravelDistance + progress * (markerTravelDistance + resting)
     }
 }
 

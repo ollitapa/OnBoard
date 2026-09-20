@@ -184,19 +184,17 @@ struct RouteDetailsModelTests {
         #expect(calls.stopRows(now: now).map(\.isPassed) == [true, false, false])
     }
 
-    @Test func currentStopIndexSnapsToNextStopWithinItsWindow() {
+    @Test func currentStopIndexBetweenStopsUntilTheArrival() {
         let now = Date()
-        // Stop 1 departs 10 seconds from now, so `now` sits inside stop 1's
-        // own ±30 s window even though the previous stop departed 2 minutes
-        // ago — the "snaps to next stop" case from API-Instructions §5.4. The
-        // window must be built from the next stop's date, not the previous
-        // stop's.
+        // Stop 1 arrives in 10 seconds: the vehicle is still officially
+        // between stops (it only stands at a stop from its arrival), so the
+        // marker keeps gliding towards the node and the countdown rounds up.
         let calls = [
             Self.call(scheduledDeparture: Self.past(now, minutes: 2)),
             Self.call(scheduledDeparture: Self.timestamp(now.addingTimeInterval(10))),
             Self.call(scheduledDeparture: Self.future(now, minutes: 20))
         ]
-        #expect(calls.currentStopIndex(now: now) == .atStop(index: 1))
+        #expect(calls.currentStopIndex(now: now) == .betweenStops(before: 0, after: 1))
         #expect(calls.stopRows(now: now).map(\.isPassed) == [true, false, false])
     }
 
@@ -282,19 +280,53 @@ struct RouteDetailsModelTests {
         #expect(rows[1].subtitle == "Arriving in 1 min")
     }
 
-    @Test func stopRowsSubtitleSaysArrivingNowJustBeforeTheStopWindow() {
+    @Test func stopRowsSubtitleSaysArrivedDuringDwellThenDeparting() {
         let now = Date()
-        // Ten seconds out is still before the ±30 s at-stop window, so the
-        // vehicle is officially between stops and the subtitle reads
-        // "Arriving now" rather than "Departing now".
+        // Stop 1 has a two-minute dwell: the vehicle arrived a minute ago
+        // and departs a minute from now, so the signage reads "Arrived" —
+        // switching to "Departing now" only in the last tenth of the dwell.
         let calls = [
-            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 2)),
-            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.timestamp(now.addingTimeInterval(10))),
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 4)),
+            Self.call(
+                stopId: "1",
+                name: "Second",
+                scheduledArrival: Self.past(now, minutes: 1),
+                scheduledDeparture: Self.future(now, minutes: 1)
+            ),
             Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
         ]
         let rows = calls.stopRows(now: now)
-        #expect(rows[1].isBetweenStops)
-        #expect(rows[1].subtitle == "Arriving now")
+        #expect(rows[1].isTarget)
+        #expect(rows[1].isCurrent)
+        #expect(rows[1].subtitle == "Arrived")
+
+        // Two minutes into the dwell the last tenth has begun, so the
+        // signage switches to "Departing now".
+        let late = now.addingTimeInterval(60)
+        let lateRows = calls.stopRows(now: late)
+        #expect(lateRows[1].subtitle == "Departing now")
+    }
+
+    @Test func stopRowsTravelProgressGlidesAcrossTheLeg() {
+        let now = Date()
+        // The vehicle left stop 0 a minute ago and reaches stop 1 four
+        // minutes from now, so it is part-way across the leg, and the progress
+        // advances as the clock does.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 1)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 4)),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let early = calls.stopRows(now: now)[1].travelProgress
+        let later = calls.stopRows(now: now.addingTimeInterval(2 * 60))[1].travelProgress
+        #expect(early != nil && early! > 0 && early! < 1)
+        #expect(later != nil && later! > early!)
+
+        // Once the arrival time is reached the vehicle stands at the stop and
+        // the marker's progress hands over to the resting position.
+        let arrived = calls.stopRows(now: now.addingTimeInterval(4 * 60))[1]
+        #expect(arrived.isCurrent)
+        #expect(arrived.travelProgress == nil)
     }
 
     @Test func stopRowsTargetIsTheRowTheMarkerSitsOn() {
