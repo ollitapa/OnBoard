@@ -186,6 +186,29 @@ struct LocationAuthorizationTests {
         #expect(model.failure == nil)
     }
 
+    @Test func retryAfterFailureRestartsUpdates() {
+        // Given: an authorized model that failed to get a fix.
+        let manager = MockLocationManager(authorizationStatus: .authorizedWhenInUse)
+        let model = LocationAuthorization(manager: manager)
+        manager.simulateFailure(MockLocationError(message: "no fix"))
+        #expect(model.failure != nil)
+        // When: the user taps "Try Again" in the failure view.
+        model.retryAfterFailure()
+        // Then: updates were stopped and restarted so the system gets
+        // another chance to acquire a fix.
+        #expect(manager.updatesRequests == [.init(started: false), .init(started: true)])
+    }
+
+    @Test func retryAfterFailureBeforeAuthorizationIsNoOp() {
+        // Given
+        let manager = MockLocationManager(authorizationStatus: .notDetermined)
+        let model = LocationAuthorization(manager: manager)
+        // When
+        model.retryAfterFailure()
+        // Then
+        #expect(manager.updatesRequests == [])
+    }
+
     // MARK: - Status transitions
 
     @Test func reEnablingInSettingsRestartsUpdates() {
