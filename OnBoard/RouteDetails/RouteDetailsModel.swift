@@ -85,6 +85,16 @@ final class RouteDetailsModel {
             failure = String(describing: error)
         }
     }
+
+    /// Recomputes the track's presentation rows from the loaded schedule at
+    /// `now`. Trafiklab's realtime data only refreshes every 60 s, so the view
+    /// reloads the schedule on that cadence and calls this between reloads
+    /// (from a periodic `TimelineView`) to keep the marker's position and the
+    /// countdown subtitles moving with the clock instead of lagging a minute
+    /// behind the vehicle.
+    func recalculateRows(now: Date = Date()) {
+        rows = calls.stopRows(now: now)
+    }
 }
 
 // MARK: - Track rows

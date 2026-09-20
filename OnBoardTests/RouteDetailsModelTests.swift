@@ -68,6 +68,23 @@ struct RouteDetailsModelTests {
         #expect(model.failure != nil)
     }
 
+    @Test func recalculateRowsAdvancesWithTheClock() async throws {
+        // Given: a loaded trip and a timestamp 4 minutes from now, after the
+        // vehicle has left stop 0 (which departed 10 minutes ago) but before
+        // it reaches stop 1 (6 minutes away).
+        let network = MockTrafiklabService(tripsByKey: MockTrafiklabService.defaultTripsByKeyJSON)
+        let model = RouteDetailsModel()
+        await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
+        let firstStopId = try #require(model.rows.first?.id)
+        // When: the timeline ticks 6 minutes forward and the rows are
+        // recomputed from the unchanged schedule.
+        model.recalculateRows(now: Date().addingTimeInterval(6 * 60))
+        // Then: the rows reflect the new position — the first stop, upcoming
+        // at load time, is now passed, and the target has moved on.
+        #expect(model.rows.first { $0.id == firstStopId }?.isPassed == true)
+        #expect(model.rows != model.rows.filter(\.isPassed))
+    }
+
     // MARK: - RouteDetails bridge
 
     @Test func routeDetailsNilWithoutTrip() {

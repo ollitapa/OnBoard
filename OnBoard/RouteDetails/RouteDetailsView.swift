@@ -22,6 +22,12 @@ struct RouteDetailsView: View {
 
     @State private var loadingTrigger = 0
 
+    /// How often the rows are recomputed from the loaded schedule so the
+    /// marker's position and the countdown subtitles track the clock between
+    /// network polls. Trafiklab only refreshes its realtime data every 60 s,
+    /// so 10 s is fine-grained enough to stay ahead of the vehicle.
+    private static let rowRefreshInterval = 10.0
+
     var body: some View {
         Group {
             if let failure = model.failure {
@@ -45,10 +51,15 @@ struct RouteDetailsView: View {
                     .foregroundStyle(.ink, .inkSoft)
                 }
             } else {
-                TripTrack(
-                    route: route,
-                    rows: model.rows
-                )
+                TimelineView(.periodic(from: .now, by: Self.rowRefreshInterval)) { context in
+                    TripTrack(
+                        route: route,
+                        rows: model.rows
+                    )
+                    .onChange(of: context.date) {
+                        model.recalculateRows()
+                    }
+                }
             }
         }
         .navigationTitle(Self.title(route))
@@ -60,7 +71,10 @@ struct RouteDetailsView: View {
                 tripId: route.tripId,
                 startDate: route.startDate
             )
-            try? await Task.sleep(for: .seconds(30)) // refresh every 30s
+            // Trafiklab's realtime data only updates every 60 s, so poll on
+            // that cadence; the rows between polls are refreshed by the
+            // track's TimelineView instead.
+            try? await Task.sleep(for: .seconds(60))
             loadingTrigger += 1
         }
     }
