@@ -86,18 +86,19 @@ private struct TripTrack: View {
     let calls: [TripCall]
 
     var body: some View {
-        TimelineView(.periodic(byMinute: 1)) { context in
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        TripNodes(route: route, rows: calls.stopRows(now: context.date))
-                            .padding(.horizontal, 18)
-                            .padding(.bottom, 24)
-                    }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    TripNodes(
+                        route: route,
+                        rows: calls.stopRows(now: Date())
+                    )
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 24)
                 }
-                .onAppear {
-                    scrollToTarget(from: proxy)
-                }
+            }
+            .onAppear {
+                scrollToTarget(from: proxy)
             }
         }
     }

@@ -138,21 +138,16 @@ extension Array where Element == TripCall {
         return nil
     }
 
-    /// Whether the call at `index` has already been passed at `now`: any call
-    /// before ``currentStopIndex(now:)``. The current call and all later
-    /// calls return `false`. Every call is passed when there is no position
-    /// (the trip hasn't started or has finished).
-    func isPassed(at index: Int, now: Date = Date()) -> Bool {
-        currentStopIndex(now: now)?.isPassed(index: index) ?? true
-    }
-
     /// One ``TripStopRow`` per call in travel order, computed with a single
     /// position lookup instead of re-deriving it for every row: the track
     /// renders straight from the rows with no index comparisons.
     func stopRows(now: Date = Date()) -> [TripStopRow] {
         let position = currentStopIndex(now: now)
+
         return enumerated().map { index, call in
-            TripStopRow(
+            /// Whether the call at `index` has already been passed at `now`.
+            let isPassed = position?.isPassed(index: index) ?? true
+            return TripStopRow(
                 id: call.id,
                 name: call.stop?.name ?? "",
                 isCanceled: call.isCanceled,
