@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// A client for SL's Transport API (`transport.integration.sl.se/v1`), the
 /// keyless successor to SL Stops and lines v2 documented on Trafiklab.
@@ -80,16 +81,26 @@ struct SLLine: Codable, Equatable, Sendable {
 // MARK: - Line colour mapping
 
 /// The badge colour a line should carry, mapped from SL's own colour-coding
-/// of its network onto the app's design tokens: the blue buses and the
-/// blue metro line render with the app's gold token (the neutral palette has
-/// no blue), the green and red metro lines keep their hues, and everything
-/// else uses the accent colour (so a cancelled/delayed status keeps its
-/// red).
+/// of its network: blue buses and the blue metro line render with the
+/// `lineBlue` design token, the green and red metro lines with `lineGreen`
+/// and `lineRed`, and everything else with the accent colour (so a
+/// cancelled/delayed status keeps its red).
 enum LineBadgeColour: Equatable, Sendable {
-    case gold
+    case blue
     case green
     case red
     case accent
+
+    /// The asset-catalog colour a badge with this case renders with, via the
+    /// symbols Xcode generates from the coloursets.
+    var color: Color {
+        switch self {
+        case .blue: .lineBlue
+        case .green: .lineGreen
+        case .red: .lineRed
+        case .accent: .accent
+        }
+    }
 
     /// Maps an SL Transport `group_of_lines` name onto a badge colour. Known
     /// groups match the spellings SL Transport returns today; a group the
@@ -98,9 +109,9 @@ enum LineBadgeColour: Equatable, Sendable {
     init(groupOfLines: String?) {
         switch groupOfLines?.lowercased() {
         case "blåbuss":
-            self = .gold
+            self = .blue
         case "tunnelbanans blå linje":
-            self = .gold
+            self = .blue
         case "tunnelbanans gröna linje":
             self = .green
         case "tunnelbanans röda linje":

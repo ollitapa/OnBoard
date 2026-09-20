@@ -43,12 +43,11 @@ struct SLTransportTests {
 
     // MARK: - Colour mapping
 
-    @Test func blueBusLinesMapToGold() throws {
-        // Blue buses 1–6 carry the Blåbuss group, rendered with the app's
-        // gold token since the palette has no blue.
+    @Test func blueBusLinesMapToBlue() throws {
+        // Blue buses 1–6 carry the Blåbuss group.
         let lines = try Self.lines()
-        #expect(lines.badgeColour(designation: "3", transportMode: "BUS") == .gold)
-        #expect(lines.badgeColour(designation: "5", transportMode: "BUS") == .gold)
+        #expect(lines.badgeColour(designation: "3", transportMode: "BUS") == .blue)
+        #expect(lines.badgeColour(designation: "5", transportMode: "BUS") == .blue)
     }
 
     @Test func greenMetroLinesMapToGreen() throws {
@@ -59,10 +58,9 @@ struct SLTransportTests {
     }
 
     @Test func redAndBlueMetroLinesMapToTheirColours() throws {
-        // The blue metro line also renders gold; the red line keeps red.
         let lines = try Self.lines()
         #expect(lines.badgeColour(designation: "13", transportMode: "METRO") == .red)
-        #expect(lines.badgeColour(designation: "10", transportMode: "METRO") == .gold)
+        #expect(lines.badgeColour(designation: "10", transportMode: "METRO") == .blue)
     }
 
     @Test func timetablesMetroPrefixIsDropped() throws {
@@ -101,9 +99,19 @@ struct SLTransportTests {
     @Test func groupNamesMatchCaseInsensitively() {
         // The mapping lowercases before comparing, so a change in SL's
         // capitalisation ("BLÅBUSS") doesn't break the colour mapping.
-        #expect(LineBadgeColour(groupOfLines: "BLÅBUSS") == .gold)
+        #expect(LineBadgeColour(groupOfLines: "BLÅBUSS") == .blue)
         #expect(LineBadgeColour(groupOfLines: "Tunnelbanans GRÖNA linje") == .green)
         #expect(LineBadgeColour(groupOfLines: nil) == .accent)
         #expect(LineBadgeColour(groupOfLines: "Pendeltåg") == .accent)
+    }
+
+    @Test func colorExposesTheDesignToken() {
+        // Each case renders with its asset-catalog colourset: the generated
+        // symbol names are the design tokens, so a badge never falls back to
+        // a hardcoded system colour.
+        #expect(LineBadgeColour.blue.color == .lineBlue)
+        #expect(LineBadgeColour.green.color == .lineGreen)
+        #expect(LineBadgeColour.red.color == .lineRed)
+        #expect(LineBadgeColour.accent.color == .accent)
     }
 }
