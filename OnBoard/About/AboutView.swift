@@ -5,6 +5,7 @@ import SwiftUI
 struct AboutView: View {
     private let trafiklabURL = URL(string: "https://developer.trafiklab.se")!
     private let samtrafikenURL = URL(string: "https://www.samtrafiken.se")!
+    private let creatorURL = URL(string: "https://www.linkedin.com/in/olli-tapaninen")!
 
     var body: some View {
         List {
@@ -18,6 +19,20 @@ struct AboutView: View {
                         .foregroundStyle(.inkSoft)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowBackground(Color.panel)
+            }
+
+            Section("Created by") {
+                Link(destination: creatorURL) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.crop.circle")
+                            .font(.title3)
+                            .foregroundStyle(.accent)
+                        Text("Olli Tapaninen")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.ink)
+                    }
+                }
                 .listRowBackground(Color.panel)
             }
 
