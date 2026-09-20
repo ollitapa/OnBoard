@@ -86,29 +86,32 @@ private struct TripTrack: View {
     let calls: [TripCall]
 
     var body: some View {
+        let rows = calls.stopRows(now: Date())
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     TripNodes(
                         route: route,
-                        rows: calls.stopRows(now: Date())
+                        rows: rows
                     )
                     .padding(.horizontal, 18)
                     .padding(.bottom, 24)
                 }
             }
             .onAppear {
-                scrollToTarget(from: proxy)
+                scrollToTarget(rows, from: proxy)
             }
         }
     }
 
     /// Scrolls the track so the stop the vehicle is at or heading to — the row
     /// carrying the bus marker — sits in the middle of the screen, jumping
-    /// straight to the vehicle when the view opens.
-    private func scrollToTarget(from proxy: ScrollViewProxy) {
-        guard let target = calls.currentStopIndex()?.targetIndex, calls.indices.contains(target) else { return }
-        proxy.scrollTo(calls[target].id, anchor: .center)
+    /// straight to the vehicle when the view opens. Reads the target off the
+    /// same row snapshot the track renders, so the scroll and the marker can
+    /// never disagree.
+    private func scrollToTarget(_ rows: [TripStopRow], from proxy: ScrollViewProxy) {
+        guard let target = rows.target else { return }
+        proxy.scrollTo(target.id, anchor: .center)
     }
 }
 

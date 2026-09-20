@@ -201,3 +201,16 @@ extension Array where Element == TripCall {
         return nil
     }
 }
+
+/// Presentation helpers for the precomputed track rows, answering questions
+/// about the rendered track rather than the raw schedule.
+extension Array where Element == TripStopRow {
+
+    /// The row the vehicle is at or heading to — the row carrying the bus
+    /// marker, which the view scrolls to when the screen opens. Read off the
+    /// rows' own `isTarget` flags, so it costs no extra position lookup.
+    /// `nil` when the vehicle isn't on the track.
+    var target: TripStopRow? {
+        first { $0.isTarget }
+    }
+}

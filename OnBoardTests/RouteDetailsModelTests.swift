@@ -250,6 +250,27 @@ struct RouteDetailsModelTests {
         #expect(rows[1].subtitle == "Departing now")
     }
 
+    @Test func stopRowsTargetIsTheRowTheMarkerSitsOn() {
+        let now = Date()
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 5)),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.target?.name == "Second")
+    }
+
+    @Test func stopRowsTargetNilWhenVehicleIsOffTheTrack() {
+        let now = Date()
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Final", scheduledDeparture: Self.past(now, minutes: 2))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.target == nil)
+    }
+
     // MARK: - Helpers
 
     /// Builds a `TripCall` with sensible defaults for tests.
