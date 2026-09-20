@@ -143,11 +143,17 @@ private let trackCenterX: CGFloat = 6
 
 /// A row's usual height. The connector slices of consecutive rows join up, and
 /// a node sits at the vertical center of its row.
-private let stopRowHeight: CGFloat = 62
+private let stopRowHeight: CGFloat = 72
 
 /// The extra room a row gets while the vehicle is between it and the previous
-/// stop, so the lifted bus marker doesn't crowd the node below it.
-private let betweenStopsRowHeight: CGFloat = 78
+/// stop, so the lifted bus marker sits clear of both the node and the row
+/// above it.
+private let betweenStopsRowHeight: CGFloat = 104
+
+/// How far below its row's top edge the bus marker's center sits while the
+/// vehicle is between stops: the whole marker stays inside the row's extra
+/// space instead of overlapping the row above.
+private let betweenStopsMarkerInset: CGFloat = 22
 
 /// The list of stop nodes joined by a vertical line, with the bus marker on
 /// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
@@ -181,7 +187,7 @@ private struct TripNodes: View {
                             TransportModeMarker(mode: route.transportMode)
                                 .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
                                 .transition(.opacity)
-                                .offset(y: row.isBetweenStops ? -betweenStopsRowHeight / 2 : 0)
+                                .offset(y: row.isBetweenStops ? -(betweenStopsRowHeight / 2 - betweenStopsMarkerInset) : 0)
                         }
                     }
             }
@@ -265,15 +271,17 @@ private struct StopNode: View {
         .frame(minHeight: rowHeight)
         .background(alignment: .topLeading) {
             /// This row's slice of the track's vertical connector, matching the
-            /// storyboard's `track-line`. It spans the full row so consecutive rows'
-            /// slices join up, but is inset at the track's ends so the line starts
-            /// and stops exactly at the first and last node's centers — a one-stop
-            /// trip draws no line at all.
+            /// storyboard's `track-line`. It spans the full row with square ends
+            /// so consecutive rows' slices butt together seamlessly (a capsule's
+            /// rounded caps left a hairline gap at every row boundary), and is
+            /// inset at the track's ends so the line starts and stops exactly at
+            /// the first and last node's centers — a one-stop trip draws no line
+            /// at all.
 
             if row.isFirst && row.isFinal {
                 EmptyView()
             } else {
-                Capsule()
+                Rectangle()
                     .fill(Color.hairline)
                     .frame(width: 3)
                     .padding(.leading, 4.5)

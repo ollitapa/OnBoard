@@ -194,6 +194,7 @@ extension Array where Element == TripCall {
                 subtitle: Self.subtitle(
                     for: call,
                     isTarget: isTarget,
+                    isBetweenStops: isTarget && isBetweenStops,
                     isFinal: index == count - 1,
                     now: now
                 )
@@ -202,12 +203,15 @@ extension Array where Element == TripCall {
     }
 
     /// The subtitle for a row: cancelled calls show "Cancelled"; the final
-    /// stop shows "Final stop"; the stop the vehicle is at or heading to shows
-    /// its countdown ("Bussen är här om 7 min" in the storyboard). `nil` for
-    /// every other row.
+    /// stop shows "Final stop"; the stop the vehicle is heading to counts down
+    /// to its arrival ("Bussen är här om 7 min" in the storyboard), rounded up
+    /// so the last minute reads "Arriving in 1 min" until the vehicle is at
+    /// the stop; the stop the vehicle is standing at counts down to its
+    /// departure. `nil` for every other row.
     private static func subtitle(
         for call: TripCall,
         isTarget: Bool,
+        isBetweenStops: Bool,
         isFinal: Bool,
         now: Date
     ) -> String? {
@@ -217,10 +221,22 @@ extension Array where Element == TripCall {
         if isFinal {
             return "Final stop"
         }
-        if isTarget, let date = call.date {
-            let minutes = Calendar.current.dateComponents([.minute], from: now, to: date).minute
-            if let minutes {
-                return minutes <= 0 ? "Departing now" : "Arriving in \(minutes) min"
+        if isTarget {
+            if isBetweenStops {
+                // En route: count up to the arrival (falling back to the
+                // departure when the call carries a single time), never
+                // "Departing now" — the vehicle only stands at the stop once
+                // the position says so, and the two must agree for the whole
+                // last minute.
+                guard let arrival = call.arrivalDate ?? call.departureDate else { return nil }
+                let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.up))
+                return minutes <= 0 ? "Arriving now" : "Arriving in \(minutes) min"
+            }
+            if let date = call.date {
+                let minutes = Calendar.current.dateComponents([.minute], from: now, to: date).minute
+                if let minutes {
+                    return minutes <= 0 ? "Departing now" : "Arriving in \(minutes) min"
+                }
             }
         }
         return nil

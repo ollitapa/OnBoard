@@ -247,6 +247,39 @@ struct RouteDetailsModelTests {
         #expect(rows[1].subtitle == "Departing now")
     }
 
+    @Test func stopRowsSubtitleNeverSaysDepartingWhileBetweenStops() {
+        let now = Date()
+        // The vehicle is rolling towards stop 1, which it reaches in 40
+        // seconds: outside the at-stop window but inside the last minute,
+        // which used to truncate to "Departing now" — a vehicle still between
+        // stops can't be departing. The countdown rounds up to the arrival
+        // and only switches once the position says the vehicle is at the
+        // stop.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 2)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.timestamp(now.addingTimeInterval(40))),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.map(\.isBetweenStops) == [false, true, false])
+        #expect(rows[1].subtitle == "Arriving in 1 min")
+    }
+
+    @Test func stopRowsSubtitleSaysArrivingNowJustBeforeTheStopWindow() {
+        let now = Date()
+        // Ten seconds out is still before the ±30 s at-stop window, so the
+        // vehicle is officially between stops and the subtitle reads
+        // "Arriving now" rather than "Departing now".
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 2)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.timestamp(now.addingTimeInterval(10))),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows[1].isBetweenStops)
+        #expect(rows[1].subtitle == "Arriving now")
+    }
+
     @Test func stopRowsTargetIsTheRowTheMarkerSitsOn() {
         let now = Date()
         let calls = [
