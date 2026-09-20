@@ -317,15 +317,25 @@ struct RouteDetailsModelTests {
             Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 4)),
             Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
         ]
-        let early = calls.stopRows(now: now)[1].travelProgress
-        let later = calls.stopRows(now: now.addingTimeInterval(2 * 60))[1].travelProgress
-        #expect(early != nil && early! > 0 && early! < 1)
-        #expect(later != nil && later! > early!)
+        // Before the leg's midpoint the marker rides the departed stop's
+        // row; past it the upcoming stop's row takes over, so the progress is
+        // read off whichever row carries the marker.
+        let earlyRows = calls.stopRows(now: now)
+        let early = earlyRows.first(where: \.isCarryingMarker)?.travelProgress
+        #expect(earlyRows[0].isCarryingMarker)
+        #expect(early != nil && early! > 0 && early! < 0.5)
+
+        let laterRows = calls.stopRows(now: now.addingTimeInterval(2 * 60))
+        let later = laterRows.first(where: \.isCarryingMarker)?.travelProgress
+        #expect(laterRows[1].isCarryingMarker)
+        #expect(later != nil && later! > 0.5 && later! < 1)
+        #expect(later! > early!)
 
         // Once the arrival time is reached the vehicle stands at the stop and
         // the marker's progress hands over to the resting position.
         let arrived = calls.stopRows(now: now.addingTimeInterval(4 * 60))[1]
         #expect(arrived.isCurrent)
+        #expect(arrived.isCarryingMarker)
         #expect(arrived.travelProgress == nil)
     }
 
@@ -350,29 +360,46 @@ struct RouteDetailsModelTests {
         #expect(atStop[0].isBetweenStops == false)
 
         // At `now` the grace has elapsed and the vehicle is part-way across
-        // the leg, gliding instead of snapping.
-        let gliding = calls.stopRows(now: now)[1].travelProgress
+        // the leg, gliding instead of snapping. The progress rides whichever
+        // row carries the marker, not just the target.
+        let glidingRows = calls.stopRows(now: now)
+        let gliding = glidingRows.first(where: \.isCarryingMarker)?.travelProgress
         #expect(gliding != nil && gliding! > 0 && gliding! < 1)
 
         // The glide keeps advancing until the arrival.
-        let further = calls.stopRows(now: now.addingTimeInterval(15))[1].travelProgress
+        let furtherRows = calls.stopRows(now: now.addingTimeInterval(15))
+        let further = furtherRows.first(where: \.isCarryingMarker)?.travelProgress
         #expect(further != nil && further! > gliding!)
 
         // Pulling up to stop 1 hands the marker back to the resting position.
         let arrived = calls.stopRows(now: now.addingTimeInterval(30))[1]
         #expect(arrived.isCurrent)
+        #expect(arrived.isCarryingMarker)
         #expect(arrived.travelProgress == nil)
     }
 
-    @Test func stopRowsTargetIsTheRowTheMarkerSitsOn() {
+    @Test func stopRowsTargetIsTheRowTheVehicleIsHeadingTo() {
         let now = Date()
+        // The vehicle is between stop 0 and stop 1 with most of the leg still
+        // ahead, so the marker rides the departed row while the target — the
+        // row the view scrolls to and the delay pill sits on — is the upcoming
+        // stop.
         let calls = [
-            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 1)),
             Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 5)),
             Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
         ]
         let rows = calls.stopRows(now: now)
         #expect(rows.target?.name == "Second")
+        #expect(rows[0].isCarryingMarker)
+        #expect(rows[0].travelProgress != nil)
+
+        // Past the leg's midpoint the marker crosses to the target row, and
+        // on arrival it rests there.
+        let arrived = calls.stopRows(now: now.addingTimeInterval(5 * 60))[1]
+        #expect(arrived.isCurrent)
+        #expect(arrived.isCarryingMarker)
+        #expect(arrived.travelProgress == nil)
     }
 
     @Test func stopRowsTargetNilWhenVehicleIsOffTheTrack() {

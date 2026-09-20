@@ -147,29 +147,28 @@ private struct DelayPill: View {
 /// the bus marker offset themselves so their centers sit exactly on it.
 private let trackCenterX: CGFloat = 6
 
-/// A row's usual height. The connector slices of consecutive rows join up, and
-/// a node sits at the vertical center of its row.
+/// A row's height. The connector slices of consecutive rows join up, and a
+/// node sits at the vertical center of its row. Every row is the same height
+/// so the spacing between the stations' nodes never drifts as the vehicle
+/// moves along the track.
 private let stopRowHeight: CGFloat = 72
 
-/// The extra room a row gets while the vehicle is between it and the previous
-/// stop, so the lifted bus marker sits clear of both the node and the row
-/// above it.
-private let betweenStopsRowHeight: CGFloat = 104
+/// The share of a leg's timeline spent easing the marker off the node it
+/// departs and onto the node it arrives at: the marker holds its position at
+/// the station for the first and last 5% of the leg, producing a small bump
+/// as it leaves and pulls up.
+private let markerEaseFraction: Double = 0.05
 
-/// How far below its row's top edge the bus marker's center sits while the
-/// vehicle is between stops: the whole marker stays inside the row's extra
-/// space instead of overlapping the row above. The marker interpolates from
-/// the previous row's center towards the top of this row across the leg, so
-/// it glides along the connector instead of sitting at the boundary.
-private let betweenStopsMarkerInset: CGFloat = 10
-
-/// The vertical travel the bus marker covers across a leg between two stops,
-/// in target-row coordinates: from the previous row's node center (half a
-/// normal row above the boundary) down to the marker's resting spot near the
-/// target row's top. The marker leaves the node it departed, glides along the
-/// connector with the leg's progress, then settles onto the target node on
-/// arrival.
-private let markerTravelDistance: CGFloat = stopRowHeight / 2 + betweenStopsRowHeight / 2
+/// Maps a leg's raw 0→1 timeline to the marker's eased 0→1 position between
+/// the two nodes: the first and last ``markerEaseFraction`` of the timeline
+/// holds the marker at the node it is leaving / arriving at (the bump), and
+/// the remaining 90% moves it smoothly between them.
+private func easedTravelProgress(_ progress: Double) -> Double {
+    let easedIn = markerEaseFraction
+    let easedOut = 1 - markerEaseFraction
+    guard easedOut > easedIn else { return 0.5 }
+    return min(max((progress - easedIn) / (easedOut - easedIn), 0), 1)
+}
 
 /// The list of stop nodes joined by a vertical line, with the bus marker on
 /// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
@@ -199,7 +198,7 @@ private struct TripNodes: View {
                         }
                     }
                     .overlay(alignment: .leading) {
-                        if row.isTarget {
+                        if row.isCarryingMarker {
                             TransportModeMarker(mode: route.transportMode)
                                 .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
                                 .transition(.opacity)
@@ -211,15 +210,19 @@ private struct TripNodes: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.85), value: rows)
     }
 
-    /// The marker's vertical offset within the target row: resting on the
-    /// node while the vehicle is at the stop, and interpolating down the leg
-    /// from the previous stop's node to this row's boundary while between
-    /// stops, so the marker glides along the connector once a second instead
-    /// of jumping between rows.
+    /// The marker's vertical offset within the row it currently rides: resting
+    /// on the node while the vehicle is at the stop, and interpolating from
+    /// that row's node towards the adjacent one while between stops, eased so
+    /// it bumps off the departing node and onto the arriving one. The row the
+    /// marker rides switches at the leg's midpoint (see the model's
+    /// `markerRow`), so the offset never carries the marker past the boundary
+    /// into a neighbouring row.
     private func markerOffset(for row: TripStopRow) -> CGFloat {
-        guard row.isBetweenStops, let progress = row.travelProgress else { return 0 }
-        let resting = -(betweenStopsRowHeight / 2 - betweenStopsMarkerInset)
-        return -markerTravelDistance + progress * (markerTravelDistance + resting)
+        guard let progress = row.travelProgress else { return 0 }
+        let eased = easedTravelProgress(progress)
+        return row.isTarget
+            ? eased * stopRowHeight - stopRowHeight
+            : eased * stopRowHeight
     }
 }
 
@@ -261,12 +264,6 @@ private struct StopNode: View {
 
     let row: TripStopRow
 
-    /// The row's height: taller while the vehicle is between it and the previous
-    /// stop, so the lifted bus marker doesn't crowd the node.
-    private var rowHeight: CGFloat {
-        row.isBetweenStops ? betweenStopsRowHeight : stopRowHeight
-    }
-
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             /// The stop's graphic on the track: the hollow origin ring on the first
@@ -295,7 +292,7 @@ private struct StopNode: View {
             }
             Spacer(minLength: 0)
         }
-        .frame(minHeight: rowHeight)
+        .frame(minHeight: stopRowHeight)
         .background(alignment: .topLeading) {
             /// This row's slice of the track's vertical connector, matching the
             /// storyboard's `track-line`. It spans the full row with square ends
@@ -312,8 +309,8 @@ private struct StopNode: View {
                     .fill(Color.hairline)
                     .frame(width: 3)
                     .padding(.leading, 4.5)
-                    .padding(.top, row.isFirst ? rowHeight / 2 : 0)
-                    .padding(.bottom, row.isFinal ? rowHeight / 2 : 0)
+                    .padding(.top, row.isFirst ? stopRowHeight / 2 : 0)
+                    .padding(.bottom, row.isFinal ? stopRowHeight / 2 : 0)
                     .frame(maxHeight: .infinity)
             }
 

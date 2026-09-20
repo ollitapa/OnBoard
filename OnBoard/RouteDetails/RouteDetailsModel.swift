@@ -123,15 +123,26 @@ struct TripStopRow: Identifiable, Equatable, Sendable {
     let isPassed: Bool
     /// The vehicle is standing at this stop right now.
     let isCurrent: Bool
-    /// The vehicle is at or heading to this stop — the row carrying the bus
-    /// marker and the delay pill.
+    /// The vehicle is at or heading to this stop — the row carrying the delay
+    /// pill and the arrival countdown. The bus marker rides this row while the
+    /// vehicle stands at the stop and from the leg's midpoint while it travels;
+    /// before that the marker rides the departed stop's row.
     let isTarget: Bool
     /// The vehicle is between the previous stop and this one, so the marker
     /// sits at the rows' boundary instead of on the node.
     let isBetweenStops: Bool
-    /// How far the vehicle has travelled from the previous stop's node to this
-    /// one while between stops: 0 as it leaves the previous stop, 1 as it
-    /// pulls up to this one. `nil` unless this row is between stops.
+    /// The row the bus marker rides this frame: the stop's own row while the
+    /// vehicle stands there, the departed stop's row for the first half of the
+    /// leg, and the upcoming stop's row from the midpoint on — so each row
+    /// draws the marker within its own bounds and the handoff between the two
+    /// rows happens exactly at the boundary they share.
+    let isCarryingMarker: Bool
+    /// How far the vehicle has travelled from the previous stop's node towards
+    /// this one while between stops: 0 as it leaves the previous stop, 1 as it
+    /// pulls up to this one. Carried only by the row the marker rides — the
+    /// departed stop's row for the first half of the leg, this row from the
+    /// midpoint on — so each row draws the marker within its own bounds. `nil`
+    /// while the vehicle stands at a stop and on every other row.
     let travelProgress: Double?
     let isFirst: Bool
     let isFinal: Bool
@@ -229,6 +240,21 @@ extension Array where Element == TripCall {
             travelProgress = nil
         }
 
+        /// The row the bus marker rides: while between stops it sits on the
+        /// departed stop's row for the first half of the leg and crosses to the
+        /// upcoming stop's row past the midpoint, so each row only ever draws
+        /// the marker within its own bounds; standing at a stop it rests on
+        /// that stop's row.
+        let markerRow: Int?
+        switch position {
+        case .atStop(let current):
+            markerRow = current
+        case .betweenStops(let before, let after):
+            markerRow = (travelProgress ?? 0) < 0.5 ? before : after
+        case .none:
+            markerRow = nil
+        }
+
         return enumerated().map { index, call in
             /// Whether the call at `index` has already been passed at `now`.
             let isPassed = switch position {
@@ -259,7 +285,8 @@ extension Array where Element == TripCall {
                 isCurrent: isCurrent,
                 isTarget: isTarget,
                 isBetweenStops: isTarget && isBetweenStops,
-                travelProgress: isTarget && isBetweenStops ? travelProgress : nil,
+                isCarryingMarker: index == markerRow,
+                travelProgress: index == markerRow ? travelProgress : nil,
                 isFirst: index == 0,
                 isFinal: index == count - 1,
                 subtitle: Self.subtitle(
@@ -323,9 +350,9 @@ extension Array where Element == TripCall {
 /// questions about the rendered track rather than the raw schedule.
 extension Array where Element == TripStopRow {
 
-    /// The row the vehicle is at or heading to — the row carrying the bus
-    /// marker, which the view scrolls to when the screen opens. Read off the
-    /// rows' own `isTarget` flags, so it costs no extra position lookup.
+    /// The row the vehicle is at or heading to — the row carrying the delay
+    /// pill and the one the view scrolls to when the screen opens. Read off
+    /// the rows' own `isTarget` flags, so it costs no extra position lookup.
     /// `nil` when the vehicle isn't on the track.
     var target: TripStopRow? {
         first { $0.isTarget }
