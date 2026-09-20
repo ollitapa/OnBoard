@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// A mock `NetworkProtocol` that serves the SL Transport `lines` endpoint
 /// with a canned response, for previews, unit tests, and the
@@ -261,4 +262,22 @@ struct MockSLTransportService: NetworkProtocol {
         ]
     }
     """
+}
+
+/// Builds a `LineColoursModel` pre-loaded with the mock service's canned
+/// lines, for previews and tests that need line badge colours without a
+/// network round trip. Mirrors `previewLocationAuthorization()`: the
+/// helper lives in the app target because previews call it directly, and
+/// the fixture is decoded synchronously so the helper stays non-async.
+@MainActor
+func previewLineColours() -> LineColoursModel {
+    let model = LineColoursModel()
+    model.seedLines(
+        (try? JSONDecoder().decode(
+            SLLinesResponse.self,
+            from: Data(MockSLTransportService.defaultLinesJSON.utf8)
+        ))
+            ?? SLLinesResponse()
+    )
+    return model
 }

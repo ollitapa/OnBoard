@@ -4,6 +4,46 @@ import SwiftUI
 
 struct SLTransportTests {
 
+    // MARK: - Line colours model
+
+    @Test func modelLoadsAndCachesLines() async throws {
+        // Given: the mock SL Transport service, which matches the lines
+        // endpoint by path.
+        let network = MockSLTransportService()
+        let model = LineColoursModel()
+
+        // When
+        await model.loadLines(network: network)
+        let first = try #require(model.lines)
+
+        // Then: a second load doesn't re-fetch (the response is cached for
+        // the run), and the badge lookup resolves onto the design tokens.
+        await model.loadLines(network: network)
+        #expect(model.lines == first)
+        #expect(model.badgeColour(designation: "3", transportMode: "BUS") == .lineBlue)
+    }
+
+    @Test func modelFallsBackToAccentOnFailure() async throws {
+        // Given: a bare mock network serving invalid JSON for every request,
+        // reaching for the handler-registered mock as in the invalid-JSON
+        // tests (the feature-specific mock traps on a malformed fixture at
+        // creation, so it can't serve one).
+        var network = MockNetwork()
+        network.registerHandler { request in
+            MockNetwork.makeResponse(json: "<html>error</html>")
+        }
+        let model = LineColoursModel()
+
+        // When
+        await model.loadLines(network: network)
+
+        // Then: the lookup falls back to the accent colour instead of
+        // blocking the board.
+        #expect(model.lines == nil)
+        #expect(model.badgeColour(designation: "3", transportMode: "BUS") == .accent)
+    }
+
+
     /// The lines decoded from ``MockSLTransportService/defaultLinesJSON``, so
     /// the mapping tests run against the exact bytes previews and UI tests
     /// serve, decoded through the same production `Codable` path.

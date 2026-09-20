@@ -13,8 +13,10 @@ struct MainView: View {
     @SceneStorage("SelectedTab") private var selectedTab: Tabs = .nearby
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.network) private var network
 
     @State var favoritesModel: FavoritesModel = FavoritesModel()
+    @State var lineColoursModel: LineColoursModel = LineColoursModel()
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -48,8 +50,12 @@ struct MainView: View {
         .onAppear {
             favoritesModel.loadFavorites(context: modelContext)
         }
+        .task {
+            await lineColoursModel.loadLines(network: network)
+        }
         .tabViewSearchActivation(.searchTabSelection)
         .environment(favoritesModel)
+        .environment(lineColoursModel)
         .tint(.accent)
         .accentColor(.accent)
     }
