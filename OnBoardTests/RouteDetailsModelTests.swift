@@ -434,6 +434,45 @@ struct RouteDetailsModelTests {
         #expect(arrived.subtitle == "Final stop")
     }
 
+    @Test func stopRowsShowMinutesUpToTenAndClockTimeBeyond() {
+        let now = Date()
+        // The vehicle is between stop 0 and stop 1, so stop 1 is the target
+        // (no trailing time — its countdown lives in the subtitle), stop 2
+        // arrives in 9 minutes ("9 min"), and the final stop in 22 minutes
+        // (clock time).
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 1)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 4)),
+            Self.call(stopId: "2", name: "Third", scheduledDeparture: Self.future(now, minutes: 9)),
+            Self.call(stopId: "3", name: "Final", scheduledDeparture: Self.future(now, minutes: 22))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows[0].trailingTime == nil)
+        #expect(rows[1].trailingTime == nil)
+        #expect(rows[1].subtitle == "Arriving in 4 min")
+        #expect(rows[2].trailingTime == "9 min")
+        #expect(rows[3].trailingTime == calls[3].arrivalDate?.formatted(date: .omitted, time: .shortened))
+
+        // While the vehicle dwells at stop 1, stop 2 is upcoming (not the
+        // target) and only 30 seconds out, so its trailing time reads the
+        // whole minute "1 min" — the trailing edge counts down too, mirroring
+        // the board's whole-minute display.
+        let dwelling = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(
+                stopId: "1",
+                name: "Second",
+                scheduledArrival: Self.past(now, minutes: 1),
+                scheduledDeparture: Self.future(now, minutes: 2)
+            ),
+            Self.call(stopId: "2", name: "Third", scheduledDeparture: Self.timestamp(now.addingTimeInterval(30))),
+            Self.call(stopId: "3", name: "Final", scheduledDeparture: Self.future(now, minutes: 22))
+        ]
+        let dwellingRows = dwelling.stopRows(now: now)
+        #expect(dwellingRows[1].isTarget)
+        #expect(dwellingRows[2].trailingTime == "1 min")
+    }
+
     // MARK: - Helpers
 
     /// Builds a `TripCall` with sensible defaults for tests.

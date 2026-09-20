@@ -147,6 +147,11 @@ struct TripStopRow: Identifiable, Equatable, Sendable {
     let isFirst: Bool
     let isFinal: Bool
     let subtitle: String?
+    /// The arrival time shown at the row's trailing edge, on the same line as
+    /// the station name: the whole minutes away up to 10 ("7 min"), the clock
+    /// time after that ("11:22"). `nil` on the target row — its countdown
+    /// lives in the subtitle — and on passed rows.
+    let trailingTime: String?
 }
 
 /// The schedule-to-rows calculation owned by ``RouteDetailsModel``, answering
@@ -295,7 +300,8 @@ extension Array where Element == TripCall {
                     isBetweenStops: isTarget && isBetweenStops,
                     isFinal: index == count - 1,
                     now: now
-                )
+                ),
+                trailingTime: Self.trailingTime(for: call, isTarget: isTarget, isPassed: isPassed, now: now)
             )
         }
     }
@@ -343,6 +349,25 @@ extension Array where Element == TripCall {
             return now >= departingFrom ? "Departing now" : "Arrived"
         }
         return nil
+    }
+
+    /// The arrival time for an upcoming row's trailing edge: whole minutes
+    /// away up to 10 ("7 min"), and the clock time ("11:22") beyond that —
+    /// the closer the stop, the more useful a relative count. `nil` on the
+    /// target row, whose arrival is already counted down in the subtitle, and
+    /// on passed rows.
+    private static func trailingTime(
+        for call: TripCall,
+        isTarget: Bool,
+        isPassed: Bool,
+        now: Date
+    ) -> String? {
+        guard !isTarget, !isPassed, let arrival = call.arrivalDate ?? call.departureDate else { return nil }
+        let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.down))
+        if minutes < 1 {
+            return "1 min"
+        }
+        return minutes <= 10 ? "\(minutes) min" : arrival.formatted(date: .omitted, time: .shortened)
     }
 }
 

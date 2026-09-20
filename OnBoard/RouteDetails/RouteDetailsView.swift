@@ -307,6 +307,11 @@ private struct StopNode: View {
                 }
             }
             Spacer(minLength: 0)
+            if let trailingTime = row.trailingTime {
+                Text(trailingTime)
+                    .font(.subheadline)
+                    .foregroundStyle(.inkSoft)
+            }
         }
         .frame(minHeight: stopRowHeight)
     }
