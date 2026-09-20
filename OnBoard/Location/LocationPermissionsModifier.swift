@@ -8,7 +8,9 @@ import CoreLocation
 /// ``LocationDeniedView``. While authorized the content is shown normally and
 /// the ``LocationAuthorization`` model is published into the environment so
 /// descendant views can read `@Environment(\.locationAuthorization)` to obtain
-/// the current coordinate.
+/// the current coordinate. If the authorized manager then reports a failure
+/// before any coordinate arrived, ``LocationFailureView`` covers the content
+/// with a retry action instead.
 ///
 /// Apple forbids offering "no" through any UI other than the system prompt, so
 /// the explanation view offers only a `LocationButton` that triggers the system
@@ -18,8 +20,8 @@ struct LocationPermissionsModifier: ViewModifier {
 
     @Environment(LocationAuthorization.self) var model
 
-    /// Called when the user taps "Search manually instead" in the denied
-    /// view, so the app can switch to the search tab.
+    /// Called when the user taps "Search manually instead" in the denied or
+    /// failure views, so the app can switch to the search tab.
     var onManualSearch: () -> Void
 
     /// Creates the modifier backed by a real `CLLocationManager`, or — when
@@ -28,22 +30,13 @@ struct LocationPermissionsModifier: ViewModifier {
     /// keeps the Nearby tab usable in UI tests where the simulator can't
     /// grant real location permission, mirroring the `--mock-network` harness.
     /// - Parameter onManualSearch: Invoked when the user chooses manual search
-    ///   from the denied view.
+    ///   from the denied or failure view.
     init(onManualSearch: @escaping () -> Void = {}) {
         self.onManualSearch = onManualSearch
     }
 
     func body(content: Content) -> some View {
         content
-            .overlay {
-                if let _ = model.failure {
-                    LocationDeniedView(
-                        onOpenSettings: Self.openSettings,
-                        onManualSearch: onManualSearch
-                    )
-                    .transition(.opacity)
-                }
-            }
             .overlay {
                 switch model.status {
                 case .notDetermined:
@@ -56,10 +49,20 @@ struct LocationPermissionsModifier: ViewModifier {
                     )
                     .transition(.opacity)
                 case .authorizedWhenInUse, .authorizedAlways:
-                    EmptyView()
+                    if model.failure != nil && model.coordinate == nil {
+                        LocationFailureView(
+                            failure: model.failure,
+                            onRetry: model.retryAfterFailure,
+                            onManualSearch: onManualSearch
+                        )
+                        .transition(.opacity)
+                    } else {
+                        EmptyView()
+                    }
                 }
             }
             .animation(.default, value: model.status)
+            .animation(.default, value: model.failure)
     }
 
     /// Opens the app's settings page, where the user can re-enable location.
@@ -74,12 +77,13 @@ extension View {
     /// Gates this view behind the location permission flow.
     ///
     /// Shows the explanation view until the user responds to the system prompt,
-    /// then the content once authorized — or the "Location access is off" view
-    /// if denied. The ``LocationAuthorization`` model is published into the
-    /// environment so descendants can read the current coordinate via
+    /// then the content once authorized — the "Location access is off" view
+    /// if denied, or the failure view if the authorized manager errors before
+    /// producing a coordinate. The ``LocationAuthorization`` model is published
+    /// into the environment so descendants can read the current coordinate via
     /// `@Environment(\.locationAuthorization)`.
     /// - Parameter onManualSearch: Invoked when the user chooses manual search
-    ///   from the denied view.
+    ///   from the denied or failure view.
     func locationPermissions(
         onManualSearch: @escaping () -> Void = {}
     ) -> some View {
@@ -91,4 +95,10 @@ extension View {
     Color.clear
         .locationPermissions()
         .environment(previewLocationAuthorization())
+}
+
+#Preview("Location failure") {
+    Color.clear
+        .locationPermissions()
+        .environment(previewFailedLocationAuthorization())
 }
