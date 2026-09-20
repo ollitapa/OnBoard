@@ -26,6 +26,11 @@ struct RouteDetails: Identifiable, Hashable, Sendable {
     /// Identity is the trip + its start date (a line runs the same id many times
     /// a day; the date disambiguates).
     var id: String { "\(tripId)-\(startDate)" }
+
+    /// The inline nav title: "Line 55 • Ropsten"
+    var lineTitle: String {
+        "Line \(lineLabel) • \(direction)"
+    }
 }
 
 /// The view model for the Live Trip screen (`Designs/storyboard.html`,
@@ -92,7 +97,7 @@ final class RouteDetailsModel {
     /// (from a periodic `TimelineView`) to keep the marker's position and the
     /// countdown subtitles moving with the clock instead of lagging a minute
     /// behind the vehicle.
-    func recalculateRows(now: Date = Date()) {
+    func recalculateRows(now: Date) {
         rows = calls.stopRows(now: now)
     }
 }

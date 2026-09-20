@@ -25,8 +25,8 @@ struct RouteDetailsView: View {
     /// How often the rows are recomputed from the loaded schedule so the
     /// marker's position and the countdown subtitles track the clock between
     /// network polls. Trafiklab only refreshes its realtime data every 60 s,
-    /// so 10 s is fine-grained enough to stay ahead of the vehicle.
-    private static let rowRefreshInterval = 10.0
+    /// so 5 s is fine-grained enough to stay ahead of the vehicle.
+    private static let rowRefreshInterval = 5.0
 
     var body: some View {
         Group {
@@ -57,12 +57,12 @@ struct RouteDetailsView: View {
                         rows: model.rows
                     )
                     .onChange(of: context.date) {
-                        model.recalculateRows()
+                        model.recalculateRows(now: context.date)
                     }
                 }
             }
         }
-        .navigationTitle(Self.title(route))
+        .navigationTitle(route.lineTitle)
         .navigationBarTitleDisplayMode(.inline)
         .background(Color.paper)
         .task(id: loadingTrigger) {
@@ -77,13 +77,6 @@ struct RouteDetailsView: View {
             try? await Task.sleep(for: .seconds(60))
             loadingTrigger += 1
         }
-    }
-
-    /// The inline nav title: "Line 55 • Ropsten", matching the storyboard's
-    /// `trip-header .route`. The delay pill is rendered inside the track, not
-    /// the nav bar, so the title stays short.
-    static func title(_ route: RouteDetails) -> String {
-        "Line \(route.lineLabel) • \(route.direction)"
     }
 }
 
@@ -112,18 +105,14 @@ private struct TripTrack: View {
                 }
             }
             .onAppear {
-                scrollToTarget(from: proxy)
+                /// Scrolls the track so the stop the vehicle is at or heading to — the row
+                /// carrying the bus marker — sits in the middle of the screen, jumping
+                /// straight to the vehicle when the view opens. Reads the target off the
+                /// model's row snapshot, so the scroll and the marker can never disagree.
+                guard let target = rows.target else { return }
+                proxy.scrollTo(target.id, anchor: .center)
             }
         }
-    }
-
-    /// Scrolls the track so the stop the vehicle is at or heading to — the row
-    /// carrying the bus marker — sits in the middle of the screen, jumping
-    /// straight to the vehicle when the view opens. Reads the target off the
-    /// model's row snapshot, so the scroll and the marker can never disagree.
-    private func scrollToTarget(from proxy: ScrollViewProxy) {
-        guard let target = rows.target else { return }
-        proxy.scrollTo(target.id, anchor: .center)
     }
 }
 
@@ -141,7 +130,9 @@ private struct DelayPill: View {
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3)
                 .background(
-                    delayMinutes.minutes < 0 ? Color.statusGreenTint : Color.statusRedTint,
+                    delayMinutes.minutes < 0
+                        ? Color.statusGreenTint
+                        : Color.statusRedTint,
                     in: Capsule()
                 )
         }
@@ -167,7 +158,7 @@ private let betweenStopsRowHeight: CGFloat = 104
 /// How far below its row's top edge the bus marker's center sits while the
 /// vehicle is between stops: the whole marker stays inside the row's extra
 /// space instead of overlapping the row above.
-private let betweenStopsMarkerInset: CGFloat = 22
+private let betweenStopsMarkerInset: CGFloat = 10
 
 /// The list of stop nodes joined by a vertical line, with the bus marker on
 /// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
