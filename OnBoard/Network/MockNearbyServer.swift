@@ -81,3 +81,13 @@ func previewLocationAuthorization() -> LocationAuthorization {
     model.startUpdating()
     return model
 }
+
+/// Builds a pre-authorized `LocationAuthorization` whose manager fails every
+/// location request, for previews and tests that need the Nearby tab's
+/// location failure state without a real CoreLocation error.
+@MainActor
+func previewFailedLocationAuthorization() -> LocationAuthorization {
+    let model = LocationAuthorization(manager: FailingLocationManager())
+    model.startUpdating()
+    return model
+}

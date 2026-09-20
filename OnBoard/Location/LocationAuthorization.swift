@@ -74,6 +74,15 @@ final class LocationAuthorization {
     func stopUpdating() {
         manager.stopUpdatingLocation()
     }
+
+    /// Retries location after a failure by restarting updates, e.g. from the
+    /// failure view's "Try Again" button. A fresh start gives the system
+    /// another chance to acquire a fix; a success clears ``failure``.
+    func retryAfterFailure() {
+        guard status == .authorizedWhenInUse || status == .authorizedAlways else { return }
+        manager.stopUpdatingLocation()
+        manager.startUpdatingLocation()
+    }
 }
 
 extension CLAuthorizationStatus {

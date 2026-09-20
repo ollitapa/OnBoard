@@ -32,7 +32,8 @@ OnBoard/
 ├── Favorites/             # FavoritesModel + FavoritesView
 ├── Search/                # SearchModel + SearchView
 ├── StopDetails/          # StopDetailsModel + StopDetailsView
-└── RouteDetails/         # RouteDetailsModel + RouteDetailsView
+├── RouteDetails/         # RouteDetailsModel + RouteDetailsView
+└── About/                # AboutView (attribution for Trafiklab / Samtrafiken)
 ```
 
 ### Design tokens
