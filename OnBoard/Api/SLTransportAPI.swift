@@ -79,12 +79,14 @@ struct SLLine: Codable, Equatable, Sendable {
 
 // MARK: - Line colour mapping
 
-/// The badge colour a line should carry, matching SL's own colour-coding of
-/// its network: blue buses, the green/blue/red metro lines, and the accent
-/// colour for everything else (regular red buses render with the app's
-/// accent, not red, so a cancelled/delayed status keeps its red).
+/// The badge colour a line should carry, mapped from SL's own colour-coding
+/// of its network onto the app's design tokens: the blue buses and the
+/// blue metro line render with the app's gold token (the neutral palette has
+/// no blue), the green and red metro lines keep their hues, and everything
+/// else uses the accent colour (so a cancelled/delayed status keeps its
+/// red).
 enum LineBadgeColour: Equatable, Sendable {
-    case blue
+    case gold
     case green
     case red
     case accent
@@ -96,9 +98,9 @@ enum LineBadgeColour: Equatable, Sendable {
     init(groupOfLines: String?) {
         switch groupOfLines?.lowercased() {
         case "blåbuss":
-            self = .blue
+            self = .gold
         case "tunnelbanans blå linje":
-            self = .blue
+            self = .gold
         case "tunnelbanans gröna linje":
             self = .green
         case "tunnelbanans röda linje":
@@ -106,6 +108,15 @@ enum LineBadgeColour: Equatable, Sendable {
         default:
             self = .accent
         }
+    }
+}
+
+extension SLLinesResponse {
+    /// Every line in the response, across all transport modes.
+    var allLines: [SLLine] {
+        [metro, tram, train, bus, ship, ferry, taxi]
+            .compactMap { $0 }
+            .flatMap { $0 }
     }
 
     /// Looks up a line's badge colour by its designation and transport mode.
@@ -119,27 +130,17 @@ enum LineBadgeColour: Equatable, Sendable {
     ///
     /// - Returns: The line's colour, or `nil` when no line matches — callers
     ///   fall back to the accent colour.
-    static func lookup(
+    func badgeColour(
         designation: String?,
-        transportMode: TransportMode?,
-        in lines: SLLinesResponse
+        transportMode: TransportMode?
     ) -> LineBadgeColour? {
         guard let designation, let transportMode else { return nil }
         let normalized = transportMode == "METRO" && designation.hasPrefix("T")
             ? String(designation.dropFirst())
             : designation
-        let line = lines.allLines.first { line in
+        let line = allLines.first { line in
             line.designation == normalized && line.transport_mode == transportMode
         }
         return line.map { LineBadgeColour(groupOfLines: $0.group_of_lines) }
-    }
-}
-
-extension SLLinesResponse {
-    /// Every line in the response, across all transport modes.
-    var allLines: [SLLine] {
-        [metro, tram, train, bus, ship, ferry, taxi]
-            .compactMap { $0 }
-            .flatMap { $0 }
     }
 }
