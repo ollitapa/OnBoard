@@ -46,6 +46,7 @@ struct AboutView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
         .background(Color.paper)
         .navigationTitle("About")
     }
