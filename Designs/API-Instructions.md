@@ -121,8 +121,10 @@ GET https://api.resrobot.se/v2.1/location.nearbystops?originCoordLat={lat}&origi
 **Response model:**
 
 ```
-StopLocation: StopLocation[]
+stopLocationOrCoordLocation: { StopLocation: StopLocation }[]
 ```
+
+Each entry is a keyed wrapper naming what matched — `"StopLocation"` for a stop, `"CoordLocation"` for an address; the array is absent when nothing matched.
 
 **`StopLocation`:**
 
@@ -131,7 +133,7 @@ StopLocation: StopLocation[]
 | id | string | internal — do not use |
 | extId | string | **use this** for Timetables `area id` and as the stop identifier elsewhere |
 | name | string | all-caps names (e.g. "GÖTEBORG") indicate a virtual/grouping station |
-| lat / lon | string | WGS84 |
+| lat / lon | number | WGS84 |
 | dist | integer | distance from the query point, **meters** — this is your "180 m" label directly, no haversine math needed client-side |
 | weight | integer | 0–32767, traffic volume |
 | products | integer | bitmask of transport products at the stop |

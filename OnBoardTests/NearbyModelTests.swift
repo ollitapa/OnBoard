@@ -83,25 +83,27 @@ struct NearbyModelTests {
         #expect(model.failure == nil)
     }
 
-    @Test func loadStopsSkipsUnparseableCoordinates() async throws {
-        // Given: a response where one stop has an unparseable coordinate string.
-        let network = MockTrafiklabService(nearbyStops: Self.unparseableCoordinateJSON)
+    @Test func loadStopsDropsNonStopHits() async throws {
+        // Given: a response where one hit is an address (`CoordLocation`), not
+        // a stop. ResRobot mixes the two into the same keyed list.
+        let network = MockTrafiklabService(nearbyStops: Self.mixedHitsJSON)
         let model = NearbyModel()
 
         // When
         await model.loadStops(network: network, latitude: 59.31, longitude: 18.07)
 
-        // Then: the malformed stop is skipped rather than placed at (0, 0).
+        // Then: the address hit is dropped rather than failing the response.
         #expect(model.stops.count == 1)
         #expect(model.stops.first?.name == "Central Station")
     }
 
     @Test func loadStopsInvalidJSON() async throws {
-        // Given: a handler that returns non-matching JSON for the nearby path.
+        // Given: a handler that returns JSON with a wrong-typed hits array for
+        // the nearby path.
         var network = MockNetwork()
         network.registerHandler { request in
             if request.url?.path.hasSuffix("location.nearbystops") == true {
-                return MockNetwork.makeResponse(json: #"{"invalid":"json"}"#, statusCode: 200)
+                return MockNetwork.makeResponse(json: #"{"stopLocationOrCoordLocation":"oops"}"#, statusCode: 200)
             }
             return nil
         }
@@ -154,73 +156,71 @@ struct NearbyModelTests {
     /// A one-stop nearby fixture for tests that need a single known stop.
     static let centralStationJSON = [
         """
-        {
+        {"StopLocation": {
         "id": "1",
         "extId": "1",
         "name": "Central Station",
-        "lat": "60.1756",
-        "lon": "24.9420",
+        "lat": 60.1756,
+        "lon": 24.9420,
         "dist": 120,
         "weight": 50,
         "products": 0
-        }
+        }}
         """
     ]
 
     /// A two-stop nearby fixture for tests that assert on the full mapped list.
     static let twoStopsJSON = [
         """
-        {
+        {"StopLocation": {
         "id": "1",
         "extId": "1",
         "name": "Central Station",
-        "lat": "60.1756",
-        "lon": "24.9420",
+        "lat": 60.1756,
+        "lon": 24.9420,
         "dist": 120,
         "weight": 50,
         "products": 0
-        }
+        }}
         """,
         """
-        {
+        {"StopLocation": {
         "id": "2",
         "extId": "2",
         "name": "Market Square",
-        "lat": "60.1699",
-        "lon": "24.9384",
+        "lat": 60.1699,
+        "lon": 24.9384,
         "dist": 300,
         "weight": 40,
         "products": 0
-        }
+        }}
         """
     ]
 
-    /// A two-stop nearby fixture whose second stop has an unparseable
-    /// coordinate string, for the malformed-response path.
-    static let unparseableCoordinateJSON = [
+    /// A two-hit nearby fixture whose second hit is an address
+    /// (`CoordLocation`), not a stop, for the mixed-hit path.
+    static let mixedHitsJSON = [
         """
-        {
+        {"StopLocation": {
         "id": "1",
         "extId": "1",
         "name": "Central Station",
-        "lat": "60.1756",
-        "lon": "24.9420",
+        "lat": 60.1756,
+        "lon": 24.9420,
         "dist": 120,
         "weight": 50,
         "products": 0
-        }
+        }}
         """,
         """
-        {
+        {"CoordLocation": {
         "id": "2",
         "extId": "2",
         "name": "Bad Fix",
-        "lat": "not-a-number",
-        "lon": "24.9384",
-        "dist": 300,
-        "weight": 40,
-        "products": 0
-        }
+        "lat": 60.1699,
+        "lon": 24.9384,
+        "dist": 300
+        }}
         """
     ]
 

@@ -48,7 +48,7 @@ final class NearbyModel {
         do {
             let api = Trafiklab(network: network)
             let response = try await api.nearbyStops(latitude: latitude, longitude: longitude)
-            stops = response.StopLocation.compactMap(Stop.init)
+            stops = response.stops.compactMap(Stop.init)
             failure = nil
 
         } catch is CancellationError {
@@ -62,18 +62,12 @@ final class NearbyModel {
 
 extension Stop {
     /// Creates a `Stop` from a ResRobot `StopLocation`, using `extId` (the group id)
-    /// as the stable identifier and parsing the string coordinates ResRobot returns.
-    /// Returns `nil` when either coordinate string can't be parsed, so an
-    /// unlocatable stop is skipped rather than placed at the null island (0, 0).
-    init?(_ location: StopLocation) {
-        guard let latitude = Double(location.lat),
-              let longitude = Double(location.lon) else {
-            return nil
-        }
+    /// as the stable identifier.
+    init(_ location: StopLocation) {
         self.id = location.extId
         self.name = location.name
-        self.latitude = latitude
-        self.longitude = longitude
+        self.latitude = location.lat
+        self.longitude = location.lon
         self.distance = location.dist
     }
 
