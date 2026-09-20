@@ -153,11 +153,11 @@ private let trackCenterX: CGFloat = 6
 private let stopRowHeight: CGFloat = 72
 
 /// The share of the inter-station distance the marker skips at each end of
-/// a leg: it leaves the node directly to the 5%-of-the-way mark and pulls up
-/// at the 95% mark, so the time spent moving between the stations stays
+/// a leg: it leaves the node directly to the 10%-of-the-way mark and pulls up
+/// at the 90% mark, so the time spent moving between the stations stays
 /// real-time — only the ends are instantaneous, covered by the spring
 /// animation as the at-stop position hands over to the travelling one.
-private let markerEaseFraction: Double = 0.05
+private let markerEaseFraction: Double = 0.1
 
 /// Maps a leg's raw 0→1 timeline onto the marker's position along the
 /// inter-station distance: a linear 5%→95% of the way, per
@@ -198,7 +198,7 @@ private struct TripNodes: View {
                         if row.isCarryingMarker {
                             TransportModeMarker(mode: route.transportMode)
                                 .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
-                                .transition(.opacity)
+                                .transition(.identity)
                                 .offset(y: markerOffset(for: row))
                         }
                     }
