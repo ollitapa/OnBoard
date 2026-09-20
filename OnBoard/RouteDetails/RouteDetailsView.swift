@@ -22,6 +22,13 @@ struct RouteDetailsView: View {
 
     @State private var loadingTrigger = 0
 
+    /// How often the rows are recomputed from the loaded schedule so the
+    /// marker's position and the countdown subtitles track the clock between
+    /// network polls. Trafiklab only refreshes its realtime data every 60 s,
+    /// so recomputing every second keeps the marker moving smoothly along the
+    /// leg between two stops.
+    private static let rowRefreshInterval = 1.0
+
     var body: some View {
         Group {
             if let failure = model.failure {
@@ -45,13 +52,18 @@ struct RouteDetailsView: View {
                     .foregroundStyle(.ink, .inkSoft)
                 }
             } else {
-                TripTrack(
-                    route: route,
-                    calls: model.calls
-                )
+                TimelineView(.periodic(from: .now, by: Self.rowRefreshInterval)) { context in
+                    TripTrack(
+                        route: route,
+                        rows: model.rows
+                    )
+                    .onChange(of: context.date) {
+                        model.recalculateRows(now: context.date)
+                    }
+                }
             }
         }
-        .navigationTitle(Self.title(route))
+        .navigationTitle(route.lineTitle)
         .navigationBarTitleDisplayMode(.inline)
         .background(Color.paper)
         .task(id: loadingTrigger) {
@@ -60,44 +72,53 @@ struct RouteDetailsView: View {
                 tripId: route.tripId,
                 startDate: route.startDate
             )
-            try? await Task.sleep(for: .seconds(30)) // refresh every 30s
+            // Trafiklab's realtime data only updates every 60 s, so poll on
+            // that cadence; the rows between polls are refreshed by the
+            // track's TimelineView instead.
+            try? await Task.sleep(for: .seconds(60))
             loadingTrigger += 1
         }
-    }
-
-    /// The inline nav title: "Line 55 • Ropsten", matching the storyboard's
-    /// `trip-header .route`. The delay pill is rendered inside the track, not
-    /// the nav bar, so the title stays short.
-    static func title(_ route: RouteDetails) -> String {
-        "Line \(route.lineLabel) • \(route.direction)"
     }
 }
 
 // MARK: - Track
 
 /// The vertical track of stop nodes for the Live Trip screen: a line down the
-/// left edge with one node per scheduled stop, the bus marker on the current
-/// stop, and a delay pill in the header area. Extracted as a struct taking
-/// only the data it needs so SwiftUI can skip re-rendering it when unrelated
-/// parent state changes.
+/// left edge with one node per scheduled stop, the bus marker on the stop the
+/// vehicle is at or heading to, and the delay pill on that stop's row.
+/// Extracted as a struct taking only the data it needs so SwiftUI can skip
+/// re-rendering it when unrelated parent state changes.
 private struct TripTrack: View {
 
     let route: RouteDetails
-    let calls: [TripCall]
+    let rows: [TripStopRow]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                TripNodes(route: route, calls: calls)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    TripNodes(
+                        route: route,
+                        rows: rows
+                    )
                     .padding(.horizontal, 18)
                     .padding(.bottom, 24)
+                }
+            }
+            .onAppear {
+                /// Scrolls the track so the stop the vehicle is at or heading to — the row
+                /// carrying the bus marker — sits in the middle of the screen, jumping
+                /// straight to the vehicle when the view opens. Reads the target off the
+                /// model's row snapshot, so the scroll and the marker can never disagree.
+                guard let target = rows.target else { return }
+                proxy.scrollTo(target.id, anchor: .center)
             }
         }
     }
 }
 
-/// The optional "Delayed 3 min" pill shown at the top of the track, matching
-/// the storyboard's `trip-header .eta`. Hidden when on time or no realtime data.
+/// The optional "Delayed 3 min" pill, shown trailing the stop the vehicle
+/// is at or heading to. Hidden when on time or no realtime data.
 private struct DelayPill: View {
 
     let delayMinutes: DelayTime?
@@ -110,7 +131,9 @@ private struct DelayPill: View {
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3)
                 .background(
-                    delayMinutes.minutes < 0 ? Color.statusGreenTint : Color.statusRedTint,
+                    delayMinutes.minutes < 0
+                        ? Color.statusGreenTint
+                        : Color.statusRedTint,
                     in: Capsule()
                 )
         }
@@ -119,144 +142,200 @@ private struct DelayPill: View {
 
 // MARK: - Stop nodes
 
+/// The x position of the track's line center, measured from a row's leading
+/// edge: the connector is 3 pt wide inset 4.5 pt, and every node marker and
+/// the bus marker offset themselves so their centers sit exactly on it.
+private let trackCenterX: CGFloat = 6
+
+/// A row's height. A node sits at the vertical center of its row, and every
+/// row is the same height so the spacing between the stations' nodes never
+/// drifts as the vehicle moves along the track.
+private let stopRowHeight: CGFloat = 72
+
+/// The share of the inter-station distance the marker skips at each end of
+/// a leg: it leaves the node directly to the 10%-of-the-way mark and pulls up
+/// at the 90% mark, so the time spent moving between the stations stays
+/// real-time — only the ends are instantaneous, covered by the spring
+/// animation as the at-stop position hands over to the travelling one.
+private let markerEaseFraction: Double = 0.1
+
+/// Maps a leg's raw 0→1 timeline onto the marker's position along the
+/// inter-station distance: a linear 5%→95% of the way, per
+/// ``markerEaseFraction`` — the marker never sits on the nodes while
+/// travelling, and the at-stop position on either side supplies the bump.
+private func travelPosition(_ progress: Double) -> Double {
+    markerEaseFraction + progress * (1 - 2 * markerEaseFraction)
+}
+
 /// The list of stop nodes joined by a vertical line, with the bus marker on
-/// the current stop. Extracted as a struct so each node's passed/current state
-/// is computed once from the schedule.
+/// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
+/// snapshots so no row compares indices or re-derives the vehicle's position;
+/// the track's single connector line runs behind the stack, from the first
+/// node's center to the last marker's.
 private struct TripNodes: View {
 
     let route: RouteDetails
-    let calls: [TripCall]
+    let rows: [TripStopRow]
 
-    private var currentPosition: TransportPosition? { calls.currentStopIndex() }
+    @Namespace private var markerSpace
 
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            line
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(calls.enumerated()), id: \.element.id) { index, call in
-                    switch currentPosition {
-                    case .atStop(let currentIndex):
-                        StopNode(
-                            call: call,
-                            isPassed: calls.isPassed(at: index),
-                            isCurrent: index == currentIndex,
-                            isFinal: index == calls.count - 1
-                        )
-                        .overlay {
-                            TransportModeMarker(mode: route.transportMode, delayMinutes: nil)
-                        }
-
-                    case .betweenStops(let before, _) where before == index:
-                        StopNode(
-                            call: call,
-                            isPassed: calls.isPassed(at: index),
-                            isCurrent: false,
-                            isFinal: index == calls.count - 1
-                        )
-                        TransportModeMarker(mode: route.transportMode, delayMinutes: route.delayMinutes)
-
-                    default:
-                        StopNode(
-                            call: call,
-                            isPassed: calls.isPassed(at: index),
-                            isCurrent: false,
-                            isFinal: index == calls.count - 1
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    /// The vertical connector running through every node's dot, matching the
-    /// storyboard's `track-line`. Inset top/bottom so it doesn't run past the
-    /// first/last node.
-    private var line: some View {
-        Capsule()
-            .fill(Color.hairline)
-            .frame(width: 3)
-            .padding(.leading, 4)
-            .padding(.top, 16)
-            .padding(.bottom, 16)
-    }
-}
-
-/// The transport mode marker shown at the current stop, matching the storyboard's
-/// `bus-marker` • a small square with the mode icon, sitting on the line with
-/// spacing above and below.
-private struct TransportModeMarker: View {
-
-    let mode: TransportMode?
-    let delayMinutes: DelayTime?
+    /// The identity shared by the marker wherever it appears, so SwiftUI
+    /// animates it moving from one row to the next rather than fading out
+    /// and back in.
+    private static let markerID = "vehicleMarker"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Spacer(minLength: 20)
-            HStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(Color.accent)
-                    .frame(width: 28, height: 28)
-                    .overlay(
-                        Group {
-                            if let mode {
-                                Image(systemName: mode.icon)
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
+            ForEach(rows) { row in
+                StopNode(row: row)
+                    .overlay(alignment: .trailing) {
+                        if row.isTarget {
+                            DelayPill(delayMinutes: route.delayMinutes)
+                                .transition(.opacity)
                         }
-                    )
-                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.panel, lineWidth: 3))
-                    .offset(x: -7)
-                    .accessibilityLabel("Vehicle is here")
-
-                DelayPill(delayMinutes: delayMinutes)
+                    }
+                    .overlay(alignment: .leading) {
+                        if row.isCarryingMarker {
+                            TransportModeMarker(mode: route.transportMode)
+                                .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
+                                .transition(.identity)
+                                .offset(y: markerOffset(for: row))
+                        }
+                    }
             }
-            Spacer(minLength: 20)
-
         }
+        .background(alignment: .topLeading) {
+            /// The track's vertical connector, drawn once behind every row
+            /// instead of as per-row slices: a slice living in a row's
+            /// background is part of that row's subtree, so a marker riding
+            /// the row above sinks below the next row's slice when it crosses
+            /// the midpoint. Behind the whole stack the line stays under the
+            /// marker everywhere along it. Inset half a row at each end so it
+            /// runs exactly from the first node's center to the last's — a
+            /// one-stop trip draws no line at all.
+            if rows.count > 1 {
+                Rectangle()
+                    .fill(Color.hairline)
+                    .frame(width: 3)
+                    .padding(.leading, 4.5)
+                    .padding(.top, stopRowHeight / 2)
+                    .padding(.bottom, stopRowHeight / 2)
+                    .frame(maxHeight: .infinity)
+            }
+        }
+        .animation(.spring(response: 0.6, dampingFraction: 0.85), value: rows)
+    }
+
+    /// The marker's vertical offset within the row it currently rides: resting
+    /// on the node while the vehicle is at the stop, and travelling from the
+    /// 5% mark to the 95% mark of the inter-station distance while between
+    /// stops — real-time along the leg, with the spring animation covering
+    /// the instantaneous ends. The row the marker rides switches at the leg's
+    /// midpoint (see the model's `markerRow`), and both rows' formulas agree
+    /// at the boundary they share, so the handoff is seamless.
+    private func markerOffset(for row: TripStopRow) -> CGFloat {
+        guard let progress = row.travelProgress else { return 0 }
+        let position = travelPosition(progress)
+        return row.isTarget
+            ? position * stopRowHeight - stopRowHeight
+            : position * stopRowHeight
+    }
+}
+
+/// The transport mode marker shown at the stop the vehicle is at or heading
+/// to, matching the storyboard's `bus-marker` • a small square with the mode
+/// icon, sitting on the line over the node. It is part of the target row and
+/// matched by geometry across rows, so SwiftUI animates it sliding along the
+/// track as the journey progresses.
+private struct TransportModeMarker: View {
+
+    let mode: TransportMode?
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 7)
+            .fill(Color.accent)
+            .frame(width: 28, height: 28)
+            .overlay(
+                Group {
+                    if let mode {
+                        Image(systemName: mode.icon)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+            )
+            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.panel, lineWidth: 3))
+            .offset(x: trackCenterX - 14)
+            .accessibilityLabel("Vehicle is here")
     }
 }
 
 /// One `stop-node` from the storyboard: a dot on the line, the stop name, and
-/// an optional subtitle. Passed nodes fade; the current node carries the bus
-/// marker and an "in X min" subtitle.
+/// an optional subtitle. Renders straight from a precomputed ``TripStopRow``;
+/// passed rows fade, the target row carries the bus marker, the first row
+/// wears a hollow origin ring and the last a filled terminus disc. The track's
+/// connector line is drawn by ``TripNodes`` behind the stack, so it always
+/// sits under the bus marker.
 private struct StopNode: View {
 
-    let call: TripCall
-    let isPassed: Bool
-    let isCurrent: Bool
-    let isFinal: Bool
+    let row: TripStopRow
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            nodeDot
+            /// The stop's graphic on the track: the hollow origin ring on the first
+            /// stop, the filled terminus disc on the last, and the storyboard's dot
+            /// states in between. Every marker is offset so its center sits exactly
+            /// on the track's line.
+            if row.isFinal {
+                TerminusDisc(isPassed: row.isPassed)
+            } else if row.isFirst {
+                OriginRing(isPassed: row.isPassed, isCurrent: row.isCurrent)
+            } else {
+                StopDot(isPassed: row.isPassed, isCurrent: row.isCurrent)
+            }
+
+            // Route name and optional subtitle.
             VStack(alignment: .leading, spacing: 2) {
-                Text(call.stop?.name ?? "")
-                    .font(.body.weight(isPassed ? .regular : .semibold))
-                    .foregroundStyle(isPassed ? .inkSoft : .ink)
-                    .strikethrough(call.isCanceled)
-                if let subtitle = subtitle {
+                Text(row.name)
+                    .font(.body.weight(row.isPassed ? .regular : .semibold))
+                    .foregroundStyle(row.isPassed ? .inkSoft : .ink)
+                    .strikethrough(row.isCanceled)
+                if let subtitle = row.subtitle {
                     Text(subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.inkSoft)
                 }
             }
             Spacer(minLength: 0)
+            if let trailingTime = row.trailingTime {
+                Text(trailingTime)
+                    .font(.subheadline)
+                    .foregroundStyle(.inkSoft)
+            }
         }
-        .frame(minHeight: 62)
+        .frame(minHeight: stopRowHeight)
     }
+}
 
-    /// The node's dot: a filled grey dot for passed stops, a larger ringed
-    /// magenta dot with a glow for the current stop, and a plain outlined dot
-    /// for upcoming stops • matching the storyboard's `stop-node` states.
-    private var nodeDot: some View {
+// MARK: - Node dots
+
+/// The dot for an intermediate stop: a filled grey dot when passed, a larger
+/// ringed magenta dot with a glow when the vehicle is standing there, and a
+/// plain outlined dot when upcoming — matching the storyboard's `stop-node`
+/// states.
+private struct StopDot: View {
+
+    let isPassed: Bool
+    let isCurrent: Bool
+
+    var body: some View {
         Circle()
             .fill(isPassed ? Color.hairline : Color.panel)
             .overlay(
                 Circle()
                     .strokeBorder(
                         isCurrent ? Color.accent : Color.hairline,
-                        lineWidth: isCurrent ? 3 : 3
+                        lineWidth: 3
                     )
             )
             .frame(width: isCurrent ? 17 : 12, height: isCurrent ? 17 : 12)
@@ -264,29 +343,47 @@ private struct StopNode: View {
                 color: isCurrent ? Color.accentTint : .clear,
                 radius: isCurrent ? 5 : 0
             )
+            .offset(x: trackCenterX - (isCurrent ? 17.0 : 12.0) / 2)
     }
+}
 
-    /// The subtitle text for a node: the final stop shows "Final stop"; the
-    /// current stop shows "Arriving in X min"; cancelled calls show "Cancelled".
-    private var subtitle: String? {
-        if call.isCanceled {
-            return "Cancelled"
-        }
-        if isFinal {
-            return "Final stop"
-        }
-        if isCurrent, let minutes = Self.minutesUntil(call) {
-            return minutes <= 0 ? "Departing now" : "Arriving in \(minutes) min"
-        }
-        return nil
+/// A hollow ring in a supporting color marking the journey's first stop, so
+/// the origin reads differently from the intermediate dots along the line.
+private struct OriginRing: View {
+
+    let isPassed: Bool
+    let isCurrent: Bool
+
+    var body: some View {
+        Circle()
+            .fill(Color.panel)
+            .overlay(
+                Circle()
+                    .strokeBorder(isPassed ? Color.hairline : Color.inkSoft, lineWidth: 3)
+            )
+            .frame(width: isCurrent ? 17 : 16, height: isCurrent ? 17 : 16)
+            .offset(x: trackCenterX - (isCurrent ? 17.0 : 16.0) / 2)
+            .accessibilityLabel("First stop")
     }
+}
 
-    /// Whole minutes until the call's departure from now, or `nil` when the
-    /// time can't be parsed.
-    static func minutesUntil(_ call: TripCall) -> Int? {
-        guard let date = call.date else { return nil }
-        let minutes = Calendar.current.dateComponents([.minute], from: Date(), to: date).minute
-        return minutes
+/// A filled disc in a hollow square ring marking the journey's final stop, a
+/// clear terminus that caps the track and mirrors the "Final stop" subtitle.
+private struct TerminusDisc: View {
+
+    let isPassed: Bool
+
+    var body: some View {
+        Circle()
+            .fill(isPassed ? Color.hairline : Color.accentDeep)
+            .frame(width: 16, height: 16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(isPassed ? Color.hairline : Color.accentDeep, lineWidth: 3)
+                    .padding(-5)
+            )
+            .offset(x: trackCenterX - 8)
+            .accessibilityLabel("Final stop")
     }
 }
 
