@@ -147,34 +147,31 @@ private struct DelayPill: View {
 /// the bus marker offset themselves so their centers sit exactly on it.
 private let trackCenterX: CGFloat = 6
 
-/// A row's height. The connector slices of consecutive rows join up, and a
-/// node sits at the vertical center of its row. Every row is the same height
-/// so the spacing between the stations' nodes never drifts as the vehicle
-/// moves along the track.
+/// A row's height. A node sits at the vertical center of its row, and every
+/// row is the same height so the spacing between the stations' nodes never
+/// drifts as the vehicle moves along the track.
 private let stopRowHeight: CGFloat = 72
 
-/// The share of a leg's timeline spent easing the marker off the node it
-/// departs and onto the node it arrives at: the marker holds its position at
-/// the station for the first and last 5% of the leg, producing a small bump
-/// as it leaves and pulls up.
+/// The share of the inter-station distance the marker skips at each end of
+/// a leg: it leaves the node directly to the 5%-of-the-way mark and pulls up
+/// at the 95% mark, so the time spent moving between the stations stays
+/// real-time — only the ends are instantaneous, covered by the spring
+/// animation as the at-stop position hands over to the travelling one.
 private let markerEaseFraction: Double = 0.05
 
-/// Maps a leg's raw 0→1 timeline to the marker's eased 0→1 position between
-/// the two nodes: the first and last ``markerEaseFraction`` of the timeline
-/// holds the marker at the node it is leaving / arriving at (the bump), and
-/// the remaining 90% moves it smoothly between them.
-private func easedTravelProgress(_ progress: Double) -> Double {
-    let easedIn = markerEaseFraction
-    let easedOut = 1 - markerEaseFraction
-    guard easedOut > easedIn else { return 0.5 }
-    return min(max((progress - easedIn) / (easedOut - easedIn), 0), 1)
+/// Maps a leg's raw 0→1 timeline onto the marker's position along the
+/// inter-station distance: a linear 5%→95% of the way, per
+/// ``markerEaseFraction`` — the marker never sits on the nodes while
+/// travelling, and the at-stop position on either side supplies the bump.
+private func travelPosition(_ progress: Double) -> Double {
+    markerEaseFraction + progress * (1 - 2 * markerEaseFraction)
 }
 
 /// The list of stop nodes joined by a vertical line, with the bus marker on
 /// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
 /// snapshots so no row compares indices or re-derives the vehicle's position;
-/// each row draws the connector to the next node, so the track ends exactly at
-/// the first and last markers instead of dangling past them.
+/// the track's single connector line runs behind the stack, from the first
+/// node's center to the last marker's.
 private struct TripNodes: View {
 
     let route: RouteDetails
@@ -207,22 +204,41 @@ private struct TripNodes: View {
                     }
             }
         }
+        .background(alignment: .topLeading) {
+            /// The track's vertical connector, drawn once behind every row
+            /// instead of as per-row slices: a slice living in a row's
+            /// background is part of that row's subtree, so a marker riding
+            /// the row above sinks below the next row's slice when it crosses
+            /// the midpoint. Behind the whole stack the line stays under the
+            /// marker everywhere along it. Inset half a row at each end so it
+            /// runs exactly from the first node's center to the last's — a
+            /// one-stop trip draws no line at all.
+            if rows.count > 1 {
+                Rectangle()
+                    .fill(Color.hairline)
+                    .frame(width: 3)
+                    .padding(.leading, 4.5)
+                    .padding(.top, stopRowHeight / 2)
+                    .padding(.bottom, stopRowHeight / 2)
+                    .frame(maxHeight: .infinity)
+            }
+        }
         .animation(.spring(response: 0.6, dampingFraction: 0.85), value: rows)
     }
 
     /// The marker's vertical offset within the row it currently rides: resting
-    /// on the node while the vehicle is at the stop, and interpolating from
-    /// that row's node towards the adjacent one while between stops, eased so
-    /// it bumps off the departing node and onto the arriving one. The row the
-    /// marker rides switches at the leg's midpoint (see the model's
-    /// `markerRow`), so the offset never carries the marker past the boundary
-    /// into a neighbouring row.
+    /// on the node while the vehicle is at the stop, and travelling from the
+    /// 5% mark to the 95% mark of the inter-station distance while between
+    /// stops — real-time along the leg, with the spring animation covering
+    /// the instantaneous ends. The row the marker rides switches at the leg's
+    /// midpoint (see the model's `markerRow`), and both rows' formulas agree
+    /// at the boundary they share, so the handoff is seamless.
     private func markerOffset(for row: TripStopRow) -> CGFloat {
         guard let progress = row.travelProgress else { return 0 }
-        let eased = easedTravelProgress(progress)
+        let position = travelPosition(progress)
         return row.isTarget
-            ? eased * stopRowHeight - stopRowHeight
-            : eased * stopRowHeight
+            ? position * stopRowHeight - stopRowHeight
+            : position * stopRowHeight
     }
 }
 
@@ -257,9 +273,9 @@ private struct TransportModeMarker: View {
 /// One `stop-node` from the storyboard: a dot on the line, the stop name, and
 /// an optional subtitle. Renders straight from a precomputed ``TripStopRow``;
 /// passed rows fade, the target row carries the bus marker, the first row
-/// wears a hollow origin ring and the last a filled terminus disc. Each row
-/// also draws its slice of the connector, inset so the track runs exactly
-/// from the first node's center to the last node's center.
+/// wears a hollow origin ring and the last a filled terminus disc. The track's
+/// connector line is drawn by ``TripNodes`` behind the stack, so it always
+/// sits under the bus marker.
 private struct StopNode: View {
 
     let row: TripStopRow
@@ -293,28 +309,6 @@ private struct StopNode: View {
             Spacer(minLength: 0)
         }
         .frame(minHeight: stopRowHeight)
-        .background(alignment: .topLeading) {
-            /// This row's slice of the track's vertical connector, matching the
-            /// storyboard's `track-line`. It spans the full row with square ends
-            /// so consecutive rows' slices butt together seamlessly (a capsule's
-            /// rounded caps left a hairline gap at every row boundary), and is
-            /// inset at the track's ends so the line starts and stops exactly at
-            /// the first and last node's centers — a one-stop trip draws no line
-            /// at all.
-
-            if row.isFirst && row.isFinal {
-                EmptyView()
-            } else {
-                Rectangle()
-                    .fill(Color.hairline)
-                    .frame(width: 3)
-                    .padding(.leading, 4.5)
-                    .padding(.top, row.isFirst ? stopRowHeight / 2 : 0)
-                    .padding(.bottom, row.isFinal ? stopRowHeight / 2 : 0)
-                    .frame(maxHeight: .infinity)
-            }
-
-        }
     }
 }
 
