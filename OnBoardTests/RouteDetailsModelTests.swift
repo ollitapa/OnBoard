@@ -18,6 +18,7 @@ struct RouteDetailsModelTests {
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
         #expect(model.calls == response.calls)
+        #expect(model.rows == model.calls.stopRows())
         #expect(model.failure == nil)
         #expect(model.isLoading == false)
     }
@@ -31,6 +32,7 @@ struct RouteDetailsModelTests {
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
         #expect(model.calls == [])
+        #expect(model.rows == [])
         #expect(model.failure == nil)
     }
 
@@ -43,6 +45,7 @@ struct RouteDetailsModelTests {
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
         #expect(model.calls == [])
+        #expect(model.rows == [])
         #expect(model.failure != nil)
         #expect(model.isLoading == false)
     }
@@ -61,6 +64,7 @@ struct RouteDetailsModelTests {
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
         #expect(model.calls == [])
+        #expect(model.rows == [])
         #expect(model.failure != nil)
     }
 

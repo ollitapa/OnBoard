@@ -47,7 +47,7 @@ struct RouteDetailsView: View {
             } else {
                 TripTrack(
                     route: route,
-                    calls: model.calls
+                    rows: model.rows
                 )
             }
         }
@@ -83,10 +83,9 @@ struct RouteDetailsView: View {
 private struct TripTrack: View {
 
     let route: RouteDetails
-    let calls: [TripCall]
+    let rows: [TripStopRow]
 
     var body: some View {
-        let rows = calls.stopRows(now: Date())
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -99,7 +98,7 @@ private struct TripTrack: View {
                 }
             }
             .onAppear {
-                scrollToTarget(rows, from: proxy)
+                scrollToTarget(from: proxy)
             }
         }
     }
@@ -107,9 +106,8 @@ private struct TripTrack: View {
     /// Scrolls the track so the stop the vehicle is at or heading to — the row
     /// carrying the bus marker — sits in the middle of the screen, jumping
     /// straight to the vehicle when the view opens. Reads the target off the
-    /// same row snapshot the track renders, so the scroll and the marker can
-    /// never disagree.
-    private func scrollToTarget(_ rows: [TripStopRow], from proxy: ScrollViewProxy) {
+    /// model's row snapshot, so the scroll and the marker can never disagree.
+    private func scrollToTarget(from proxy: ScrollViewProxy) {
         guard let target = rows.target else { return }
         proxy.scrollTo(target.id, anchor: .center)
     }
@@ -138,11 +136,18 @@ private struct DelayPill: View {
 
 // MARK: - Stop nodes
 
-/// Half of a row's minimum height: the distance from a row's edge to its
-/// node's center, used both to inset the connector at the track's ends and to
-/// lift the bus marker to the row boundary while the vehicle is between
-/// stops.
-private let rowHalfHeight: CGFloat = 31
+/// The x position of the track's line center, measured from a row's leading
+/// edge: the connector is 3 pt wide inset 4.5 pt, and every node marker and
+/// the bus marker offset themselves so their centers sit exactly on it.
+private let trackCenterX: CGFloat = 6
+
+/// A row's usual height. The connector slices of consecutive rows join up, and
+/// a node sits at the vertical center of its row.
+private let stopRowHeight: CGFloat = 62
+
+/// The extra room a row gets while the vehicle is between it and the previous
+/// stop, so the lifted bus marker doesn't crowd the node below it.
+private let betweenStopsRowHeight: CGFloat = 78
 
 /// The list of stop nodes joined by a vertical line, with the bus marker on
 /// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
@@ -176,7 +181,7 @@ private struct TripNodes: View {
                             TransportModeMarker(mode: route.transportMode)
                                 .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
                                 .transition(.opacity)
-                                .offset(y: row.isBetweenStops ? -rowHalfHeight : 0)
+                                .offset(y: row.isBetweenStops ? -betweenStopsRowHeight / 2 : 0)
                         }
                     }
             }
@@ -208,7 +213,7 @@ private struct TransportModeMarker: View {
                 }
             )
             .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.panel, lineWidth: 3))
-            .offset(x: -7)
+            .offset(x: trackCenterX - 14)
             .accessibilityLabel("Vehicle is here")
     }
 }
@@ -223,11 +228,18 @@ private struct StopNode: View {
 
     let row: TripStopRow
 
+    /// The row's height: taller while the vehicle is between it and the previous
+    /// stop, so the lifted bus marker doesn't crowd the node.
+    private var rowHeight: CGFloat {
+        row.isBetweenStops ? betweenStopsRowHeight : stopRowHeight
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             /// The stop's graphic on the track: the hollow origin ring on the first
             /// stop, the filled terminus disc on the last, and the storyboard's dot
-            /// states in between.
+            /// states in between. Every marker is offset so its center sits exactly
+            /// on the track's line.
             if row.isFinal {
                 TerminusDisc(isPassed: row.isPassed)
             } else if row.isFirst {
@@ -250,7 +262,7 @@ private struct StopNode: View {
             }
             Spacer(minLength: 0)
         }
-        .frame(minHeight: 62)
+        .frame(minHeight: rowHeight)
         .background(alignment: .topLeading) {
             /// This row's slice of the track's vertical connector, matching the
             /// storyboard's `track-line`. It spans the full row so consecutive rows'
@@ -264,9 +276,9 @@ private struct StopNode: View {
                 Capsule()
                     .fill(Color.hairline)
                     .frame(width: 3)
-                    .padding(.leading, 4)
-                    .padding(.top, row.isFirst ? rowHalfHeight : 0)
-                    .padding(.bottom, row.isFinal ? rowHalfHeight : 0)
+                    .padding(.leading, 4.5)
+                    .padding(.top, row.isFirst ? rowHeight / 2 : 0)
+                    .padding(.bottom, row.isFinal ? rowHeight / 2 : 0)
                     .frame(maxHeight: .infinity)
             }
 
@@ -300,11 +312,12 @@ private struct StopDot: View {
                 color: isCurrent ? Color.accentTint : .clear,
                 radius: isCurrent ? 5 : 0
             )
+            .offset(x: trackCenterX - (isCurrent ? 17.0 : 12.0) / 2)
     }
 }
 
-/// A hollow ring marking the journey's first stop, so the origin reads
-/// differently from the intermediate dots along the line.
+/// A hollow ring in a supporting color marking the journey's first stop, so
+/// the origin reads differently from the intermediate dots along the line.
 private struct OriginRing: View {
 
     let isPassed: Bool
@@ -315,9 +328,10 @@ private struct OriginRing: View {
             .fill(Color.panel)
             .overlay(
                 Circle()
-                    .strokeBorder(isPassed ? Color.hairline : Color.accent, lineWidth: 3)
+                    .strokeBorder(isPassed ? Color.hairline : Color.inkSoft, lineWidth: 3)
             )
             .frame(width: isCurrent ? 17 : 16, height: isCurrent ? 17 : 16)
+            .offset(x: trackCenterX - (isCurrent ? 17.0 : 16.0) / 2)
             .accessibilityLabel("First stop")
     }
 }
@@ -330,13 +344,14 @@ private struct TerminusDisc: View {
 
     var body: some View {
         Circle()
-            .fill(isPassed ? Color.hairline : Color.accent)
+            .fill(isPassed ? Color.hairline : Color.accentDeep)
             .frame(width: 16, height: 16)
             .overlay(
                 RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(isPassed ? Color.hairline : Color.accent, lineWidth: 3)
+                    .strokeBorder(isPassed ? Color.hairline : Color.accentDeep, lineWidth: 3)
                     .padding(-5)
             )
+            .offset(x: trackCenterX - 8)
             .accessibilityLabel("Final stop")
     }
 }

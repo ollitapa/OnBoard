@@ -49,8 +49,13 @@ final class RouteDetailsModel {
     /// The stop-by-stop schedule for the loaded trip, in travel order.
     var calls: [TripCall] = []
 
-    init() {}
+    /// The track's presentation rows, precomputed from ``calls`` on every load
+    /// so the view renders straight from them without re-deriving the
+    /// vehicle's position per row. Because the view reloads every 30 s, the
+    /// countdown subtitles and the marker's position stay current.
+    var rows: [TripStopRow] = []
 
+    init() {}
     /// Loads the stop-by-stop schedule for a trip via the Trafiklab Trips API.
     /// - Parameters:
     ///   - network: The transport used to perform requests; the model builds a
@@ -70,12 +75,167 @@ final class RouteDetailsModel {
             try Task.checkCancellation()
 
             calls = response.calls ?? []
+            rows = calls.stopRows()
             failure = nil
         } catch is CancellationError {
             // Task was cancelled, ignore.
         }  catch {
             calls = []
+            rows = []
             failure = String(describing: error)
         }
+    }
+}
+
+// MARK: - Track rows
+
+/// Where the vehicle is on the trip's schedule at a moment in time.
+enum TransportPosition: Hashable {
+    case atStop(index: Int)
+    case betweenStops(before: Int, after: Int)
+}
+
+/// A precomputed presentation snapshot for one row of the Live Trip track,
+/// so the view never re-derives the vehicle's position per row: the schedule
+/// is walked once (``Array/stopRows(now:)``) and each row carries its name,
+/// flags, and subtitle ready to render.
+struct TripStopRow: Identifiable, Equatable, Sendable {
+
+    let id: String
+    let name: String
+    let isCanceled: Bool
+    /// The vehicle has already left this stop; the row fades.
+    let isPassed: Bool
+    /// The vehicle is standing at this stop right now.
+    let isCurrent: Bool
+    /// The vehicle is at or heading to this stop — the row carrying the bus
+    /// marker and the delay pill.
+    let isTarget: Bool
+    /// The vehicle is between the previous stop and this one, so the marker
+    /// sits at the rows' boundary instead of on the node.
+    let isBetweenStops: Bool
+    let isFirst: Bool
+    let isFinal: Bool
+    let subtitle: String?
+}
+
+/// The schedule-to-rows calculation owned by ``RouteDetailsModel``, answering
+/// questions about the whole trip schedule (which stop is current, whether a
+/// stop is passed) rather than about a single call.
+extension Array where Element == TripCall {
+
+    /// The index of the call the vehicle is currently at or heading to next:
+    /// the first call whose departure time has not yet passed at `now`. A stop
+    /// still ahead by minutes is "current" once the previous call's time has
+    /// passed, so the bus marker sits on the next un-passed stop — matching
+    /// the storyboard's "snaps to next stop" behavior (see API-Instructions § 5.4).
+    /// Returns `nil` when the trip is empty or every call has passed.
+    func currentStopIndex(now: Date = Date()) -> TransportPosition? {
+        guard !isEmpty else { return nil }
+
+        // Go through each call and the next call
+        for ((stopIdx, stop), (nextIdx, nextStop)) in zip(self.enumerated(), self.enumerated().dropFirst()) {
+            if let date = stop.date {
+                let onStopRange = date.addingTimeInterval(-30)...date.addingTimeInterval(30)
+                // Vehicle is at the stop
+                if onStopRange.contains(now) { return .atStop(index: stopIdx) }
+                if let nextDate = nextStop.date {
+                    let onNextStopRange = nextDate.addingTimeInterval(-30)...nextDate.addingTimeInterval(30)
+                    // Vehicle is at the next stop
+                    if onNextStopRange.contains(now) { return .atStop(index: nextIdx) }
+                    // Vehicle is between these stops
+                    if now > date && now < nextDate { return .betweenStops(before: stopIdx, after: nextIdx) }
+                }
+                // Vehicle is not on the track at all.
+                if now < date { return nil }
+            }
+        }
+        return nil
+    }
+
+    /// One ``TripStopRow`` per call in travel order, computed with a single
+    /// position lookup instead of re-deriving it for every row: the track
+    /// renders straight from the rows with no index comparisons.
+    func stopRows(now: Date = Date()) -> [TripStopRow] {
+        let position = currentStopIndex(now: now)
+
+        return enumerated().map { index, call in
+            /// Whether the call at `index` has already been passed at `now`.
+            let isPassed = switch position {
+                case .atStop(let current): index < current
+                case .betweenStops(let current, _): index <= current
+                case .none: true
+            }
+
+            /// Whether the vehicle is standing at the call at `index` right now.
+            let isCurrent = if case .atStop(let current) = position { index == current } else { false }
+
+            /// The stop the vehicle is at or heading to next: the stop it is standing
+            /// at when `atStop`, and the upcoming stop when between two stops — the row
+            /// the bus marker sits on.
+            let isTarget = switch position {
+                case .atStop(let current), .betweenStops(before: _, after: let current): index == current
+                case .none: false
+            }
+
+            /// Whether the vehicle is on the move between this stop and the next one.
+            let isBetweenStops = if case .betweenStops = position { true } else { false }
+
+            return TripStopRow(
+                id: call.id,
+                name: call.stop?.name ?? "",
+                isCanceled: call.isCanceled,
+                isPassed: isPassed,
+                isCurrent: isCurrent,
+                isTarget: isTarget,
+                isBetweenStops: isTarget && isBetweenStops,
+                isFirst: index == 0,
+                isFinal: index == count - 1,
+                subtitle: Self.subtitle(
+                    for: call,
+                    isTarget: isTarget,
+                    isFinal: index == count - 1,
+                    now: now
+                )
+            )
+        }
+    }
+
+    /// The subtitle for a row: cancelled calls show "Cancelled"; the final
+    /// stop shows "Final stop"; the stop the vehicle is at or heading to shows
+    /// its countdown ("Bussen är här om 7 min" in the storyboard). `nil` for
+    /// every other row.
+    private static func subtitle(
+        for call: TripCall,
+        isTarget: Bool,
+        isFinal: Bool,
+        now: Date
+    ) -> String? {
+        if call.isCanceled {
+            return "Cancelled"
+        }
+        if isFinal {
+            return "Final stop"
+        }
+        if isTarget, let date = call.date {
+            let minutes = Calendar.current.dateComponents([.minute], from: now, to: date).minute
+            if let minutes {
+                return minutes <= 0 ? "Departing now" : "Arriving in \(minutes) min"
+            }
+        }
+        return nil
+    }
+}
+
+/// Presentation helpers for the model's precomputed track rows, answering
+/// questions about the rendered track rather than the raw schedule.
+extension Array where Element == TripStopRow {
+
+    /// The row the vehicle is at or heading to — the row carrying the bus
+    /// marker, which the view scrolls to when the screen opens. Read off the
+    /// rows' own `isTarget` flags, so it costs no extra position lookup.
+    /// `nil` when the vehicle isn't on the track.
+    var target: TripStopRow? {
+        first { $0.isTarget }
     }
 }
