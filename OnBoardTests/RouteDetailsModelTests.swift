@@ -329,6 +329,41 @@ struct RouteDetailsModelTests {
         #expect(arrived.travelProgress == nil)
     }
 
+    @Test func shortMetroLegGivesTheMarkerTravelTime() {
+        let now = Date()
+        // A metro-style hop: stop 0 departed 25 seconds ago and stop 1
+        // arrives 30 seconds from now, a 55-second leg. The flat 30-second
+        // at-stop grace used to cover the whole leg so the marker never
+        // left the station before snapping. The grace now scales with the
+        // leg (~22 s here), so the marker spends most of the hop gliding.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.timestamp(now.addingTimeInterval(-25))),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.timestamp(now.addingTimeInterval(30))),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+
+        // 15 seconds after the departure the vehicle is still within the
+        // scaled grace, standing at stop 0.
+        let atStop = calls.stopRows(now: now.addingTimeInterval(-10))
+        #expect(atStop[0].isTarget)
+        #expect(atStop[0].isCurrent)
+        #expect(atStop[0].isBetweenStops == false)
+
+        // At `now` the grace has elapsed and the vehicle is part-way across
+        // the leg, gliding instead of snapping.
+        let gliding = calls.stopRows(now: now)[1].travelProgress
+        #expect(gliding != nil && gliding! > 0 && gliding! < 1)
+
+        // The glide keeps advancing until the arrival.
+        let further = calls.stopRows(now: now.addingTimeInterval(15))[1].travelProgress
+        #expect(further != nil && further! > gliding!)
+
+        // Pulling up to stop 1 hands the marker back to the resting position.
+        let arrived = calls.stopRows(now: now.addingTimeInterval(30))[1]
+        #expect(arrived.isCurrent)
+        #expect(arrived.travelProgress == nil)
+    }
+
     @Test func stopRowsTargetIsTheRowTheMarkerSitsOn() {
         let now = Date()
         let calls = [

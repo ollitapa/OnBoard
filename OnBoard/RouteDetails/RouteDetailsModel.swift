@@ -148,7 +148,21 @@ extension Array where Element == TripCall {
     /// real dwell (arrival before departure) read as "at the stop" for that
     /// whole span; a stop whose arrival and departure coincide gets this much
     /// presence so the "Arrived"/"Departing now" signage is visible at all.
+    /// ``dwellGrace(after:before:)`` scales it down on short legs so the marker
+    /// still gets time to travel.
     private static let dwellGrace: TimeInterval = 30
+
+    /// The at-stop presence ``dwellGrace`` grants a stop after its departure,
+    /// scaled down when the next stop is close by: a metro hop of 30–60 s
+    /// would otherwise spend the whole leg "at the stop", leaving the marker
+    /// no travel time before it snaps to the next station. Short legs keep a
+    /// fraction of their length at the stop and give the rest to the glide;
+    /// stops with no following leg (the terminus) keep the full grace.
+    private static func dwellGrace(after departure: Date, before nextArrival: Date?) -> TimeInterval {
+        guard let nextArrival else { return dwellGrace }
+        let leg = nextArrival.timeIntervalSince(departure)
+        return leg > 0 ? min(dwellGrace, leg * 0.4) : dwellGrace
+    }
 
     /// The index of the call the vehicle is currently at or heading to next,
     /// derived from the calls' arrival and departure spans: the vehicle stands
@@ -162,14 +176,16 @@ extension Array where Element == TripCall {
         for ((stopIdx, stop), (nextIdx, nextStop)) in zip(self.enumerated(), self.enumerated().dropFirst()) {
             guard let arrival = stop.arrivalDate ?? stop.departureDate,
                   let departure = stop.departureDate ?? stop.arrivalDate else { continue }
+            let nextArrival = nextStop.arrivalDate ?? nextStop.departureDate
+            let grace = Self.dwellGrace(after: departure, before: nextArrival)
 
             // Vehicle is standing at the stop: arrival → departure (+ grace).
-            if now >= arrival, now <= departure.addingTimeInterval(Self.dwellGrace) {
+            if now >= arrival, now <= departure.addingTimeInterval(grace) {
                 return .atStop(index: stopIdx)
             }
             // Vehicle is travelling between this stop and the next one.
-            if let nextArrival = nextStop.arrivalDate ?? nextStop.departureDate,
-               now > departure.addingTimeInterval(Self.dwellGrace), now < nextArrival {
+            if let nextArrival,
+               now > departure.addingTimeInterval(grace), now < nextArrival {
                 return .betweenStops(before: stopIdx, after: nextIdx)
             }
             // Vehicle is not on the track at all.
@@ -201,9 +217,10 @@ extension Array where Element == TripCall {
         if case .betweenStops(let before, let after) = position,
            let legStart = self[before].departureDate ?? self[before].arrivalDate,
            let legEnd = self[after].arrivalDate ?? self[after].departureDate {
-            let span = legEnd.timeIntervalSince(legStart.addingTimeInterval(Self.dwellGrace))
+            let grace = Self.dwellGrace(after: legStart, before: legEnd)
+            let span = legEnd.timeIntervalSince(legStart.addingTimeInterval(grace))
             if span > 0 {
-                let elapsed = now.timeIntervalSince(legStart.addingTimeInterval(Self.dwellGrace))
+                let elapsed = now.timeIntervalSince(legStart.addingTimeInterval(grace))
                 travelProgress = min(max(elapsed / span, 0), 1)
             } else {
                 travelProgress = nil
