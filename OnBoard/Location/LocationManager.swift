@@ -47,11 +47,19 @@ protocol LocationManager: AnyObject {
 /// ``LocationManagerBridgeDelegate``, reached through a `weak` reference.
 final class LiveLocationManager: LocationManager {
 
+    /// The minimum movement (meters) before a new location is delivered, so a
+    /// stationary device's GPS jitter does not surface as coordinate updates.
+    static let movementThreshold: CLLocationDistance = 50
+
     private let clmanager: CLLocationManager
     private let bridge: LocationManagerDelegateBridge
 
     init() {
         let clmanager = CLLocationManager()
+        // Only deliver updates after meaningful movement: Nearby keys its
+        // reload `.task(id:)` off the coordinate, so without a threshold the
+        // GPS jitter of a stationary device re-triggers the API call.
+        clmanager.distanceFilter = Self.movementThreshold
         let bridge = LocationManagerDelegateBridge()
         clmanager.delegate = bridge
         self.clmanager = clmanager

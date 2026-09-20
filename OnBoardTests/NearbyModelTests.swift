@@ -115,6 +115,23 @@ struct NearbyModelTests {
         #expect(model.failure != nil)
     }
 
+    @Test func cancelledLoadLeavesLoadingFlagToReplacementTask() async throws {
+        // Given: a load in flight whose replacement is already loading. The
+        // replacement sets `isLoading` before the cancelled task resumes.
+        let network = MockTrafiklabService(nearbyStops: Self.twoStopsJSON)
+        let model = NearbyModel()
+        model.isLoading = true
+
+        // When: a cancelled task runs the same method (as `.task(id:)` does to
+        // the previous coordinate's task when the location changes).
+        let cancelled = Task { await model.loadStops(network: network, latitude: 59.31, longitude: 18.07) }
+        cancelled.cancel()
+        await cancelled.value
+
+        // Then: the cancelled run did not clobber the replacement's flag.
+        #expect(model.isLoading == true)
+    }
+
     // MARK: - Distance label
 
     @Test func distanceLabelFormatsMetersBelowKilometer() {
