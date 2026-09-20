@@ -27,7 +27,7 @@ struct SLTransportTests {
 
         // Then: the canned lines response decoded through the production
         // path into the mode-grouped lines.
-        #expect(response == Self.lines())
+        try #expect(response == Self.lines())
     }
 
     @Test func linesDecodeFailureThrows() async {
