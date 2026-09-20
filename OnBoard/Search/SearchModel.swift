@@ -69,7 +69,7 @@ final class SearchModel {
             // Task was cancelled, ignore.
         }  catch {
             results = []
-            failure = String(describing: error)
+            failure = error.loadFailureMessage
         }
     }
 

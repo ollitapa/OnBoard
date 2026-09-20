@@ -75,7 +75,7 @@ final class RouteDetailsModel {
             // Task was cancelled, ignore.
         }  catch {
             calls = []
-            failure = String(describing: error)
+            failure = error.loadFailureMessage
         }
     }
 }

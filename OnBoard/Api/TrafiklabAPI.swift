@@ -151,14 +151,41 @@ struct Trafiklab {
     private static let decoder = JSONDecoder()
 
     /// Performs a request and decodes its JSON body.
+    ///
+    /// A non-2xx status never reaches the decoder: a 401 (bad key), a 429
+    /// (exhausted quota), a 5xx outage, or an HTML error page would otherwise
+    /// surface as an opaque `SwiftDecodingError` dump. Instead it is checked
+    /// here and thrown as ``TrafiklabHTTPError``, which the models map to a
+    /// plain-language failure message (see `Error.loadFailureMessage`).
     private func decode<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, _) = try await network.data(for: request)
+        let (data, response) = try await network.data(for: request)
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw TrafiklabHTTPError(response: http)
+        }
         return try Self.decoder.decode(T.self, from: data)
     }
 }
 
 /// Errors thrown by `Trafiklab`.
 struct TrafiklabInvalidURL: Error, Sendable { }
+
+/// The server answered with a non-2xx HTTP status, e.g. a 401 for a bad
+/// key or a 429 when the key's quota is exhausted. Carries only the status
+/// code and the request URL's path — never the full `URLRequest` — because
+/// the query carries the API key and this error feeds the failure message
+/// the models render on screen.
+struct TrafiklabHTTPError: Error, Equatable, Sendable {
+    /// The HTTP status code, e.g. `401`.
+    let statusCode: Int
+    /// The path of the requested URL, e.g. `/v1/departures/740000001`.
+    let path: String
+
+    /// Creates the error for a non-2xx response.
+    init(response: HTTPURLResponse) {
+        self.statusCode = response.statusCode
+        self.path = response.url?.path ?? ""
+    }
+}
 
 
 // MARK: - Response models

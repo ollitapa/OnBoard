@@ -46,7 +46,7 @@ final class NearbyModel {
         } catch is CancellationError {
             // Task was cancelled, ignore.
         } catch {
-            failure = String(describing: error)
+            failure = error.loadFailureMessage
         }
     }
 

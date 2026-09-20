@@ -59,7 +59,7 @@ final class StopDetailsModel {
             // Task was cancelled, ignore.
         } catch {
             departures = []
-            failure = String(describing: error)
+            failure = error.loadFailureMessage
         }
     }
 }

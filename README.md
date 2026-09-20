@@ -218,3 +218,18 @@ build. The file is git-ignored, so it is not part of the repository:
 
 Without the file every screen shows its load failure instead of silently
 sending empty keys.
+
+## Error handling
+
+Transport failures surface as plain-language messages, not raw error dumps:
+`Trafiklab` checks the HTTP status before decoding, so a 401 (bad key), a
+429 (quota exceeded), a 5xx outage, or an HTML error page never reaches the
+JSON decoder. The status becomes a `TrafiklabHTTPError`, and
+`Error.loadFailureMessage` (`OnBoard/Api/Error+LoadFailure.swift`) maps the
+statuses plus `URLError`s and `SecretMissingForKey` to the failure text the
+models render — so a missing key names the env-file key it's missing, and
+offline users see "No internet connection" instead of a `URLError` dump.
+Unmapped errors keep their raw description, so unexpected failures stay
+debuggable. `LiveNetwork` additionally retries transient transport failures
+(timeouts, dropped connections) with a short exponential backoff before a
+refresh fails.

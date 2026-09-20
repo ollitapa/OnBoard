@@ -108,6 +108,26 @@ struct StopDetailsModelTests {
         #expect(model.failure != nil)
     }
 
+    @Test func loadDeparturesSurfacesFriendlyHTTPFailureMessage() async throws {
+        // Given: a mock answering 429 (quota exceeded) with an error body.
+        // A raw `String(describing:)` would render the body's decoder dump;
+        // the model must surface the mapped plain-language message instead.
+        var network = MockNetwork()
+        network.registerHandler { _ in
+            MockNetwork.makeResponse(json: #"{"error": "Too many requests"}"#, statusCode: 429)
+        }
+        let model = StopDetailsModel()
+
+        // When
+        await model.loadDepartures(network: network, areaId: "740000001")
+
+        // Then: the failure names the quota, not the decoder error.
+        let failure = try #require(model.failure)
+        #expect(failure.localizedCaseInsensitiveContains("quota"))
+        #expect(!failure.contains("SwiftDecodingError"))
+        #expect(model.departures == [])
+    }
+
     // MARK: - Presentation helpers
 
     @Test func lineLabelPrefersDesignation() {
