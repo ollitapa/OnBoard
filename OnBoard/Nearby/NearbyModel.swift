@@ -35,7 +35,15 @@ final class NearbyModel {
     ///   - longitude: WGS84 decimal degrees.
     func loadStops(network: some NetworkProtocol, latitude: Double, longitude: Double) async {
         isLoading = true
-        defer { isLoading = false }
+        // A cancellation always hands the loading flag to the task that
+        // replaced us (`.task(id:)` starts the new task before cancelling the
+        // old one), so bail out early and leave the flag alone: setting it
+        // here would clobber the replacement's `true` with a stale `false`.
+        defer {
+            if !Task.isCancelled {
+                isLoading = false
+            }
+        }
 
         do {
             let api = Trafiklab(network: network)
