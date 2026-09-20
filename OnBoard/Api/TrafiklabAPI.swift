@@ -202,7 +202,23 @@ struct StopNameRef: Codable, Equatable, Identifiable, Sendable {
 
 /// Top-level response for ResRobot Nearby Stops.
 struct NearbyStopsResponse: Codable, Equatable, Sendable {
-    var StopLocation: [StopLocation]
+    /// ResRobot's hits, each wrapped in a keyed object naming what matched —
+    /// `"StopLocation"` for a stop, `"CoordLocation"` for an address. Absent
+    /// when the search found nothing.
+    var stopLocationOrCoordLocation: [StopHit]?
+
+    /// The stop hits, unwrapped from their keyed entries; hits that aren't
+    /// stops carry no `StopLocation` and are dropped.
+    var stops: [StopLocation] {
+        (stopLocationOrCoordLocation ?? []).compactMap(\.StopLocation)
+    }
+
+    /// A keyed ResRobot hit: `"StopLocation"` for a stop, `"CoordLocation"`
+    /// for an address. Only the stop variant is decoded; other keys are
+    /// ignored, so a mixed result list never fails the whole response.
+    struct StopHit: Codable, Equatable, Sendable {
+        var StopLocation: StopLocation?
+    }
 }
 
 /// A nearby stop ranked by distance, returned by ResRobot Nearby Stops.
@@ -214,8 +230,8 @@ struct StopLocation: Codable, Equatable, Identifiable, Sendable {
     var rawId: String?
     var extId: String
     var name: String
-    var lat: String
-    var lon: String
+    var lat: Double
+    var lon: Double
     /// Distance from the query point, in meters.
     var dist: Int
     var weight: Int?
