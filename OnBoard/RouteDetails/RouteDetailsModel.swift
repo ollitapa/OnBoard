@@ -161,7 +161,7 @@ extension Array where Element == TripCall {
     private static func dwellGrace(after departure: Date, before nextArrival: Date?) -> TimeInterval {
         guard let nextArrival else { return dwellGrace }
         let leg = nextArrival.timeIntervalSince(departure)
-        return leg > 0 ? min(dwellGrace, leg * 0.4) : dwellGrace
+        return leg > 0 ? Swift.min(dwellGrace, leg * 0.4) : dwellGrace
     }
 
     /// The index of the call the vehicle is currently at or heading to next,
@@ -221,7 +221,7 @@ extension Array where Element == TripCall {
             let span = legEnd.timeIntervalSince(legStart.addingTimeInterval(grace))
             if span > 0 {
                 let elapsed = now.timeIntervalSince(legStart.addingTimeInterval(grace))
-                travelProgress = min(max(elapsed / span, 0), 1)
+                travelProgress = Swift.min(Swift.max(elapsed / span, 0), 1)
             } else {
                 travelProgress = nil
             }
