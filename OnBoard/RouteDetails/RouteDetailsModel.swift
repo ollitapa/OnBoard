@@ -256,13 +256,15 @@ extension Array where Element == TripCall {
         }
     }
 
-    /// The subtitle for a row: cancelled calls show "Cancelled"; the final
-    /// stop shows "Final stop"; the stop the vehicle is heading to counts down
-    /// to its arrival ("Bussen är här om 7 min" in the storyboard), rounded up
-    /// so the last minute reads "Arriving in 1 min" until the vehicle pulls up;
-    /// the stop the vehicle is standing at shows "Arrived" for most of its
-    /// dwell and "Departing now" for the last tenth, so the signage follows
-    /// the arrival and estimated departure times. `nil` for every other row.
+    /// The subtitle for a row: cancelled calls show "Cancelled"; the stop the
+    /// vehicle is heading to counts down to its arrival ("Bussen är här om 7
+    /// min" in the storyboard), rounded up so the last minute reads "Arriving
+    /// in 1 min" until the vehicle pulls up — the final stop included while
+    /// the vehicle is still travelling; the intermediate stop the vehicle is
+    /// standing at shows "Arrived" for most of its dwell and "Departing now"
+    /// for the last tenth; the final stop shows "Final stop" once the vehicle
+    /// isn't heading to it (the trip ends there, so it never departs).
+    /// `nil` for every other row.
     private static func subtitle(
         for call: TripCall,
         isTarget: Bool,
@@ -273,20 +275,20 @@ extension Array where Element == TripCall {
         if call.isCanceled {
             return "Cancelled"
         }
+        if isTarget, isBetweenStops {
+            // En route: count up to the arrival (falling back to the
+            // departure when the call carries a single time), never
+            // "Departing now" — the vehicle only stands at the stop once
+            // the position says so, and the two must agree for the whole
+            // last minute.
+            guard let arrival = call.arrivalDate ?? call.departureDate else { return nil }
+            let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.up))
+            return minutes <= 0 ? "Arriving now" : "Arriving in \(minutes) min"
+        }
         if isFinal {
             return "Final stop"
         }
         if isTarget {
-            if isBetweenStops {
-                // En route: count up to the arrival (falling back to the
-                // departure when the call carries a single time), never
-                // "Departing now" — the vehicle only stands at the stop once
-                // the position says so, and the two must agree for the whole
-                // last minute.
-                guard let arrival = call.arrivalDate ?? call.departureDate else { return nil }
-                let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.up))
-                return minutes <= 0 ? "Arriving now" : "Arriving in \(minutes) min"
-            }
             // Standing at the stop: "Arrived" until the last tenth of the
             // dwell, then "Departing now" — with a momentary stop the whole
             // (grace-extended) visit reads as departing.

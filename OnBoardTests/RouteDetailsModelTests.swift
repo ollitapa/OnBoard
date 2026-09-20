@@ -350,6 +350,28 @@ struct RouteDetailsModelTests {
         #expect(rows.target == nil)
     }
 
+    @Test func stopRowsCountDownToTheFinalStopWhileTravelling() {
+        let now = Date()
+        // The vehicle is rolling towards the terminus, 7 minutes away: the
+        // final row counts down like any other target instead of reading
+        // "Final stop" while the bus is still en route.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Last", scheduledDeparture: Self.future(now, minutes: 7))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows[1].isTarget)
+        #expect(rows[1].isBetweenStops)
+        #expect(rows[1].subtitle == "Arriving in 7 min")
+
+        // Once the vehicle arrives at the terminus the row reads "Final
+        // stop" — the trip ends there, so it never departs.
+        let arrived = calls.stopRows(now: now.addingTimeInterval(7 * 60))[1]
+        #expect(arrived.isCurrent)
+        #expect(arrived.isFinal)
+        #expect(arrived.subtitle == "Final stop")
+    }
+
     // MARK: - Helpers
 
     /// Builds a `TripCall` with sensible defaults for tests.
