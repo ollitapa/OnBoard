@@ -1,5 +1,5 @@
 import Testing
-import Foundation
+import SwiftUI
 @testable import OnBoard
 
 struct SLTransportTests {
@@ -43,24 +43,25 @@ struct SLTransportTests {
 
     // MARK: - Colour mapping
 
-    @Test func blueBusLinesMapToBlue() throws {
-        // Blue buses 1–6 carry the Blåbuss group.
+    @Test func blueBusLinesMapToLineBlue() throws {
+        // Blue buses 1–6 carry the Blåbuss group and render with the
+        // lineBlue design token.
         let lines = try Self.lines()
-        #expect(lines.badgeColour(designation: "3", transportMode: "BUS") == .blue)
-        #expect(lines.badgeColour(designation: "5", transportMode: "BUS") == .blue)
+        #expect(lines.badgeColour(designation: "3", transportMode: "BUS") == .lineBlue)
+        #expect(lines.badgeColour(designation: "5", transportMode: "BUS") == .lineBlue)
     }
 
-    @Test func greenMetroLinesMapToGreen() throws {
+    @Test func greenMetroLinesMapToLineGreen() throws {
         let lines = try Self.lines()
-        #expect(lines.badgeColour(designation: "17", transportMode: "METRO") == .green)
-        #expect(lines.badgeColour(designation: "18", transportMode: "METRO") == .green)
-        #expect(lines.badgeColour(designation: "19", transportMode: "METRO") == .green)
+        #expect(lines.badgeColour(designation: "17", transportMode: "METRO") == .lineGreen)
+        #expect(lines.badgeColour(designation: "18", transportMode: "METRO") == .lineGreen)
+        #expect(lines.badgeColour(designation: "19", transportMode: "METRO") == .lineGreen)
     }
 
     @Test func redAndBlueMetroLinesMapToTheirColours() throws {
         let lines = try Self.lines()
-        #expect(lines.badgeColour(designation: "13", transportMode: "METRO") == .red)
-        #expect(lines.badgeColour(designation: "10", transportMode: "METRO") == .blue)
+        #expect(lines.badgeColour(designation: "13", transportMode: "METRO") == .lineRed)
+        #expect(lines.badgeColour(designation: "10", transportMode: "METRO") == .lineBlue)
     }
 
     @Test func timetablesMetroPrefixIsDropped() throws {
@@ -68,8 +69,8 @@ struct SLTransportTests {
         // T19) where SL Transport reports the bare number; the lookup must
         // still find the line.
         let lines = try Self.lines()
-        #expect(lines.badgeColour(designation: "T17", transportMode: "METRO") == .green)
-        #expect(lines.badgeColour(designation: "T13", transportMode: "METRO") == .red)
+        #expect(lines.badgeColour(designation: "T17", transportMode: "METRO") == .lineGreen)
+        #expect(lines.badgeColour(designation: "T13", transportMode: "METRO") == .lineRed)
     }
 
     @Test func timetablesPrefixIsKeptForOtherModes() throws {
@@ -99,19 +100,23 @@ struct SLTransportTests {
     @Test func groupNamesMatchCaseInsensitively() {
         // The mapping lowercases before comparing, so a change in SL's
         // capitalisation ("BLÅBUSS") doesn't break the colour mapping.
-        #expect(LineBadgeColour(groupOfLines: "BLÅBUSS") == .blue)
-        #expect(LineBadgeColour(groupOfLines: "Tunnelbanans GRÖNA linje") == .green)
-        #expect(LineBadgeColour(groupOfLines: nil) == .accent)
-        #expect(LineBadgeColour(groupOfLines: "Pendeltåg") == .accent)
+        #expect(Self.line(groupOfLines: "BLÅBUSS").badgeColour == .lineBlue)
+        #expect(Self.line(groupOfLines: "Tunnelbanans GRÖNA linje").badgeColour == .lineGreen)
+        #expect(Self.line(groupOfLines: "TUNNELBANANS RÖDA LINJE").badgeColour == .lineRed)
+        #expect(Self.line(groupOfLines: nil).badgeColour == .accent)
+        #expect(Self.line(groupOfLines: "Pendeltåg").badgeColour == .accent)
     }
 
-    @Test func colorExposesTheDesignToken() {
-        // Each case renders with its asset-catalog colourset: the generated
-        // symbol names are the design tokens, so a badge never falls back to
-        // a hardcoded system colour.
-        #expect(LineBadgeColour.blue.color == .lineBlue)
-        #expect(LineBadgeColour.green.color == .lineGreen)
-        #expect(LineBadgeColour.red.color == .lineRed)
-        #expect(LineBadgeColour.accent.color == .accent)
+    // MARK: - Helpers
+
+    /// Builds an `SLLine` carrying only the group name the colour mapping
+    /// reads, mirroring the fixture's fields elsewhere.
+    private static func line(groupOfLines: String?) -> SLLine {
+        SLLine(
+            id: 1,
+            designation: "1",
+            transport_mode: "BUS",
+            group_of_lines: groupOfLines
+        )
     }
 }

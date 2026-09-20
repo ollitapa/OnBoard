@@ -80,44 +80,27 @@ struct SLLine: Codable, Equatable, Sendable {
 
 // MARK: - Line colour mapping
 
-/// The badge colour a line should carry, mapped from SL's own colour-coding
-/// of its network: blue buses and the blue metro line render with the
-/// `lineBlue` design token, the green and red metro lines with `lineGreen`
-/// and `lineRed`, and everything else with the accent colour (so a
-/// cancelled/delayed status keeps its red).
-enum LineBadgeColour: Equatable, Sendable {
-    case blue
-    case green
-    case red
-    case accent
-
-    /// The asset-catalog colour a badge with this case renders with, via the
-    /// symbols Xcode generates from the coloursets.
-    var color: Color {
-        switch self {
-        case .blue: .lineBlue
-        case .green: .lineGreen
-        case .red: .lineRed
-        case .accent: .accent
-        }
-    }
-
-    /// Maps an SL Transport `group_of_lines` name onto a badge colour. Known
-    /// groups match the spellings SL Transport returns today; a group the
-    /// mapping doesn't recognize — including a line with no group at all —
-    /// falls back to the accent colour rather than guessing a hue.
-    init(groupOfLines: String?) {
-        switch groupOfLines?.lowercased() {
+extension SLLine {
+    /// The badge colour the line should carry, mapped from SL's own
+    /// colour-coding of its network: blue buses and the blue metro line
+    /// render with the `lineBlue` design token, the green and red metro lines
+    /// with `lineGreen` and `lineRed`, and everything else with the accent
+    /// colour (so a cancelled/delayed status keeps its red). Known groups
+    /// match the spellings SL Transport returns today; a group the mapping
+    /// doesn't recognize — including a line with no group at all — falls
+    /// back to the accent colour rather than guessing a hue.
+    var badgeColour: Color {
+        switch group_of_lines?.lowercased() {
         case "blåbuss":
-            self = .blue
+            .lineBlue
         case "tunnelbanans blå linje":
-            self = .blue
+            .lineBlue
         case "tunnelbanans gröna linje":
-            self = .green
+            .lineGreen
         case "tunnelbanans röda linje":
-            self = .red
+            .lineRed
         default:
-            self = .accent
+            .accent
         }
     }
 }
@@ -144,7 +127,7 @@ extension SLLinesResponse {
     func badgeColour(
         designation: String?,
         transportMode: TransportMode?
-    ) -> LineBadgeColour? {
+    ) -> Color? {
         guard let designation, let transportMode else { return nil }
         let normalized = transportMode == "METRO" && designation.hasPrefix("T")
             ? String(designation.dropFirst())
@@ -152,6 +135,6 @@ extension SLLinesResponse {
         let line = allLines.first { line in
             line.designation == normalized && line.transport_mode == transportMode
         }
-        return line.map { LineBadgeColour(groupOfLines: $0.group_of_lines) }
+        return line.map(\.badgeColour)
     }
 }
