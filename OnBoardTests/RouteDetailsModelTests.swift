@@ -148,10 +148,7 @@ struct RouteDetailsModelTests {
             Self.call(scheduledDeparture: Self.future(now, minutes: 13))
         ]
         #expect(calls.currentStopIndex(now: now) == .betweenStops(before: 1, after: 2))
-        #expect(calls.isPassed(at: 0, now: now) == true)
-        #expect(calls.isPassed(at: 1, now: now) == true)
-        #expect(calls.isPassed(at: 2, now: now) == false)
-        #expect(calls.isPassed(at: 3, now: now) == false)
+        #expect(calls.stopRows(now: now).map(\.isPassed) == [true, true, false, false])
     }
 
     @Test func currentStopIndexAtStopWithinWindow() {
@@ -163,9 +160,7 @@ struct RouteDetailsModelTests {
             Self.call(scheduledDeparture: Self.future(now, minutes: 20))
         ]
         #expect(calls.currentStopIndex(now: now) == .atStop(index: 1))
-        #expect(calls.isPassed(at: 0, now: now) == true)
-        #expect(calls.isPassed(at: 1, now: now) == false)
-        #expect(calls.isPassed(at: 2, now: now) == false)
+        #expect(calls.stopRows(now: now).map(\.isPassed) == [true, false, false])
     }
 
     @Test func currentStopIndexSnapsToNextStopWithinItsWindow() {
@@ -181,8 +176,7 @@ struct RouteDetailsModelTests {
             Self.call(scheduledDeparture: Self.future(now, minutes: 20))
         ]
         #expect(calls.currentStopIndex(now: now) == .atStop(index: 1))
-        #expect(calls.isPassed(at: 0, now: now) == true)
-        #expect(calls.isPassed(at: 1, now: now) == false)
+        #expect(calls.stopRows(now: now).map(\.isPassed) == [true, false, false])
     }
 
     @Test func currentStopIndexNilWhenAllPassed() {
@@ -192,7 +186,7 @@ struct RouteDetailsModelTests {
             Self.call(scheduledDeparture: Self.past(now, minutes: 2))
         ]
         #expect(calls.currentStopIndex(now: now) == nil)
-        #expect(calls.isPassed(at: 0, now: now) == true)
+        #expect(calls.stopRows(now: now).map(\.isPassed) == [true, true])
     }
 
     @Test func currentStopIndexNilForEmptySchedule() {
@@ -221,6 +215,7 @@ struct RouteDetailsModelTests {
         #expect(rows.map(\.isPassed) == [true, true, false, false])
         #expect(rows.map(\.isTarget) == [false, false, true, false])
         #expect(rows.map(\.isCurrent) == [false, false, false, false])
+        #expect(rows.map(\.isBetweenStops) == [false, false, true, false])
         #expect(rows.map(\.isFirst) == [true, false, false, false])
         #expect(rows.map(\.isFinal) == [false, false, false, true])
         #expect(rows.last?.subtitle == "Final stop")
@@ -238,6 +233,21 @@ struct RouteDetailsModelTests {
         let rows = calls.stopRows(now: now)
         #expect(rows[1].subtitle == "Arriving in 5 min")
         #expect(rows.map(\.isTarget) == [false, true, false])
+    }
+
+    @Test func stopRowsClearBetweenStopsWhenVehicleIsAtStop() {
+        let now = Date()
+        // The vehicle is standing at stop 1, which departs right now, so no
+        // row carries the between-stops flag even though one is the target.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 0)),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.map(\.isTarget) == [false, true, false])
+        #expect(rows.map(\.isBetweenStops) == [false, false, false])
+        #expect(rows[1].subtitle == "Departing now")
     }
 
     // MARK: - Helpers

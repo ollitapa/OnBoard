@@ -81,6 +81,12 @@ enum TransportPosition: Hashable {
         if case .atStop(let current) = self { return index == current }
         return false
     }
+
+    /// Whether the vehicle is on the move between this stop and the next one.
+    var isBetweenStops: Bool {
+        if case .betweenStops = self { return true }
+        return false
+    }
 }
 
 /// A precomputed presentation snapshot for one row of the Live Trip track,
@@ -99,6 +105,9 @@ struct TripStopRow: Identifiable, Equatable, Sendable {
     /// The vehicle is at or heading to this stop — the row carrying the bus
     /// marker and the delay pill.
     let isTarget: Bool
+    /// The vehicle is between the previous stop and this one, so the marker
+    /// sits at the rows' boundary instead of on the node.
+    let isBetweenStops: Bool
     let isFirst: Bool
     let isFinal: Bool
     let subtitle: String?
@@ -154,6 +163,7 @@ extension Array where Element == TripCall {
                 isPassed: position?.isPassed(index: index) ?? true,
                 isCurrent: position?.isAt(index: index) == true,
                 isTarget: position?.targetIndex == index,
+                isBetweenStops: position?.targetIndex == index && position?.isBetweenStops == true,
                 isFirst: index == 0,
                 isFinal: index == count - 1,
                 subtitle: Self.subtitle(

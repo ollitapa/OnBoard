@@ -135,9 +135,17 @@ private struct DelayPill: View {
 
 // MARK: - Stop nodes
 
+/// Half of a row's minimum height: the distance from a row's edge to its
+/// node's center, used both to inset the connector at the track's ends and to
+/// lift the bus marker to the row boundary while the vehicle is between
+/// stops.
+private let rowHalfHeight: CGFloat = 31
+
 /// The list of stop nodes joined by a vertical line, with the bus marker on
 /// the stop the vehicle is at or heading to. Takes precomputed ``TripStopRow``
-/// snapshots so no row compares indices or re-derives the vehicle's position.
+/// snapshots so no row compares indices or re-derives the vehicle's position;
+/// each row draws the connector to the next node, so the track ends exactly at
+/// the first and last markers instead of dangling past them.
 private struct TripNodes: View {
 
     let route: RouteDetails
@@ -151,40 +159,26 @@ private struct TripNodes: View {
     private static let markerID = "vehicleMarker"
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            line
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(rows) { row in
-                    StopNode(row: row)
-                        .overlay(alignment: .trailing) {
-                            if row.isTarget {
-                                DelayPill(delayMinutes: route.delayMinutes)
-                                    .transition(.opacity)
-                            }
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(rows) { row in
+                StopNode(row: row)
+                    .overlay(alignment: .trailing) {
+                        if row.isTarget {
+                            DelayPill(delayMinutes: route.delayMinutes)
+                                .transition(.opacity)
                         }
-                        .overlay(alignment: .leading) {
-                            if row.isTarget {
-                                TransportModeMarker(mode: route.transportMode)
-                                    .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
-                                    .transition(.opacity)
-                            }
+                    }
+                    .overlay(alignment: .leading) {
+                        if row.isTarget {
+                            TransportModeMarker(mode: route.transportMode)
+                                .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
+                                .transition(.opacity)
+                                .offset(y: row.isBetweenStops ? -rowHalfHeight : 0)
                         }
-                }
+                    }
             }
         }
         .animation(.spring(response: 0.6, dampingFraction: 0.85), value: rows)
-    }
-
-    /// The vertical connector running through every node's dot, matching the
-    /// storyboard's `track-line`. Inset top/bottom so it doesn't run past the
-    /// first/last node.
-    private var line: some View {
-        Capsule()
-            .fill(Color.hairline)
-            .frame(width: 3)
-            .padding(.leading, 4)
-            .padding(.top, 16)
-            .padding(.bottom, 16)
     }
 }
 
@@ -215,23 +209,20 @@ private struct TransportModeMarker: View {
             .accessibilityLabel("Vehicle is here")
     }
 }
+
 /// One `stop-node` from the storyboard: a dot on the line, the stop name, and
 /// an optional subtitle. Renders straight from a precomputed ``TripStopRow``;
 /// passed rows fade, the target row carries the bus marker, the first row
-/// wears a hollow origin ring and the last a flag pin.
+/// wears a hollow origin ring and the last a filled terminus disc. Each row
+/// also draws its slice of the connector, inset so the track runs exactly
+/// from the first node's center to the last node's center.
 private struct StopNode: View {
 
     let row: TripStopRow
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            if row.isFinal {
-                TerminusFlag(isPassed: row.isPassed)
-            } else if row.isFirst {
-                OriginRing(isPassed: row.isPassed, isCurrent: row.isCurrent)
-            } else {
-                StopDot(isPassed: row.isPassed, isCurrent: row.isCurrent)
-            }
+            nodeMarker
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.name)
                     .font(.body.weight(row.isPassed ? .regular : .semibold))
@@ -246,6 +237,41 @@ private struct StopNode: View {
             Spacer(minLength: 0)
         }
         .frame(minHeight: 62)
+        .background(alignment: .topLeading) { connector }
+    }
+
+    /// The stop's graphic on the track: the hollow origin ring on the first
+    /// stop, the filled terminus disc on the last, and the storyboard's dot
+    /// states in between.
+    private var nodeMarker: some View {
+        if row.isFinal {
+            TerminusDisc(isPassed: row.isPassed)
+        } else if row.isFirst {
+            OriginRing(isPassed: row.isPassed, isCurrent: row.isCurrent)
+        } else {
+            StopDot(isPassed: row.isPassed, isCurrent: row.isCurrent)
+        }
+    }
+
+    /// This row's slice of the track's vertical connector, matching the
+    /// storyboard's `track-line`. It spans the full row so consecutive rows'
+    /// slices join up, but is inset at the track's ends so the line starts
+    /// and stops exactly at the first and last node's centers — a one-stop
+    /// trip draws no line at all.
+    private var connector: some View {
+        Group {
+            if row.isFirst && row.isFinal {
+                EmptyView()
+            } else {
+                Capsule()
+                    .fill(Color.hairline)
+                    .frame(width: 3)
+                    .padding(.leading, 4)
+                    .padding(.top, row.isFirst ? rowHalfHeight : 0)
+                    .padding(.bottom, row.isFinal ? rowHalfHeight : 0)
+                    .frame(maxHeight: .infinity)
+            }
+        }
     }
 }
 
@@ -278,7 +304,7 @@ private struct StopDot: View {
     }
 }
 
-/// A hollow double ring marking the journey's first stop, so the origin reads
+/// A hollow ring marking the journey's first stop, so the origin reads
 /// differently from the intermediate dots along the line.
 private struct OriginRing: View {
 
@@ -287,34 +313,31 @@ private struct OriginRing: View {
 
     var body: some View {
         Circle()
-            .fill(isPassed ? Color.hairline : Color.panel)
+            .fill(Color.panel)
             .overlay(
                 Circle()
                     .strokeBorder(isPassed ? Color.hairline : Color.accent, lineWidth: 3)
-            )
-            .overlay(
-                Circle()
-                    .strokeBorder(isPassed ? Color.hairline : Color.accent, lineWidth: 3)
-                    .padding(5)
             )
             .frame(width: isCurrent ? 17 : 16, height: isCurrent ? 17 : 16)
-            .offset(x: -2)
             .accessibilityLabel("First stop")
     }
 }
 
-/// A filled flag pin marking the journey's final stop, mirroring the
-/// "Final stop" subtitle on the row.
-private struct TerminusFlag: View {
+/// A filled disc in a hollow square ring marking the journey's final stop, a
+/// clear terminus that caps the track and mirrors the "Final stop" subtitle.
+private struct TerminusDisc: View {
 
     let isPassed: Bool
 
     var body: some View {
-        Image(systemName: "flag.fill")
-            .font(.system(size: 15, weight: .bold))
-            .foregroundStyle(isPassed ? Color.hairline : Color.accent)
-            .frame(width: 28, height: 28)
-            .offset(x: -3)
+        Circle()
+            .fill(isPassed ? Color.hairline : Color.accent)
+            .frame(width: 16, height: 16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(isPassed ? Color.hairline : Color.accent, lineWidth: 3)
+                    .padding(-5)
+            )
             .accessibilityLabel("Final stop")
     }
 }
