@@ -225,7 +225,18 @@ private struct StopNode: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            nodeMarker
+            /// The stop's graphic on the track: the hollow origin ring on the first
+            /// stop, the filled terminus disc on the last, and the storyboard's dot
+            /// states in between.
+            if row.isFinal {
+                TerminusDisc(isPassed: row.isPassed)
+            } else if row.isFirst {
+                OriginRing(isPassed: row.isPassed, isCurrent: row.isCurrent)
+            } else {
+                StopDot(isPassed: row.isPassed, isCurrent: row.isCurrent)
+            }
+
+            // Route name and optional subtitle.
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.name)
                     .font(.body.weight(row.isPassed ? .regular : .semibold))
@@ -240,29 +251,13 @@ private struct StopNode: View {
             Spacer(minLength: 0)
         }
         .frame(minHeight: 62)
-        .background(alignment: .topLeading) { connector }
-    }
+        .background(alignment: .topLeading) {
+            /// This row's slice of the track's vertical connector, matching the
+            /// storyboard's `track-line`. It spans the full row so consecutive rows'
+            /// slices join up, but is inset at the track's ends so the line starts
+            /// and stops exactly at the first and last node's centers — a one-stop
+            /// trip draws no line at all.
 
-    /// The stop's graphic on the track: the hollow origin ring on the first
-    /// stop, the filled terminus disc on the last, and the storyboard's dot
-    /// states in between.
-    private var nodeMarker: some View {
-        if row.isFinal {
-            TerminusDisc(isPassed: row.isPassed)
-        } else if row.isFirst {
-            OriginRing(isPassed: row.isPassed, isCurrent: row.isCurrent)
-        } else {
-            StopDot(isPassed: row.isPassed, isCurrent: row.isCurrent)
-        }
-    }
-
-    /// This row's slice of the track's vertical connector, matching the
-    /// storyboard's `track-line`. It spans the full row so consecutive rows'
-    /// slices join up, but is inset at the track's ends so the line starts
-    /// and stops exactly at the first and last node's centers — a one-stop
-    /// trip draws no line at all.
-    private var connector: some View {
-        Group {
             if row.isFirst && row.isFinal {
                 EmptyView()
             } else {
@@ -274,6 +269,7 @@ private struct StopNode: View {
                     .padding(.bottom, row.isFinal ? rowHalfHeight : 0)
                     .frame(maxHeight: .infinity)
             }
+
         }
     }
 }
