@@ -194,13 +194,6 @@ struct RouteDetailsModelTests {
         #expect(calls.currentStopIndex() == nil)
     }
 
-    @Test func transportPositionTargetIsStopVehicleIsHeadingTo() {
-        #expect(TransportPosition.atStop(index: 2).targetIndex == 2)
-        #expect(TransportPosition.betweenStops(before: 1, after: 2).targetIndex == 2)
-        #expect(TransportPosition.atStop(index: 2).lowerBoundIndex == 2)
-        #expect(TransportPosition.betweenStops(before: 1, after: 2).lowerBoundIndex == 1)
-    }
-
     @Test func stopRowsCarryPrecomputedPresentationState() {
         let now = Date()
         // The vehicle is between stop 1 and stop 2, so stop 2 is the target.

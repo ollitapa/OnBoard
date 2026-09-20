@@ -47,46 +47,6 @@ extension TripCall {
 enum TransportPosition: Hashable {
     case atStop(index: Int)
     case betweenStops(before: Int, after: Int)
-
-    var lowerBoundIndex: Int {
-        switch self {
-        case .atStop(let index), .betweenStops(before: let index, after: _): index
-        }
-    }
-
-    /// The stop the vehicle is at or heading to next: the stop it is standing
-    /// at when `atStop`, and the upcoming stop when between two stops — the row
-    /// the bus marker sits on.
-    var targetIndex: Int {
-        switch self {
-        case .atStop(let index), .betweenStops(before: _, after: let index): index
-        }
-    }
-
-    /// Whether the call at `index` has already been passed for this position:
-    /// any call before the stop the vehicle is at, and the stop it left when
-    /// between two stops.
-    func isPassed(index: Int) -> Bool {
-        switch self {
-        case .atStop(let current):
-            return index < current
-        case .betweenStops(let current, _):
-            return index <= current
-        }
-    }
-
-    /// Whether the vehicle is standing at the call at `index` right now, as
-    /// opposed to merely heading to it.
-    func isAt(index: Int) -> Bool {
-        if case .atStop(let current) = self { return index == current }
-        return false
-    }
-
-    /// Whether the vehicle is on the move between this stop and the next one.
-    var isBetweenStops: Bool {
-        if case .betweenStops = self { return true }
-        return false
-    }
 }
 
 /// A precomputed presentation snapshot for one row of the Live Trip track,
@@ -155,20 +115,39 @@ extension Array where Element == TripCall {
 
         return enumerated().map { index, call in
             /// Whether the call at `index` has already been passed at `now`.
-            let isPassed = position?.isPassed(index: index) ?? true
+            let isPassed = switch position {
+                case .atStop(let current): index < current
+                case .betweenStops(let current, _): index <= current
+                case .none: true
+            }
+
+            /// Whether the vehicle is standing at the call at `index` right now.
+            let isCurrent = if case .atStop(let current) = position { index == current } else { false }
+
+            /// The stop the vehicle is at or heading to next: the stop it is standing
+            /// at when `atStop`, and the upcoming stop when between two stops — the row
+            /// the bus marker sits on.
+            let isTarget = switch position {
+                case .atStop(let current), .betweenStops(before: _, after: let current): index == current
+                case .none: false
+            }
+
+            /// Whether the vehicle is on the move between this stop and the next one.
+            let isBetweenStops = if case .betweenStops = position { true } else { false }
+
             return TripStopRow(
                 id: call.id,
                 name: call.stop?.name ?? "",
                 isCanceled: call.isCanceled,
-                isPassed: position?.isPassed(index: index) ?? true,
-                isCurrent: position?.isAt(index: index) == true,
-                isTarget: position?.targetIndex == index,
-                isBetweenStops: position?.targetIndex == index && position?.isBetweenStops == true,
+                isPassed: isPassed,
+                isCurrent: isCurrent,
+                isTarget: isTarget,
+                isBetweenStops: isTarget && isBetweenStops,
                 isFirst: index == 0,
                 isFinal: index == count - 1,
                 subtitle: Self.subtitle(
                     for: call,
-                    isTarget: position?.targetIndex == index,
+                    isTarget: isTarget,
                     isFinal: index == count - 1,
                     now: now
                 )
