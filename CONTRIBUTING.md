@@ -146,7 +146,8 @@ OnBoard/
 │   └── NearbyView.swift
 ├── Favorites/            # Favorite stops feature (SwiftData @Model Favorite/StoredFavorites, FavoritesModel, FavoritesView, mock/empty containers)
 ├── Search/               # Search feature
-└── StopDetails/          # Stop board feature (model, view, CallAtLocation presentation/favorites helpers)
+├── StopDetails/          # Stop board feature (model, view, CallAtLocation presentation/favorites helpers)
+└── About/                # About tab (Trafiklab / Samtrafiken attribution)
 
 OnBoardTests/
 ├── NearbyModelTests.swift

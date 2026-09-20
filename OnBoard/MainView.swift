@@ -5,6 +5,7 @@ enum Tabs: String, Hashable {
     case nearby
     case favorites
     case search
+    case about
 }
 
 struct MainView: View {
@@ -35,6 +36,12 @@ struct MainView: View {
             Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
                 NavigationStack {
                     SearchView()
+                }
+            }
+
+            Tab("About", systemImage: "info.circle", value: .about) {
+                NavigationStack {
+                    AboutView()
                 }
             }
         }
