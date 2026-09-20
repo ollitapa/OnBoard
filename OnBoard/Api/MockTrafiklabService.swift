@@ -40,8 +40,8 @@ struct MockTrafiklabService: NetworkProtocol {
     let baseURL: URL
 
     /// The stops served from the nearby-stops endpoint: one JSON string per
-    /// `StopLocation`, in ResRobot's wire shape, joined into the
-    /// `NearbyStopsResponse` envelope when served. Defaults to
+    /// keyed ResRobot hit (`{"StopLocation": …}`), in ResRobot's wire shape,
+    /// joined into the `NearbyStopsResponse` envelope when served. Defaults to
     /// ``defaultNearbyStopsJSON`` so previews, the `--mock-network` UI-test
     /// harness, and unit tests all share one canned dataset.
     let nearbyStops: [String]
@@ -76,8 +76,8 @@ struct MockTrafiklabService: NetworkProtocol {
     /// Creates a mock Trafiklab service.
     /// - Parameters:
     ///   - baseURL: The base URL this server responds for.
-    ///   - nearbyStops: One JSON string per nearby `StopLocation`, in
-    ///     ResRobot's wire shape.
+    ///   - nearbyStops: One JSON string per keyed nearby hit
+    ///     (`{"StopLocation": …}`), in ResRobot's wire shape.
     ///   - departuresByAreaId: Area id to a JSON string of `CallAtLocation`
     ///     rows in the Timetables wire shape; area ids with no entry return
     ///     an empty list.
@@ -108,7 +108,7 @@ struct MockTrafiklabService: NetworkProtocol {
         if request.httpMethod == "GET", url.path.hasSuffix("location.nearbystops") {
             let body = """
             {
-              "StopLocation":[\(nearbyStops.joined(separator: ","))]
+              "stopLocationOrCoordLocation":[\(nearbyStops.joined(separator: ","))]
             }
             """
             return Self.ok(Data(body.utf8), url: url)
@@ -281,43 +281,44 @@ struct MockTrafiklabService: NetworkProtocol {
     // MARK: - Default fixtures
 
     /// A stable set of nearby stops served by default, matching the shape
-    /// ResRobot returns (`dist` in meters, `lat`/`lon` as strings).
+    /// ResRobot returns (each stop wrapped in a keyed hit, `dist` in meters,
+    /// `lat`/`lon` as numbers).
     static let defaultNearbyStopsJSON: [String] = [
         """
-        {
+        {"StopLocation": {
             "id": "740000001",
             "extId": "740000001",
             "name": "Medborgarplatsen",
-            "lat": "59.3139",
-            "lon": "18.0720",
+            "lat": 59.3139,
+            "lon": 18.0720,
             "dist": 180,
             "weight": 100,
             "products": 1024
-        }
+        }}
         """,
         """
-        {
+        {"StopLocation": {
             "id": "740000002",
             "extId": "740000002",
             "name": "Slussen",
-            "lat": "59.3199",
-            "lon": "18.0717",
+            "lat": 59.3199,
+            "lon": 18.0717,
             "dist": 420,
             "weight": 200,
             "products": 1024
-        }
+        }}
         """,
         """
-        {
+        {"StopLocation": {
             "id": "740000003",
             "extId": "740000003",
             "name": "Folkungagatan",
-            "lat": "59.3128",
-            "lon": "18.0760",
+            "lat": 59.3128,
+            "lon": 18.0760,
             "dist": 550,
             "weight": 30,
             "products": 1024
-        }
+        }}
         """
     ]
 
