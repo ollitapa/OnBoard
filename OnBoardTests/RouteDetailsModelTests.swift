@@ -18,6 +18,7 @@ struct RouteDetailsModelTests {
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
         #expect(model.calls == response.calls)
+        #expect(model.rows == model.calls.stopRows())
         #expect(model.failure == nil)
         #expect(model.isLoading == false)
     }
@@ -31,6 +32,7 @@ struct RouteDetailsModelTests {
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
         #expect(model.calls == [])
+        #expect(model.rows == [])
         #expect(model.failure == nil)
     }
 
@@ -43,6 +45,7 @@ struct RouteDetailsModelTests {
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
         #expect(model.calls == [])
+        #expect(model.rows == [])
         #expect(model.failure != nil)
         #expect(model.isLoading == false)
     }
@@ -61,7 +64,25 @@ struct RouteDetailsModelTests {
         await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
         // Then
         #expect(model.calls == [])
+        #expect(model.rows == [])
         #expect(model.failure != nil)
+    }
+
+    @Test func recalculateRowsAdvancesWithTheClock() async throws {
+        // Given: a loaded trip and a timestamp 4 minutes from now, after the
+        // vehicle has left stop 0 (which departed 10 minutes ago) but before
+        // it reaches stop 1 (6 minutes away).
+        let network = MockTrafiklabService(tripsByKey: MockTrafiklabService.defaultTripsByKeyJSON)
+        let model = RouteDetailsModel()
+        await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
+        let firstStopId = try #require(model.rows.first?.id)
+        // When: the timeline ticks 6 minutes forward and the rows are
+        // recomputed from the unchanged schedule.
+        model.recalculateRows(now: Date().addingTimeInterval(6 * 60))
+        // Then: the rows reflect the new position — the first stop, upcoming
+        // at load time, is now passed, and the target has moved on.
+        #expect(model.rows.first { $0.id == firstStopId }?.isPassed == true)
+        #expect(model.rows != model.rows.filter(\.isPassed))
     }
 
     // MARK: - RouteDetails bridge
@@ -148,10 +169,33 @@ struct RouteDetailsModelTests {
             Self.call(scheduledDeparture: Self.future(now, minutes: 13))
         ]
         #expect(calls.currentStopIndex(now: now) == .betweenStops(before: 1, after: 2))
-        #expect(calls.isPassed(at: 0, now: now) == true)
-        #expect(calls.isPassed(at: 1, now: now) == true)
-        #expect(calls.isPassed(at: 2, now: now) == false)
-        #expect(calls.isPassed(at: 3, now: now) == false)
+        #expect(calls.stopRows(now: now).map(\.isPassed) == [true, true, false, false])
+    }
+
+    @Test func currentStopIndexAtStopWithinWindow() {
+        let now = Date()
+        // The vehicle is standing at stop 1, which departs right now.
+        let calls = [
+            Self.call(scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(scheduledDeparture: Self.future(now, minutes: 0)),
+            Self.call(scheduledDeparture: Self.future(now, minutes: 20))
+        ]
+        #expect(calls.currentStopIndex(now: now) == .atStop(index: 1))
+        #expect(calls.stopRows(now: now).map(\.isPassed) == [true, false, false])
+    }
+
+    @Test func currentStopIndexBetweenStopsUntilTheArrival() {
+        let now = Date()
+        // Stop 1 arrives in 10 seconds: the vehicle is still officially
+        // between stops (it only stands at a stop from its arrival), so the
+        // marker keeps gliding towards the node and the countdown rounds up.
+        let calls = [
+            Self.call(scheduledDeparture: Self.past(now, minutes: 2)),
+            Self.call(scheduledDeparture: Self.timestamp(now.addingTimeInterval(10))),
+            Self.call(scheduledDeparture: Self.future(now, minutes: 20))
+        ]
+        #expect(calls.currentStopIndex(now: now) == .betweenStops(before: 0, after: 1))
+        #expect(calls.stopRows(now: now).map(\.isPassed) == [true, false, false])
     }
 
     @Test func currentStopIndexNilWhenAllPassed() {
@@ -161,12 +205,272 @@ struct RouteDetailsModelTests {
             Self.call(scheduledDeparture: Self.past(now, minutes: 2))
         ]
         #expect(calls.currentStopIndex(now: now) == nil)
-        #expect(calls.isPassed(at: 0, now: now) == true)
+        #expect(calls.stopRows(now: now).map(\.isPassed) == [true, true])
     }
 
     @Test func currentStopIndexNilForEmptySchedule() {
         let calls: [TripCall] = []
         #expect(calls.currentStopIndex() == nil)
+    }
+
+    @Test func stopRowsCarryPrecomputedPresentationState() {
+        let now = Date()
+        // The vehicle is between stop 1 and stop 2, so stop 2 is the target.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.past(now, minutes: 2)),
+            Self.call(stopId: "2", name: "Third", scheduledDeparture: Self.future(now, minutes: 6)),
+            Self.call(stopId: "3", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.map(\.name) == ["First", "Second", "Third", "Final"])
+        #expect(rows.map(\.isPassed) == [true, true, false, false])
+        #expect(rows.map(\.isTarget) == [false, false, true, false])
+        #expect(rows.map(\.isCurrent) == [false, false, false, false])
+        #expect(rows.map(\.isBetweenStops) == [false, false, true, false])
+        #expect(rows.map(\.isFirst) == [true, false, false, false])
+        #expect(rows.map(\.isFinal) == [false, false, false, true])
+        #expect(rows.last?.subtitle == "Final stop")
+    }
+
+    @Test func stopRowsSubtitleCountsDownAtTargetStop() {
+        let now = Date()
+        // The vehicle is between stop 0 and stop 1, which it reaches in 5
+        // minutes, so the target row carries the countdown.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 5)),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows[1].subtitle == "Arriving in 5 min")
+        #expect(rows.map(\.isTarget) == [false, true, false])
+    }
+
+    @Test func stopRowsClearBetweenStopsWhenVehicleIsAtStop() {
+        let now = Date()
+        // The vehicle is standing at stop 1, which departs right now, so no
+        // row carries the between-stops flag even though one is the target.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 0)),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.map(\.isTarget) == [false, true, false])
+        #expect(rows.map(\.isBetweenStops) == [false, false, false])
+        #expect(rows[1].subtitle == "Departing now")
+    }
+
+    @Test func stopRowsSubtitleNeverSaysDepartingWhileBetweenStops() {
+        let now = Date()
+        // The vehicle is rolling towards stop 1, which it reaches in 40
+        // seconds: outside the at-stop window but inside the last minute,
+        // which used to truncate to "Departing now" — a vehicle still between
+        // stops can't be departing. The countdown rounds up to the arrival
+        // and only switches once the position says the vehicle is at the
+        // stop.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 2)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.timestamp(now.addingTimeInterval(40))),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.map(\.isBetweenStops) == [false, true, false])
+        #expect(rows[1].subtitle == "Arriving in 1 min")
+    }
+
+    @Test func stopRowsSubtitleSaysArrivedDuringDwellThenDeparting() {
+        let now = Date()
+        // Stop 1 has a two-minute dwell: the vehicle arrived a minute ago
+        // and departs a minute from now, so the signage reads "Arrived" —
+        // switching to "Departing now" only in the last tenth of the dwell.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 4)),
+            Self.call(
+                stopId: "1",
+                name: "Second",
+                scheduledArrival: Self.past(now, minutes: 1),
+                scheduledDeparture: Self.future(now, minutes: 1)
+            ),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows[1].isTarget)
+        #expect(rows[1].isCurrent)
+        #expect(rows[1].subtitle == "Arrived")
+
+        // Two minutes into the dwell the last tenth has begun, so the
+        // signage switches to "Departing now".
+        let late = now.addingTimeInterval(60)
+        let lateRows = calls.stopRows(now: late)
+        #expect(lateRows[1].subtitle == "Departing now")
+    }
+
+    @Test func stopRowsTravelProgressGlidesAcrossTheLeg() {
+        let now = Date()
+        // The vehicle left stop 0 a minute ago and reaches stop 1 four
+        // minutes from now, so it is part-way across the leg, and the progress
+        // advances as the clock does.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 1)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 4)),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        // Before the leg's midpoint the marker rides the departed stop's
+        // row; past it the upcoming stop's row takes over, so the progress is
+        // read off whichever row carries the marker.
+        let earlyRows = calls.stopRows(now: now)
+        let early = earlyRows.first(where: \.isCarryingMarker)?.travelProgress
+        #expect(earlyRows[0].isCarryingMarker)
+        #expect(early != nil && early! > 0 && early! < 0.5)
+
+        let laterRows = calls.stopRows(now: now.addingTimeInterval(2 * 60))
+        let later = laterRows.first(where: \.isCarryingMarker)?.travelProgress
+        #expect(laterRows[1].isCarryingMarker)
+        #expect(later != nil && later! > 0.5 && later! < 1)
+        #expect(later! > early!)
+
+        // Once the arrival time is reached the vehicle stands at the stop and
+        // the marker's progress hands over to the resting position.
+        let arrived = calls.stopRows(now: now.addingTimeInterval(4 * 60))[1]
+        #expect(arrived.isCurrent)
+        #expect(arrived.isCarryingMarker)
+        #expect(arrived.travelProgress == nil)
+    }
+
+    @Test func shortMetroLegGivesTheMarkerTravelTime() {
+        let now = Date()
+        // A metro-style hop: stop 0 departed 25 seconds ago and stop 1
+        // arrives 30 seconds from now, a 55-second leg. The flat 30-second
+        // at-stop grace used to cover the whole leg so the marker never
+        // left the station before snapping. The grace now scales with the
+        // leg (~22 s here), so the marker spends most of the hop gliding.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.timestamp(now.addingTimeInterval(-25))),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.timestamp(now.addingTimeInterval(30))),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+
+        // 15 seconds after the departure the vehicle is still within the
+        // scaled grace, standing at stop 0.
+        let atStop = calls.stopRows(now: now.addingTimeInterval(-10))
+        #expect(atStop[0].isTarget)
+        #expect(atStop[0].isCurrent)
+        #expect(atStop[0].isBetweenStops == false)
+
+        // At `now` the grace has elapsed and the vehicle is part-way across
+        // the leg, gliding instead of snapping. The progress rides whichever
+        // row carries the marker, not just the target.
+        let glidingRows = calls.stopRows(now: now)
+        let gliding = glidingRows.first(where: \.isCarryingMarker)?.travelProgress
+        #expect(gliding != nil && gliding! > 0 && gliding! < 1)
+
+        // The glide keeps advancing until the arrival.
+        let furtherRows = calls.stopRows(now: now.addingTimeInterval(15))
+        let further = furtherRows.first(where: \.isCarryingMarker)?.travelProgress
+        #expect(further != nil && further! > gliding!)
+
+        // Pulling up to stop 1 hands the marker back to the resting position.
+        let arrived = calls.stopRows(now: now.addingTimeInterval(30))[1]
+        #expect(arrived.isCurrent)
+        #expect(arrived.isCarryingMarker)
+        #expect(arrived.travelProgress == nil)
+    }
+
+    @Test func stopRowsTargetIsTheRowTheVehicleIsHeadingTo() {
+        let now = Date()
+        // The vehicle is between stop 0 and stop 1 with most of the leg still
+        // ahead, so the marker rides the departed row while the target — the
+        // row the view scrolls to and the delay pill sits on — is the upcoming
+        // stop.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 1)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 5)),
+            Self.call(stopId: "2", name: "Final", scheduledDeparture: Self.future(now, minutes: 13))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.target?.name == "Second")
+        #expect(rows[0].isCarryingMarker)
+        #expect(rows[0].travelProgress != nil)
+
+        // Past the leg's midpoint the marker crosses to the target row, and
+        // on arrival it rests there.
+        let arrived = calls.stopRows(now: now.addingTimeInterval(5 * 60))[1]
+        #expect(arrived.isCurrent)
+        #expect(arrived.isCarryingMarker)
+        #expect(arrived.travelProgress == nil)
+    }
+
+    @Test func stopRowsTargetNilWhenVehicleIsOffTheTrack() {
+        let now = Date()
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Final", scheduledDeparture: Self.past(now, minutes: 2))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.target == nil)
+    }
+
+    @Test func stopRowsCountDownToTheFinalStopWhileTravelling() {
+        let now = Date()
+        // The vehicle is rolling towards the terminus, 7 minutes away: the
+        // final row counts down like any other target instead of reading
+        // "Final stop" while the bus is still en route.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(stopId: "1", name: "Last", scheduledDeparture: Self.future(now, minutes: 7))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows[1].isTarget)
+        #expect(rows[1].isBetweenStops)
+        #expect(rows[1].subtitle == "Arriving in 7 min")
+
+        // Once the vehicle arrives at the terminus the row reads "Final
+        // stop" — the trip ends there, so it never departs.
+        let arrived = calls.stopRows(now: now.addingTimeInterval(7 * 60))[1]
+        #expect(arrived.isCurrent)
+        #expect(arrived.isFinal)
+        #expect(arrived.subtitle == "Final stop")
+    }
+
+    @Test func stopRowsShowMinutesUpToTenAndClockTimeBeyond() {
+        let now = Date()
+        // The vehicle is between stop 0 and stop 1, so stop 1 is the target
+        // (no trailing time — its countdown lives in the subtitle), stop 2
+        // arrives in 9 minutes ("9 min"), and the final stop in 22 minutes
+        // (clock time).
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 1)),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.future(now, minutes: 4)),
+            Self.call(stopId: "2", name: "Third", scheduledDeparture: Self.future(now, minutes: 9)),
+            Self.call(stopId: "3", name: "Final", scheduledDeparture: Self.future(now, minutes: 22))
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows[0].trailingTime == nil)
+        #expect(rows[1].trailingTime == nil)
+        #expect(rows[1].subtitle == "Arriving in 4 min")
+        #expect(rows[2].trailingTime == "9 min")
+        #expect(rows[3].trailingTime == calls[3].arrivalDate?.formatted(date: .omitted, time: .shortened))
+
+        // While the vehicle dwells at stop 1, stop 2 is upcoming (not the
+        // target) and only 30 seconds out, so its trailing time reads the
+        // whole minute "1 min" — the trailing edge counts down too, mirroring
+        // the board's whole-minute display.
+        let dwelling = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10)),
+            Self.call(
+                stopId: "1",
+                name: "Second",
+                scheduledArrival: Self.past(now, minutes: 1),
+                scheduledDeparture: Self.future(now, minutes: 2)
+            ),
+            Self.call(stopId: "2", name: "Third", scheduledDeparture: Self.timestamp(now.addingTimeInterval(30))),
+            Self.call(stopId: "3", name: "Final", scheduledDeparture: Self.future(now, minutes: 22))
+        ]
+        let dwellingRows = dwelling.stopRows(now: now)
+        #expect(dwellingRows[1].isTarget)
+        #expect(dwellingRows[2].trailingTime == "1 min")
     }
 
     // MARK: - Helpers

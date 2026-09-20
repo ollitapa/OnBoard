@@ -1,10 +1,12 @@
 import Foundation
 
-/// Presentation helpers for `TripCall` rows used by the Live Trip screen
+/// Presentation helpers for `TripCall` values used by the Live Trip screen
 /// (``RouteDetailsView``). Modeled as computed properties/methods on the
 /// receiver rather than static "pass-the-value" functions so call sites read
-/// naturally (`call.date`, `tripCalls.currentStopIndex(now:)`), per the repo's
-/// presentation-helper convention.
+/// naturally (`call.date`, `call.isCanceled`), per the repo's
+/// presentation-helper convention. The schedule-level helpers (which stop is
+/// current, the precomputed track rows) live with the view model in
+/// ``RouteDetailsModel``.
 extension TripCall {
 
     /// The time the vehicle moves on from this stop, parsed into a `Date`,
@@ -42,63 +44,57 @@ extension TripCall {
     var isCanceled: Bool {
         departureCanceled == true || arrivalCanceled == true
     }
-}
 
-enum TransportPosition: Hashable {
-    case atStop(index: Int)
-    case betweenStops(before: Int, after: Int)
-
-    var lowerBoundIndex: Int {
-        switch self {
-        case .atStop(let index), .betweenStops(before: let index, after: _): index
+    /// The row's subtitle: cancelled calls show "Cancelled"; the stop the
+    /// vehicle is heading to counts down to its arrival ("Bussen är här om 7
+    /// min" in the storyboard), rounded up so the last minute reads "Arriving
+    /// in 1 min" until the vehicle pulls up — the final stop included while
+    /// the vehicle is still travelling; the intermediate stop the vehicle is
+    /// standing at shows "Arrived" for most of its dwell and "Departing now"
+    /// for the last tenth; the final stop shows "Final stop" once the vehicle
+    /// isn't heading to it (the trip ends there, so it never departs).
+    /// `nil` for every other row.
+    func subtitle(isTarget: Bool, isBetweenStops: Bool, isFinal: Bool, now: Date) -> String? {
+        if isCanceled {
+            return "Cancelled"
         }
-    }
-}
-
-/// Presentation helpers for the whole trip schedule, answering questions about
-/// the collection (which stop is current, whether a stop is passed) rather
-/// than about a single call, modeled as a computed property on the receiver.
-extension Array where Element == TripCall {
-
-    /// The index of the call the vehicle is currently at or heading to next:
-    /// the first call whose departure time has not yet passed at `now`. A stop
-    /// still ahead by minutes is "current" once the previous call's time has
-    /// passed, so the bus marker sits on the next un-passed stop — matching
-    /// the storyboard's "snaps to next stop" behavior (see API-Instructions §5.4).
-    /// Returns `nil` when the trip is empty or every call has passed.
-    func currentStopIndex(now: Date = Date()) -> TransportPosition? {
-        guard !isEmpty else { return nil }
-
-        // Go through each call and the next call
-        for ((stopIdx, stop), (nextIdx, nextStop)) in zip(self.enumerated(), self.enumerated().dropFirst()) {
-            if let date = stop.date {
-                let onStopRange = date.addingTimeInterval(-30)...date.addingTimeInterval(30)
-                // Vehicle is at the stop
-                if onStopRange.contains(now) { return .atStop(index: stopIdx) }
-                if let nextDate = nextStop.date {
-                    let onNextStopRange = date.addingTimeInterval(-30)...date.addingTimeInterval(30)
-                    // Vehicle is at the next stop
-                    if onNextStopRange.contains(now) { return .atStop(index: nextIdx) }
-                    // Vehicle is between these stops
-                    if now > date && now < nextDate { return .betweenStops(before: stopIdx, after: nextIdx) }
-                }
-                // Vehicle is not on the track at all.
-                if now < date { return nil }
-            }
+        if isTarget, isBetweenStops {
+            // En route: count up to the arrival (falling back to the
+            // departure when the call carries a single time), never
+            // "Departing now" — the vehicle only stands at the stop once
+            // the position says so, and the two must agree for the whole
+            // last minute.
+            guard let arrival = arrivalDate ?? departureDate else { return nil }
+            let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.up))
+            return minutes <= 0 ? "Arriving now" : "Arriving in \(minutes) min"
+        }
+        if isFinal {
+            return "Final stop"
+        }
+        if isTarget {
+            // Standing at the stop: "Arrived" until the last tenth of the
+            // dwell, then "Departing now" — with a momentary stop the whole
+            // (grace-extended) visit reads as departing.
+            guard let arrival = arrivalDate ?? departureDate,
+                  let departure = departureDate ?? arrivalDate else { return nil }
+            let dwell = departure.timeIntervalSince(arrival)
+            let departingFrom = arrival.addingTimeInterval(Swift.max(dwell * 0.9, dwell - 10))
+            return now >= departingFrom ? "Departing now" : "Arrived"
         }
         return nil
     }
 
-    /// Whether the call at `index` has already been passed at `now`: any call
-    /// before ``currentStopIndex(now:)``. The current call and all later
-    /// calls return `false`.
-    func isPassed(at index: Int, now: Date = Date()) -> Bool {
-        switch currentStopIndex(now: now) {
-        case .none: return true
-        case .atStop(let current):
-            return index < current
-        case .betweenStops(let current, _):
-            return index <= current
+    /// The arrival time for an upcoming row's trailing edge: whole minutes
+    /// away up to 10 ("7 min"), and the clock time ("11:22") beyond that —
+    /// the closer the stop, the more useful a relative count. `nil` on the
+    /// target row, whose arrival is already counted down in the subtitle,
+    /// and on passed rows.
+    func trailingTime(isTarget: Bool, isPassed: Bool, now: Date) -> String? {
+        guard !isTarget, !isPassed, let arrival = arrivalDate ?? departureDate else { return nil }
+        let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.down))
+        if minutes < 1 {
+            return "1 min"
         }
+        return minutes <= 10 ? "\(minutes) min" : arrival.formatted(date: .omitted, time: .shortened)
     }
 }
