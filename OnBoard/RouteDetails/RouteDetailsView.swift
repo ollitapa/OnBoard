@@ -181,8 +181,7 @@ private struct TripNodes: View {
                         if row.isTarget, let delayMinutes = route.delayMinutes {
                             StatusPill(
                                 label: delayMinutes.label,
-                                tone: delayMinutes.minutes < 0 ? .green : .red,
-                                size: .regular
+                                tone: delayMinutes.minutes < 0 ? .green : .red
                             )
                             .transition(.opacity)
                         }

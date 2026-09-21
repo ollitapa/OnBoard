@@ -52,8 +52,10 @@ struct LocationDeniedView: View {
             title: "Location access is off",
             message: "We can't show stops near you. Search manually or turn on location access in Settings."
         ) {
-            PrimaryButton("Open Settings", action: onOpenSettings)
-            TextButton("Search manually instead", action: onManualSearch)
+            Button("Open Settings", action: onOpenSettings)
+                .buttonStyle(.primary)
+            Button("Search manually instead", action: onManualSearch)
+                .buttonStyle(.text)
         }
     }
 }

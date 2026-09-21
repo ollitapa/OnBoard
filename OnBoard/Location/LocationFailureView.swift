@@ -34,8 +34,10 @@ struct LocationFailureView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
             }
-            PrimaryButton("Try Again", action: onRetry)
-            TextButton("Search manually instead", action: onManualSearch)
+            Button("Try Again", action: onRetry)
+                .buttonStyle(.primary)
+            Button("Search manually instead", action: onManualSearch)
+                .buttonStyle(.text)
         }
     }
 }
