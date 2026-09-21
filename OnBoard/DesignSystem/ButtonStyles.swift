@@ -1,32 +1,39 @@
 import SwiftUI
 
 /// The app's primary action button style, matching the storyboard's
-/// `btn-primary`: a large, prominent button for a screen's single main
-/// action (e.g. "Open Settings", "Try Again"). Delegates to the system
-/// bordered-prominent style so the button keeps native platform behaviour
-/// and theming.
+/// `btn-primary`: white bold text on the accent colour, in a capsule with
+/// 28/11 pt padding. Pressing deepens the fill to ``Color/accentDeep``.
 ///
 /// Used as `Button("Open Settings", action: ...).buttonStyle(.primary)`.
 struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
-        BorderedProminentButtonStyle()
-            .makeBody(configuration)
-            .controlSize(.large)
+        configuration.label
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 11)
+            .background(
+                configuration.isPressed ? Color.accentDeep : Color.accent,
+                in: Capsule()
+            )
+            .animation(.default, value: configuration.isPressed)
     }
 }
 
 /// The app's secondary text button style, matching the storyboard's
-/// `btn-text`: a large borderless button for a screen's fallback action
-/// (e.g. "Search manually instead"). Always paired below a primary button.
+/// `btn-text`: ink-soft semibold text with no background. Pressing dims the
+/// text. Always paired below a primary button.
 ///
 /// Used as `Button("Search manually instead", action: ...).buttonStyle(.text)`.
 struct TextButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
-        BorderlessButtonStyle()
-            .makeBody(configuration)
-            .controlSize(.large)
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.inkSoft)
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .animation(.default, value: configuration.isPressed)
     }
 }
 
@@ -50,4 +57,5 @@ extension ButtonStyle where Self == TextButtonStyle {
             .buttonStyle(.text)
     }
     .padding(32)
+    .background(Color.paper)
 }
