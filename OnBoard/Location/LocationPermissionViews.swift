@@ -20,33 +20,17 @@ struct LocationExplanationView: View {
     var onTap: () -> Void = {}
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "location.circle")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 64, height: 64)
-                .foregroundStyle(.tint)
-                .accessibilityHidden(true)
-
-            Text("Find stops near you")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .multilineTextAlignment(.center)
-
-            Text("OnBoard uses your location to show the nearest stops as soon as you open the app.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
+        MessageScreen(
+            icon: "location.circle",
+            title: "Find stops near you",
+            message: "OnBoard uses your location to show the nearest stops as soon as you open the app."
+        ) {
             LocationButton(.currentLocation) {
                 onTap()
             }
             .symbolVariant(.fill)
             .labelStyle(.titleAndIcon)
         }
-        .padding(32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.paper)
     }
 }
 
@@ -63,35 +47,14 @@ struct LocationDeniedView: View {
     var onManualSearch: () -> Void = {}
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "location.slash")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 64, height: 64)
-                .foregroundStyle(.tint)
-                .accessibilityHidden(true)
-
-            Text("Location access is off")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .multilineTextAlignment(.center)
-
-            Text("We can't show stops near you. Search manually or turn on location access in Settings.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button("Open Settings", action: onOpenSettings)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-
-            Button("Search manually instead", action: onManualSearch)
-                .buttonStyle(.borderless)
-                .controlSize(.large)
+        MessageScreen(
+            icon: "location.slash",
+            title: "Location access is off",
+            message: "We can't show stops near you. Search manually or turn on location access in Settings."
+        ) {
+            PrimaryButton("Open Settings", action: onOpenSettings)
+            TextButton("Search manually instead", action: onManualSearch)
         }
-        .padding(32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.paper)
     }
 }
 

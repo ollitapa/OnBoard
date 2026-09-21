@@ -34,24 +34,20 @@ struct RouteDetailsView: View {
     var body: some View {
         Group {
             if let failure = model.failure {
-                ContentUnavailableView {
-                    Label("Couldn't load the trip", systemImage: "wifi.exclamationmark")
-                        .foregroundStyle(.ink)
-                } description: {
-                    Text(failure)
-                        .foregroundStyle(.inkSoft)
-                }
+                UnavailableScreen(
+                    title: "Couldn't load the trip",
+                    systemImage: "wifi.exclamationmark",
+                    message: failure
+                )
             } else if model.calls.isEmpty {
                 if model.isLoading {
-                    ProgressView()
-                        .tint(.accent)
+                    LoadingIndicator()
                 } else {
-                    ContentUnavailableView(
-                        "No stops",
+                    UnavailableScreen(
+                        title: "No stops",
                         systemImage: "tray",
-                        description: Text("This trip has no scheduled stops.")
+                        message: "This trip has no scheduled stops."
                     )
-                    .foregroundStyle(.ink, .inkSoft)
                 }
             } else {
                 TimelineView(.periodic(from: .now, by: Self.rowRefreshInterval)) { context in
@@ -129,29 +125,6 @@ private struct TripTrack: View {
     }
 }
 
-/// The optional "Delayed 3 min" pill, shown trailing the stop the vehicle
-/// is at or heading to. Hidden when on time or no realtime data.
-private struct DelayPill: View {
-
-    let delayMinutes: DelayTime?
-
-    var body: some View {
-        if let delayMinutes {
-            Text(delayMinutes.label)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(delayMinutes.minutes < 0 ? .statusGreen : .statusRed)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3)
-                .background(
-                    delayMinutes.minutes < 0
-                        ? Color.statusGreenTint
-                        : Color.statusRedTint,
-                    in: Capsule()
-                )
-        }
-    }
-}
-
 // MARK: - Stop nodes
 
 /// The x position of the track's line center, measured from a row's leading
@@ -205,9 +178,13 @@ private struct TripNodes: View {
             ForEach(rows) { row in
                 StopNode(row: row)
                     .overlay(alignment: .trailing) {
-                        if row.isTarget {
-                            DelayPill(delayMinutes: route.delayMinutes)
-                                .transition(.opacity)
+                        if row.isTarget, let delayMinutes = route.delayMinutes {
+                            StatusPill(
+                                label: delayMinutes.label,
+                                tone: delayMinutes.minutes < 0 ? .green : .red,
+                                size: .regular
+                            )
+                            .transition(.opacity)
                         }
                     }
                     .overlay(alignment: .leading) {

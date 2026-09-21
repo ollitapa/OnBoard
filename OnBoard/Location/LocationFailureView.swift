@@ -22,24 +22,11 @@ struct LocationFailureView: View {
     var onManualSearch: () -> Void = {}
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "location.badge.exclamationmark")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 64, height: 64)
-                .foregroundStyle(.tint)
-                .accessibilityHidden(true)
-
-            Text("Couldn't find your location")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .multilineTextAlignment(.center)
-
-            Text("Something went wrong while locating you. Try again, or search for a stop manually.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
+        MessageScreen(
+            icon: "location.badge.exclamationmark",
+            title: "Couldn't find your location",
+            message: "Something went wrong while locating you. Try again, or search for a stop manually."
+        ) {
             if let failure {
                 Text(failure)
                     .font(.caption)
@@ -47,18 +34,9 @@ struct LocationFailureView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
             }
-
-            Button("Try Again", action: onRetry)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-
-            Button("Search manually instead", action: onManualSearch)
-                .buttonStyle(.borderless)
-                .controlSize(.large)
+            PrimaryButton("Try Again", action: onRetry)
+            TextButton("Search manually instead", action: onManualSearch)
         }
-        .padding(32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.paper)
     }
 }
 

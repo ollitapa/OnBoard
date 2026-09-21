@@ -61,13 +61,11 @@ private struct SearchContent: View {
     var body: some View {
         Group {
             if let failure = model.failure {
-                ContentUnavailableView {
-                    Label("Couldn't load stops", systemImage: "wifi.exclamationmark")
-                        .foregroundStyle(.ink)
-                } description: {
-                    Text(failure)
-                        .foregroundStyle(.inkSoft)
-                }
+                UnavailableScreen(
+                    title: "Couldn't load stops",
+                    systemImage: "wifi.exclamationmark",
+                    message: failure
+                )
             } else if query.trimmingCharacters(in: .whitespaces).isEmpty {
                 RecentsSection(
                     recents: model.recents,
@@ -75,8 +73,7 @@ private struct SearchContent: View {
                     onClear: onClearRecents
                 )
             } else if model.isLoading && model.results.isEmpty {
-                ProgressView()
-                    .tint(.accent)
+                LoadingIndicator()
             } else if model.results.isEmpty {
                 ContentUnavailableView.search(text: query.trimmingCharacters(in: .whitespaces))
                     .foregroundStyle(.ink, .inkSoft)
@@ -151,12 +148,11 @@ private struct RecentsSection: View {
 
     var body: some View {
         if recents.isEmpty {
-            ContentUnavailableView(
-                "Search for a stop",
+            UnavailableScreen(
+                title: "Search for a stop",
                 systemImage: "magnifyingglass",
-                description: Text("Find stops and lines by name.")
+                message: "Find stops and lines by name."
             )
-            .foregroundStyle(.ink, .inkSoft)
         } else {
             List {
                 Section {

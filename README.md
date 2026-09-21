@@ -26,6 +26,7 @@ OnBoard/
 ├── MyApp.swift            # App entry point; builds and injects dependencies
 ├── MainView.swift         # Tab layout; owns and publishes shared models
 ├── Api/                   # Trafiklab client, secrets, canned service mocks
+├── DesignSystem/          # Shared UI components (pills, buttons, screen states)
 ├── Network/               # NetworkProtocol, LiveNetwork, MockNetwork
 ├── Location/              # Location authorization and permission UI
 ├── Nearby/                # NearbyModel + NearbyView

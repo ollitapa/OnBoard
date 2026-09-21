@@ -29,16 +29,13 @@ private struct FavoritesContent: View {
     var body: some View {
         Group {
             if let failure = model.failure {
-                ContentUnavailableView {
-                    Label("Couldn't load favourites", systemImage: "wifi.exclamationmark")
-                        .foregroundStyle(.ink)
-                } description: {
-                    Text(failure)
-                        .foregroundStyle(.inkSoft)
-                }
+                UnavailableScreen(
+                    title: "Couldn't load favourites",
+                    systemImage: "wifi.exclamationmark",
+                    message: failure
+                )
             } else if model.isLoading {
-                ProgressView()
-                    .tint(.accent)
+                LoadingIndicator()
             } else if model.favorites.isEmpty == true {
                 FavoritesEmptyHint()
             } else {
@@ -113,13 +110,11 @@ private struct FavoriteRow: View {
 /// storyboard's `empty-hint`. English per the app's English-only chrome.
 private struct FavoritesEmptyHint: View {
     var body: some View {
-        ContentUnavailableView {
-            Label("No favourites yet", systemImage: "star")
-                .foregroundStyle(.ink)
-        } description: {
-            Text("Add stops by tapping the star on any stop page.")
-                .foregroundStyle(.inkSoft)
-        }
+        UnavailableScreen(
+            title: "No favourites yet",
+            systemImage: "star",
+            message: "Add stops by tapping the star on any stop page."
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

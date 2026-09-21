@@ -140,6 +140,7 @@ OnBoard/
 │   ├── MockNetwork.swift
 │   └── MockNearbyServer.swift  # mockNetwork(), previewLocationAuthorization()
 ├── Api/                  # Trafiklab API client, response models, MockTrafiklabService
+├── DesignSystem/         # Shared UI components (StatusPill, buttons, screen states)
 ├── Location/             # Location permission flow and managers
 ├── Nearby/               # Nearby stops feature
 │   ├── NearbyModel.swift

@@ -34,24 +34,20 @@ struct StopDetailsView: View {
     var body: some View {
         Group {
             if let failure = model.failure {
-                ContentUnavailableView {
-                    Label("Couldn't load departures", systemImage: "wifi.exclamationmark")
-                        .foregroundStyle(.ink)
-                } description: {
-                    Text(failure)
-                        .foregroundStyle(.inkSoft)
-                }
+                UnavailableScreen(
+                    title: "Couldn't load departures",
+                    systemImage: "wifi.exclamationmark",
+                    message: failure
+                )
             } else if model.departures.isEmpty {
                 if model.isLoading {
-                    ProgressView()
-                        .tint(.accent)
+                    LoadingIndicator()
                 } else {
-                    ContentUnavailableView(
-                        "No departures",
+                    UnavailableScreen(
+                        title: "No departures",
                         systemImage: "tray",
-                        description: Text("There are no departures in the next hour.")
+                        message: "There are no departures in the next hour."
                     )
-                    .foregroundStyle(.ink, .inkSoft)
                 }
             } else {
                 DeparturesList(departures: model.departures)
@@ -128,42 +124,19 @@ private struct DepartureRow: View {
                     .foregroundStyle(.ink)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                StatusPill(departure: departure)
+                if departure.canceled == true {
+                    StatusPill(label: "Cancelled", tone: .red)
+                } else if let delay = departure.delayMinutes {
+                    StatusPill(
+                        label: delay.label,
+                        tone: delay.minutes < 0 ? .green : .amber
+                    )
+                }
             }
             Spacer(minLength: 8)
             Countdown(departure: departure)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-// MARK: - Status pill
-
-/// The delay or cancelled status pill under a departure's destination,
-/// matching the storyboard's `status-pill`.
-private struct StatusPill: View {
-
-    let departure: CallAtLocation
-
-    var body: some View {
-        if departure.canceled == true {
-            Text("Cancelled")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.statusRed)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(Color.statusRedTint, in: Capsule())
-        } else if let delay = departure.delayMinutes {
-            Text(delay.label)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(delay.minutes < 0 ? .statusGreen : .statusYellow)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(
-                    delay.minutes < 0 ? Color.statusGreenTint : Color.statusYellowTint,
-                    in: Capsule()
-                )
-        }
     }
 }
 
