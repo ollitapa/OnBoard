@@ -9,7 +9,7 @@ Foundation — and has **no external dependencies**. Every dependency (network,
 storage, location) is a small protocol injected through the SwiftUI
 environment, so the same views run in previews, unit tests, and UI tests.
 
-[![App demo](OnBoardDemo.MP4)](OnBoardDemo.MP4)
+![App demo](https://github.com/user-attachments/assets/a8f21ed3-37bc-4fdb-9007-97394a545049)
 
 ## Features
 
