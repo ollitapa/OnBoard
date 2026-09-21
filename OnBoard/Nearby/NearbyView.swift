@@ -12,34 +12,27 @@ struct NearbyView: View {
 
     var body: some View {
         Group {
-            if model.failure != nil {
-                ContentUnavailableView {
-                    Label("Error loading stops", systemImage: "wifi.exclamationmark")
-                        .foregroundStyle(.ink)
-                } description: {
-                    Text(model.failure ?? "")
-                        .foregroundStyle(.inkSoft)
-                }
+            if let failure = model.failure {
+                UnavailableScreen(
+                    title: "Error loading stops",
+                    systemImage: "wifi.exclamationmark",
+                    message: failure
+                )
             } else if model.stops.isEmpty {
                 if location.coordinate == nil {
-                    ContentUnavailableView {
-                        Label("Waiting for your location", systemImage: "location")
-                            .foregroundStyle(.ink)
-                    } description: {
-                        Text("Stops appear here as soon as a location is available.")
-                            .foregroundStyle(.inkSoft)
-                    }
+                    UnavailableScreen(
+                        title: "Waiting for your location",
+                        systemImage: "location",
+                        message: "Stops appear here as soon as a location is available."
+                    )
                 } else if model.isLoading {
-                    ProgressView()
-                        .tint(.accent)
+                    LoadingIndicator()
                 } else {
-                    ContentUnavailableView {
-                        Label("No stops nearby", systemImage: "mappin.and.ellipse")
-                            .foregroundStyle(.ink)
-                    } description: {
-                        Text("There are no stops within 1 km of you.")
-                            .foregroundStyle(.inkSoft)
-                    }
+                    UnavailableScreen(
+                        title: "No stops nearby",
+                        systemImage: "mappin.and.ellipse",
+                        message: "There are no stops within 1 km of you."
+                    )
                 }
             } else {
                 NearbyStopsList(stops: model.stops, failure: model.failure)

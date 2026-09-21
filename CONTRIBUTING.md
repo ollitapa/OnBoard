@@ -129,6 +129,50 @@ These conventions keep view code consistent and avoid SwiftUI initialization pit
 
 - **Drive `.searchable` queries with `.task(id:)`, not `.onChange` + `Task`**: For a live (search-as-you-type) screen, bind the `.searchable(text: $query, ...)` field to `@State` and run the load from `.task(id: query) { await model.search(named: query, ...) }`. SwiftUI cancels the previous task when `id` changes, so a single in-model debounce — `try? await Task.sleep(for: .milliseconds(400))` followed by `guard !Task.isCancelled else { return }` before and after the request — yields a correct debounce without unstructured `Task`s or manual cancellation bookkeeping. A `.onChange(of: query) { Task { ... } }` instead spawns a *new* task per keystroke that races the old ones and overwrites results out of order; never use it for debounced search. The `.task(id:)` form also re-runs the initial (blank) query on appear, which the model uses to clear results and show the recents section.
 
+### Design System
+
+The shared UI components live in `OnBoard/DesignSystem/` — one component per file, no subfolders. Each one replaces a pattern that was previously duplicated across screens, so before writing a status pill, a button, or a screen state by hand, check whether the design system already has it; prefer extending an existing component over adding a near-duplicate. The folder is picked up automatically by the file-system-synchronized Xcode target, so adding a component is adding a file.
+
+- **`StatusPill` (StatusPill.swift)** — the storyboard's `status-pill`: a bold caption on a tinted capsule with 8/2 pt padding. Pick a ``PillTone`` (`.amber` for a delay, `.green` for early, `.red` for cancelled) and render the pill only when there is something to show — the "hidden when on time" rule stays at the call site:
+
+  ```swift
+  if let delay = departure.delayMinutes {
+      StatusPill(label: delay.label, tone: delay.minutes < 0 ? .green : .amber)
+  }
+  ```
+
+- **`PrimaryButtonStyle` / `TextButtonStyle` (ButtonStyles.swift)** — the storyboard's `btn-primary` / `btn-text` as custom `ButtonStyle`s, applied with `.buttonStyle(.primary)` / `.buttonStyle(.text)` on a plain `Button`. Both render `configuration.label` with the app's color tokens (accent capsule / ink-soft text) and react to `configuration.isPressed`; don't reach for the system `.borderedProminent`/`.borderless` styles for these:
+
+  ```swift
+  Button("Open Settings", action: onOpenSettings)
+      .buttonStyle(.primary)
+  Button("Search manually instead", action: onManualSearch)
+      .buttonStyle(.text)
+  ```
+
+- **`MessageScreen` (MessageScreen.swift)** — the storyboard's `permission-screen` layout: a tinted icon, a headline, a secondary body line, and the screen's content below. Use it for any full-screen icon + headline + message view instead of rebuilding the `VStack`:
+
+  ```swift
+  MessageScreen(icon: "location.slash", title: "Location access is off", message: "...") {
+      Button("Open Settings", action: onOpenSettings)
+          .buttonStyle(.primary)
+  }
+  ```
+
+- **`UnavailableScreen` (UnavailableScreen.swift)** — the ink/ink-soft `ContentUnavailableView` used for a screen's failure and empty states. Every "Couldn't load ..." placeholder and ink-styled empty hint goes through it, so the token pairing can't drift:
+
+  ```swift
+  UnavailableScreen(
+      title: "Couldn't load departures",
+      systemImage: "wifi.exclamationmark",
+      message: failure
+  )
+  ```
+
+- **`LoadingIndicator` (LoadingIndicator.swift)** — the accent-tinted spinner shown while a screen's first load is in flight. Use it instead of a bare `ProgressView().tint(.accent)`.
+
+Each component carries a `#Preview`, so the whole set is browsable in Xcode's canvas. When a new pattern shows up on two or more screens, extract it into this folder as its own file (view structs stay feature-local until that point, per the feature-folder rule) and document it here.
+
 ## Project Structure
 
 ```
@@ -140,6 +184,7 @@ OnBoard/
 │   ├── MockNetwork.swift
 │   └── MockNearbyServer.swift  # mockNetwork(), previewLocationAuthorization()
 ├── Api/                  # Trafiklab API client, response models, MockTrafiklabService
+├── DesignSystem/         # Shared UI components (StatusPill, buttons, screen states)
 ├── Location/             # Location permission flow and managers
 ├── Nearby/               # Nearby stops feature
 │   ├── NearbyModel.swift

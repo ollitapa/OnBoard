@@ -26,6 +26,7 @@ OnBoard/
 ├── MyApp.swift            # App entry point; builds and injects dependencies
 ├── MainView.swift         # Tab layout; owns and publishes shared models
 ├── Api/                   # Trafiklab client, secrets, canned service mocks
+├── DesignSystem/          # Shared UI components (pills, buttons, screen states)
 ├── Network/               # NetworkProtocol, LiveNetwork, MockNetwork
 ├── Location/              # Location authorization and permission UI
 ├── Nearby/                # NearbyModel + NearbyView
@@ -47,6 +48,12 @@ Xcode generate the `Color` accessors automatically (`.ink`, `.panel`,
 `.statusGreen`, …), so **there is no hand-written `Color` extension** — adding
 a color means adding a `.colorset` in the catalog and using the generated
 symbol, nothing else.
+
+On top of the tokens, `OnBoard/DesignSystem/` holds the shared UI
+components — `StatusPill`, the `.primary`/`.text` button styles,
+`MessageScreen`, `UnavailableScreen`, and `LoadingIndicator` — extracted
+from the storyboard's repeated patterns so screens don't re-style them by
+hand. See CONTRIBUTING.md's "Design System" section for usage.
 
 The core patterns:
 
