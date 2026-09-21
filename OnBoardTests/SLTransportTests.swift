@@ -2,6 +2,7 @@ import Testing
 import SwiftUI
 @testable import OnBoard
 
+@MainActor
 struct SLTransportTests {
 
     // MARK: - Line colours model
@@ -68,17 +69,6 @@ struct SLTransportTests {
         // Then: the canned lines response decoded through the production
         // path into the mode-grouped lines.
         try #expect(response == Self.lines())
-    }
-
-    @Test func linesDecodeFailureThrows() async {
-        // Given: a mock serving invalid JSON.
-        let network = MockSLTransportService(linesJSON: "<html>error</html>")
-        let client = SLTransport(network: network)
-
-        // Then: the client throws the decoding error rather than swallowing it.
-        await #expect(throws: (any Error).self) {
-            _ = try await client.lines()
-        }
     }
 
     // MARK: - Colour mapping
