@@ -68,7 +68,12 @@ final class RouteDetailsModel {
     ///   - tripId: The `trip.trip_id` from a `CallAtLocation` on the Timetables
     ///     response.
     ///   - startDate: The `trip.start_date` from the same `CallAtLocation`.
-    func loadTrip(network: some NetworkProtocol, tripId: String, startDate: String) async {
+    func loadTrip(
+        network: some NetworkProtocol,
+        tripId: String,
+        startDate: String,
+        now: Date = Date()
+    ) async {
         isLoading = true
         defer { if !Task.isCancelled { isLoading = false } }
 
@@ -80,7 +85,7 @@ final class RouteDetailsModel {
             try Task.checkCancellation()
 
             calls = response.calls ?? []
-            rows = calls.stopRows()
+            rows = calls.stopRows(now: now)
             failure = nil
         } catch is CancellationError {
             // Task was cancelled, ignore.
@@ -223,7 +228,7 @@ extension Array where Element == TripCall {
     /// One ``TripStopRow`` per call in travel order, computed with a single
     /// position lookup instead of re-deriving it for every row: the track
     /// renders straight from the rows with no index comparisons.
-    func stopRows(now: Date = Date()) -> [TripStopRow] {
+    func stopRows(now: Date) -> [TripStopRow] {
         let position = currentStopIndex(now: now)
 
         /// How far into the current leg the vehicle is, 0 leaving the previous

@@ -27,11 +27,13 @@ final class OnBoardUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--mock-network", "--skip-location-permission", "--mock-storage"]
         app.launch()
+        // Open home tab
+        app/*@START_MENU_TOKEN@*/.images["location.fill"]/*[[".buttons[\"Nearby\"].images",".buttons",".images[\"location services\"]",".images[\"location.fill\"]"],[[[-1,3],[-1,2],[-1,1,1],[-1,0]],[[-1,3],[-1,2]]],[0]]@END_MENU_TOKEN@*/.firstMatch.tap()
 
         // The nearby tab is selected by default and renders the stop names
         // served by `MockTrafiklabService.defaultNearbyStopsJSON`.
         let firstStop = app.staticTexts["Medborgarplatsen"]
-        let secondStop = app.staticTexts["Odenplan"]
+        let secondStop = app.staticTexts["Slussen"]
 
         XCTAssertTrue(firstStop.waitForExistence(timeout: 10),
                      "Expected the first mock stop to appear in the nearby list.")

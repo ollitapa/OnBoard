@@ -10,15 +10,21 @@ struct RouteDetailsModelTests {
         // requests. The expected calls are decoded from the service's stored
         // fixture so the comparison isn't affected by the fixture's relative
         // timestamps being re-evaluated.
+        let now = Date(timeIntervalSince1970: 0)
         let network = MockTrafiklabService(tripsByKey: MockTrafiklabService.defaultTripsByKeyJSON)
         let fixture = try #require(network.tripsByKey["900001/2099-01-01"])
         let response = try JSONDecoder().decode(TripResponse.self, from: Data(fixture.utf8))
         let model = RouteDetailsModel()
         // When
-        await model.loadTrip(network: network, tripId: "900001", startDate: "2099-01-01")
+        await model.loadTrip(
+            network: network,
+            tripId: "900001",
+            startDate: "2099-01-01",
+            now: now
+        )
         // Then
         #expect(model.calls == response.calls)
-        #expect(model.rows == model.calls.stopRows())
+        #expect(model.rows == model.calls.stopRows(now: now))
         #expect(model.failure == nil)
         #expect(model.isLoading == false)
     }
@@ -435,7 +441,7 @@ struct RouteDetailsModelTests {
     }
 
     @Test func stopRowsShowMinutesUpToTenAndClockTimeBeyond() {
-        let now = Date()
+        let now = Date.init(timeIntervalSince1970: 0)  // 1970-01-01T00:00:00Z
         // The vehicle is between stop 0 and stop 1, so stop 1 is the target
         // (no trailing time — its countdown lives in the subtitle), stop 2
         // arrives in 9 minutes ("9 min"), and the final stop in 22 minutes
@@ -451,7 +457,7 @@ struct RouteDetailsModelTests {
         #expect(rows[1].trailingTime == nil)
         #expect(rows[1].subtitle == "Arriving in 4 min")
         #expect(rows[2].trailingTime == "9 min")
-        #expect(rows[3].trailingTime == calls[3].arrivalDate?.formatted(date: .omitted, time: .shortened))
+        #expect(rows[3].trailingTime == calls[3].departureDate?.formatted(date: .omitted, time: .shortened))
 
         // While the vehicle dwells at stop 1, stop 2 is upcoming (not the
         // target) and only 30 seconds out, so its trailing time reads the
