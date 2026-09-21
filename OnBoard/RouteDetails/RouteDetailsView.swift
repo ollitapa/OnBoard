@@ -18,6 +18,8 @@ struct RouteDetailsView: View {
 
     @Environment(\.network) private var network
 
+    @Environment(LineColoursModel.self) private var lineColours
+
     @State private var model = RouteDetailsModel()
 
     @State private var loadingTrigger = 0
@@ -55,7 +57,11 @@ struct RouteDetailsView: View {
                 TimelineView(.periodic(from: .now, by: Self.rowRefreshInterval)) { context in
                     TripTrack(
                         route: route,
-                        rows: model.rows
+                        rows: model.rows,
+                        lineColour: lineColours.badgeColour(
+                            designation: route.lineLabel,
+                            transportMode: route.transportMode
+                        )
                     )
                     .onChange(of: context.date) {
                         model.recalculateRows(now: context.date)
@@ -93,13 +99,19 @@ private struct TripTrack: View {
     let route: RouteDetails
     let rows: [TripStopRow]
 
+    /// The line's design-token colour, looked up from the shared
+    /// ``LineColoursModel`` by the owning view, so the deep child rendering
+    /// the vehicle marker doesn't read the environment itself.
+    let lineColour: Color
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     TripNodes(
                         route: route,
-                        rows: rows
+                        rows: rows,
+                        lineColour: lineColour
                     )
                     .padding(.horizontal, 18)
                     .padding(.bottom, 24)
@@ -177,6 +189,10 @@ private struct TripNodes: View {
     let route: RouteDetails
     let rows: [TripStopRow]
 
+    /// The line's design-token colour, threaded down from ``TripTrack`` for
+    /// the bus marker's fill.
+    let lineColour: Color
+
     @Namespace private var markerSpace
 
     /// The identity shared by the marker wherever it appears, so SwiftUI
@@ -196,7 +212,7 @@ private struct TripNodes: View {
                     }
                     .overlay(alignment: .leading) {
                         if row.isCarryingMarker {
-                            TransportModeMarker(mode: route.transportMode)
+                            TransportModeMarker(mode: route.transportMode, colour: lineColour)
                                 .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
                                 .transition(.identity)
                                 .offset(y: markerOffset(for: row))
@@ -251,9 +267,13 @@ private struct TransportModeMarker: View {
 
     let mode: TransportMode?
 
+    /// The line's badge colour, so the vehicle marker wears the same colour
+    /// as the line badge the rider tapped on the stop board.
+    let colour: Color
+
     var body: some View {
         RoundedRectangle(cornerRadius: 7)
-            .fill(Color.accent)
+            .fill(colour)
             .frame(width: 28, height: 28)
             .overlay(
                 Group {
@@ -401,6 +421,7 @@ private struct TerminusDisc: View {
         )
     }
     .environment(\.network, MockTrafiklabService())
+    .environment(previewLineColours())
 }
 
 #Preview("Delayed") {
@@ -417,4 +438,5 @@ private struct TerminusDisc: View {
         )
     }
     .environment(\.network, MockTrafiklabService())
+    .environment(previewLineColours())
 }

@@ -58,12 +58,14 @@ struct MockNearbyServer: NetworkProtocol {
 /// canned nearby stops and per-stop departures, so this needs no setup.
 func mockNetwork() -> some NetworkProtocol {
     let server = MockTrafiklabService()
+    let slLines = MockSLTransportService()
     return CombinedNetwork(routes: [
         .init(baseURL: server.baseURL, network: server),
         .init(
             baseURL: URL(string: "https://realtime-api.trafiklab.se")!,
             network: server
-        )
+        ),
+        .init(baseURL: slLines.baseURL, network: slLines)
     ], fallback: LiveNetwork())
 }
 

@@ -216,6 +216,8 @@ private struct LineBadge: View {
 
     let departure: CallAtLocation
 
+    @Environment(LineColoursModel.self) private var lineColours
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             Text(departure.lineLabel)
@@ -223,7 +225,13 @@ private struct LineBadge: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
                 .frame(minWidth: 46, minHeight: 44)
-                .background(Color.accentDeep, in: RoundedRectangle(cornerRadius: 11))
+                .background(
+                    lineColours.badgeColour(
+                        designation: departure.route?.designation,
+                        transportMode: departure.route?.transport_mode
+                    ),
+                    in: RoundedRectangle(cornerRadius: 11)
+                )
             ModeBlip(mode: departure.route?.transport_mode)
         }
         .accessibilityElement(children: .ignore)
@@ -326,5 +334,6 @@ private struct FavoriteToggle: View {
     }
     .environment(\.network, MockTrafiklabService())
     .environment(model)
+    .environment(previewLineColours())
     .modelContainer(mockModelContainer())
 }
