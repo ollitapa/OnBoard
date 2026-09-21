@@ -9,6 +9,8 @@ Foundation — and has **no external dependencies**. Every dependency (network,
 storage, location) is a small protocol injected through the SwiftUI
 environment, so the same views run in previews, unit tests, and UI tests.
 
+[![App demo](OnBoardDemo.MP4)](OnBoardDemo.MP4)
+
 ## Features
 
 - **Nearby** — finds stops around your location (ResRobot Nearby Stops) and
