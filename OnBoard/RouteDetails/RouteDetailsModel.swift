@@ -151,6 +151,9 @@ struct TripStopRow: Identifiable, Equatable, Sendable {
     let travelProgress: Double?
     let isFirst: Bool
     let isFinal: Bool
+    /// Whether the call carries realtime data, so the view can flag the bus
+    /// marker as disconnected from live tracking when it is absent.
+    let isRealtime: Bool
     let subtitle: String?
     /// The arrival time shown at the row's trailing edge, on the same line as
     /// the station name: the whole minutes away up to 10 ("7 min"), the clock
@@ -299,6 +302,7 @@ extension Array where Element == TripCall {
                 travelProgress: index == markerRow ? travelProgress : nil,
                 isFirst: index == 0,
                 isFinal: index == count - 1,
+                isRealtime: call.is_realtime == true,
                 subtitle: call.subtitle(
                     isTarget: isTarget,
                     isBetweenStops: isTarget && isBetweenStops,
