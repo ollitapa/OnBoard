@@ -4,7 +4,6 @@ import SwiftData
 enum Tabs: String, Hashable {
     case nearby
     case favorites
-    case trips
     case search
     case about
 }
@@ -34,11 +33,6 @@ struct MainView: View {
             Tab("Favorites", systemImage: "star.fill", value: .favorites) {
                 NavigationStack {
                     FavoritesView()
-                }
-            }
-            Tab("Trips", systemImage: "bus.fill", value: .trips) {
-                NavigationStack {
-                    TripFavoritesView()
                 }
             }
 

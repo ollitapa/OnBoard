@@ -1,34 +1,43 @@
 import SwiftUI
 import SwiftData
 
-/// The Favourites tab ("Step 4 → Save a stop → skip the search next time" in
-/// `Designs/storyboard.html`).
+/// The Favourites tab ("Step 4 — Save a stop → skip the search next time" in
+/// `Designs/storyboard.html`), now carrying the saved journeys too: one
+/// combined list with the live trips on top, the stops in the middle, and
+/// the inactive trips shunted to the end. Tapping a stop row opens its live
+/// departure board (``StopDetailsView``), tapping a trip row re-opens its
+/// Live Trip screen (``RouteDetailsView``).
 ///
-/// Shows the saved stops as rows matching the storyboard's `fav-row`: a star,
-/// the stop name, and a "Lines …" subtitle, plus a dashed empty hint when no
-/// stops are saved. Tapping a row opens the stop's live departure board
-/// (``StopDetailsView``). The view is driven by ``FavoritesModel`` and reads
-/// its shared model from the SwiftUI environment (`@Environment(FavoritesModel.self)`),
-/// so the Stop board's star toggle and this tab mutate the same list.
+/// The view reads the shared ``FavoritesModel`` and ``TripFavoritesModel``
+/// from the SwiftUI environment (`@Environment(Model.self)`), so the Stop
+/// board's star toggle, the Live Trip screen's trip toggle, and this list
+/// all mutate the same state. Each trip section hides itself when empty —
+/// typically only the stop rows render.
 struct FavoritesView: View {
     @Environment(FavoritesModel.self) private var favoritesModel
+    @Environment(TripFavoritesModel.self) private var tripFavoritesModel
 
     var body: some View {
-        FavoritesContent(model: favoritesModel)
-            .navigationTitle("Favourites")
+        FavoritesContent(
+            model: favoritesModel,
+            tripModel: tripFavoritesModel
+        )
+        .navigationTitle("Favourites")
     }
 }
 
-/// The favourites list and its empty/error/loading states, extracted as a
-/// struct taking only the model it needs so SwiftUI can skip re-rendering it
-/// when unrelated parent state changes.
+/// The combined list and its empty/error/loading states, extracted as a
+/// struct taking only the models it needs so SwiftUI can skip re-rendering
+/// it when unrelated parent state changes.
 private struct FavoritesContent: View {
     @Environment(\.modelContext) var modelContext
+    @Environment(\.network) var network
     let model: FavoritesModel
+    let tripModel: TripFavoritesModel
 
     var body: some View {
         Group {
-            if let failure = model.failure {
+            if let failure = model.failure ?? tripModel.failure {
                 UnavailableScreen(
                     title: "Couldn't load favourites",
                     systemImage: "wifi.exclamationmark",
@@ -36,38 +45,91 @@ private struct FavoritesContent: View {
                 )
             } else if model.isLoading {
                 LoadingIndicator()
-            } else if model.favorites.isEmpty == true {
+            } else if isEmpty {
                 FavoritesEmptyHint()
             } else {
-                FavoritesList(model: model)
+                FavoritesList(model: model, tripModel: tripModel)
             }
         }
         .background(Color.paper)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if tripModel.finishedCount > 0 {
+                    CleanStaleTripsButton(model: tripModel)
+                }
+            }
+        }
         .onAppear {
             model.loadFavorites(context: modelContext)
+            tripModel.loadTripFavorites(context: modelContext)
         }
+        .task {
+            // The statuses drive the active/inactive split, and `.task` may
+            // start before the first `onAppear` has loaded the aggregate,
+            // so make sure it's loaded.
+            tripModel.loadTripFavorites(context: modelContext)
+            await tripModel.refreshStatuses(network: network)
+        }
+    }
+
+    /// The screen is empty only when there is nothing at all to show: no
+    /// stops and no trips. Empty trip sections hide themselves, so this is
+    /// driven by the raw counts, not the sectioned lists.
+    private var isEmpty: Bool {
+        model.favorites.isEmpty && tripModel.trips.isEmpty
     }
 }
 
-/// The plain list of saved-stop rows. Swipe-to-delete removes a stop from
-/// the favourites list via the shared model.
+/// The combined list: the live trips' section on top, the stops in the
+/// middle, and the inactive trips' section at the end. Swipe-to-delete
+/// removes rows from any section via the shared models.
 private struct FavoritesList: View {
     @Environment(\.modelContext) var modelContext
     let model: FavoritesModel
+    let tripModel: TripFavoritesModel
 
     var body: some View {
         List {
-            ForEach(model.favorites) { favorite in
-                NavigationLink(value: favorite) {
-                    FavoriteRow(favorite: favorite)
+            if !tripModel.activeTrips.isEmpty {
+                Section("Live trips") {
+                    ForEach(tripModel.activeTrips) { trip in
+                        NavigationLink(value: trip.routeDetails) {
+                            TripFavoriteRow(trip: trip)
+                        }
+                        .listRowBackground(Color.panel)
+                    }
+                    .onDelete { indexSet in
+                        remove(indexSet, from: tripModel.activeTrips)
+                    }
                 }
-                .listRowBackground(Color.panel)
-
             }
-            .onDelete { indexSet in
-                let ids = indexSet.map { model.favorites[$0].id }
-                for id in ids {
-                    model.remove(id, context: modelContext)
+            if !model.favorites.isEmpty {
+                Section("Stops") {
+                    ForEach(model.favorites) { favorite in
+                        NavigationLink(value: favorite) {
+                            FavoriteRow(favorite: favorite)
+                        }
+                        .listRowBackground(Color.panel)
+                    }
+                    .onDelete { indexSet in
+                        let ids = indexSet.map { model.favorites[$0].id }
+                        for id in ids {
+                            model.remove(id, context: modelContext)
+                        }
+                    }
+                }
+            }
+            if !tripModel.inactiveTrips.isEmpty {
+                Section("Saved trips") {
+                    ForEach(tripModel.inactiveTrips) { trip in
+                        NavigationLink(value: trip.routeDetails) {
+                            TripFavoriteRow(trip: trip)
+                        }
+                        .listRowBackground(Color.panel)
+                    }
+                    .onDelete { indexSet in
+                        remove(indexSet, from: tripModel.inactiveTrips)
+                    }
                 }
             }
         }
@@ -76,6 +138,18 @@ private struct FavoritesList: View {
         .navigationDestination(for: Favorite.self) { favorite in
             StopDetailsView(stopId: favorite.id, stopName: favorite.name)
         }
+        .navigationDestination(for: RouteDetails.self) { route in
+            RouteDetailsView(route: route)
+        }
+    }
+
+    /// Swipe-to-delete for a trip section, whose rows come from the model's
+    /// filtered lists rather than the raw aggregate.
+    private func remove(_ indexSet: IndexSet, from trips: [TripFavorite]) {
+        let ids = indexSet.map { trips[$0].id }
+        for id in ids {
+            tripModel.remove(id, context: modelContext)
+        }
     }
 }
 
@@ -83,7 +157,6 @@ private struct FavoritesList: View {
 /// subtitle.
 private struct FavoriteRow: View {
     let favorite: Favorite
-
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: "star.fill")
@@ -106,7 +179,84 @@ private struct FavoriteRow: View {
     }
 }
 
-/// The dashed empty hint shown when no stops are saved, matching the
+/// One saved-trip row, reading like the departure it was saved from: a line
+/// badge with the transport-mode blip and the destination as the main text.
+private struct TripFavoriteRow: View {
+    let trip: TripFavorite
+    var body: some View {
+        HStack(alignment: .center, spacing: 13) {
+            TripFavoriteLineBadge(
+                lineLabel: trip.lineLabel,
+                transportMode: trip.transportMode
+            )
+            VStack(alignment: .leading, spacing: 2) {
+                Text(trip.direction)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.ink)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(trip.lineSummary)
+                    .font(.subheadline)
+                    .foregroundStyle(.inkSoft)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+    }
+}
+
+/// The line badge for a saved trip, mirroring the Stop board's `LineBadge`
+/// but taking plain values — a saved trip stores no `CallAtLocation`, and
+/// the badge colour keys off the designation + transport mode directly.
+private struct TripFavoriteLineBadge: View {
+    @Environment(LineColoursModel.self) private var lineColours
+    let lineLabel: String
+    let transportMode: TransportMode?
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Text(lineLabel)
+                .font(.body.weight(.heavy))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .frame(minWidth: 46, minHeight: 44)
+                .background(
+                    lineColours.badgeColour(
+                        designation: lineLabel,
+                        transportMode: transportMode
+                    ),
+                    in: RoundedRectangle(cornerRadius: 11)
+                )
+            ModeBlip(mode: transportMode)
+        }
+    }
+}
+
+/// The toolbar button that removes finished trips (whose final stop has
+/// passed) from the list, showing a spinner while the classification that
+/// drives it is in flight.
+private struct CleanStaleTripsButton: View {
+    @Environment(\.modelContext) var modelContext
+    let model: TripFavoritesModel
+
+    var body: some View {
+        Button {
+            model.cleanStaleTrips(context: modelContext)
+        } label: {
+            if model.isRefreshing {
+                LoadingIndicator()
+            } else {
+                Image(systemName: "sparkles")
+                    .font(.title3)
+                    .foregroundStyle(.inkSoft)
+            }
+        }
+        .accessibilityLabel("Clean finished trips")
+    }
+}
+
+/// The dashed empty hint shown when nothing is saved, matching the
 /// storyboard's `empty-hint`. English per the app's English-only chrome.
 private struct FavoritesEmptyHint: View {
     var body: some View {
@@ -119,27 +269,26 @@ private struct FavoritesEmptyHint: View {
     }
 }
 
-#Preview("Favourites") {
+#Preview("Stops and trips") {
     @Previewable @State var model = FavoritesModel()
-    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
-
+    @Previewable @State var tripModel = TripFavoritesModel()
     NavigationStack {
         FavoritesView()
     }
     .environment(model)
-    .environment(tripFavoritesModel)
+    .environment(tripModel)
+    .environment(previewLineColours())
     .modelContainer(mockModelContainer())
     .environment(\.network, mockNetwork())
 }
 
 #Preview("Empty") {
     @Previewable @State var model = FavoritesModel()
-    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
-
+    @Previewable @State var tripModel = TripFavoritesModel()
     NavigationStack {
         FavoritesView()
     }
     .environment(model)
-    .environment(tripFavoritesModel)
+    .environment(tripModel)
     .modelContainer(emptyModelContainer())
 }

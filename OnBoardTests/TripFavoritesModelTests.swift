@@ -202,11 +202,92 @@ struct TripFavoritesModelTests {
         #expect(reader.trips.map(\.tripId) == ["900001"])
     }
 
-    // MARK: - Stale-trip cleanup
+    // MARK: - Status refresh and stale-trip cleanup
 
-    @Test func cleanStaleTripsRemovesFinishedTrips() async throws {
-        // Given: one trip whose final stop has passed and one still running,
+    @Test func refreshStatusesClassifiesEachSavedTrip() async throws {
+        // Given: one finished, one running, and one not-yet-begun trip,
         // served from fixtures with relative timestamps resolved around now.
+        let network = MockTrafiklabService(tripsByKey: [
+            "900001/2099-01-01": Self.finishedTripJSON,
+            "900002/2099-01-01": Self.runningTripJSON,
+            "900003/2099-01-01": Self.upcomingTripJSON
+        ])
+        let container = try makeContainer()
+        let model = TripFavoritesModel()
+        model.loadTripFavorites(context: container.mainContext)
+        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900003", startDate: "2099-01-01"), context: container.mainContext)
+        // When
+        await model.refreshStatuses(network: network)
+        // Then
+        #expect(model.statuses["900001-2099-01-01"] == .finished)
+        #expect(model.statuses["900002-2099-01-01"] == .active)
+        #expect(model.statuses["900003-2099-01-01"] == .upcoming)
+        #expect(model.activeTrips.map(\.tripId) == ["900002"])
+        #expect(model.inactiveTrips.map(\.tripId) == ["900003", "900001"])
+        #expect(model.finishedCount == 1)
+        #expect(model.isRefreshing == false)
+    }
+
+    @Test func refreshStatusesKeepsTripWithEmptyScheduleAsUpcoming() async throws {
+        // Given: a trip whose fixture serves an empty calls list — never
+        // read as finished, so it shows in the trailing section and is
+        // never cleaned.
+        let network = MockTrafiklabService(tripsByKey: [
+            "900001/2099-01-01": Self.emptyTripJSON
+        ])
+        let container = try makeContainer()
+        let model = TripFavoritesModel()
+        model.loadTripFavorites(context: container.mainContext)
+        model.toggle(Self.route(), context: container.mainContext)
+        // When
+        await model.refreshStatuses(network: network)
+        // Then
+        #expect(model.statuses["900001-2099-01-01"] == .upcoming)
+        #expect(model.finishedCount == 0)
+    }
+
+    @Test func refreshStatusesKeepsTripWhenScheduleFailsToLoad() async throws {
+        // Given: a network with no handlers, so the schedule request throws —
+        // the trip keeps no status and reads as upcoming, never finished.
+        let network = MockNetwork()
+        let container = try makeContainer()
+        let model = TripFavoritesModel()
+        model.loadTripFavorites(context: container.mainContext)
+        model.toggle(Self.route(), context: container.mainContext)
+        // When
+        await model.refreshStatuses(network: network)
+        // Then
+        #expect(model.statuses["900001-2099-01-01"] == nil)
+        #expect(model.finishedCount == 0)
+        #expect(model.inactiveTrips.map(\.tripId) == ["900001"])
+    }
+
+    @Test func refreshStatusesClearsStatusesWhenNothingIsSaved() async throws {
+        let network = MockNetwork()
+        let container = try makeContainer()
+        let model = TripFavoritesModel()
+        model.loadTripFavorites(context: container.mainContext)
+        // When
+        await model.refreshStatuses(network: network)
+        // Then
+        #expect(model.statuses == [:])
+        #expect(model.isRefreshing == false)
+    }
+
+    @Test func refreshStatusesIsNoOpWhenStoreNotLoaded() async throws {
+        let network = MockNetwork()
+        let container = try makeContainer()
+        let model = TripFavoritesModel()
+        // `stored` is nil before loadTripFavorites; refresh must not crash.
+        await model.refreshStatuses(network: network)
+        #expect(model.trips == [])
+        #expect(model.statuses == [:])
+    }
+
+    @Test func cleanStaleTripsRemovesFinishedTripsOnly() async throws {
+        // Given: a finished and a running trip, both classified.
         let network = MockTrafiklabService(tripsByKey: [
             "900001/2099-01-01": Self.finishedTripJSON,
             "900002/2099-01-01": Self.runningTripJSON
@@ -216,79 +297,87 @@ struct TripFavoritesModelTests {
         model.loadTripFavorites(context: container.mainContext)
         model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), context: container.mainContext)
         model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), context: container.mainContext)
+        await model.refreshStatuses(network: network)
         // When
-        await model.cleanStaleTrips(network: network, context: container.mainContext)
+        model.cleanStaleTrips(context: container.mainContext)
         // Then: only the running trip remains.
         #expect(model.trips.map(\.tripId) == ["900002"])
-        #expect(model.isCleaning == false)
+        #expect(model.finishedCount == 0)
+        try container.mainContext.save()
+        let reader = TripFavoritesModel()
+        reader.loadTripFavorites(context: container.mainContext)
+        #expect(reader.trips.map(\.tripId) == ["900002"])
     }
 
-    @Test func cleanStaleTripsKeepsTripWhenScheduleFailsToLoad() async throws {
-        // Given: a network with no handlers, so the schedule request throws —
-        // the cleanup must keep the trip rather than guess at it.
-        let network = MockNetwork()
-        let container = try makeContainer()
-        let model = TripFavoritesModel()
-        model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext)
-        // When
-        await model.cleanStaleTrips(network: network, context: container.mainContext)
-        // Then
-        #expect(model.trips.map(\.tripId) == ["900001"])
-    }
-
-    @Test func cleanStaleTripsKeepsTripWithEmptySchedule() async throws {
-        // Given: a trip whose fixture serves an empty calls list — never
-        // read as finished, so the cleanup keeps it.
+    @Test func cleanStaleTripsIsNoOpWhenNothingIsFinished() async throws {
+        // Nothing classified as finished — the button wouldn't even show.
         let network = MockTrafiklabService(tripsByKey: [
-            "900001/2099-01-01": Self.emptyTripJSON
+            "900001/2099-01-01": Self.runningTripJSON
         ])
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
         model.toggle(Self.route(), context: container.mainContext)
+        await model.refreshStatuses(network: network)
         // When
-        await model.cleanStaleTrips(network: network, context: container.mainContext)
+        model.cleanStaleTrips(context: container.mainContext)
         // Then
         #expect(model.trips.map(\.tripId) == ["900001"])
     }
 
-    @Test func cleanStaleTripsIsNoOpWhenNothingIsSaved() async throws {
-        let network = MockNetwork()
+    @Test func cleanStaleTripsIsNoOpWithoutStatuses() async throws {
+        // No refresh has run, so no trip is classified finished and the
+        // cleanup must not delete anything on a guess.
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
+        model.toggle(Self.route(), context: container.mainContext)
         // When
-        await model.cleanStaleTrips(network: network, context: container.mainContext)
+        model.cleanStaleTrips(context: container.mainContext)
         // Then
-        #expect(model.trips == [])
-        #expect(model.isCleaning == false)
+        #expect(model.trips.map(\.tripId) == ["900001"])
     }
 
-    @Test func cleanStaleTripsIsNoOpWhenStoreNotLoaded() async throws {
-        let network = MockNetwork()
+    @Test func cleanStaleTripsIsNoOpWhenStoreNotLoaded() throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         // `stored` is nil before loadTripFavorites; clean must not crash.
-        await model.cleanStaleTrips(network: network, context: container.mainContext)
+        model.cleanStaleTrips(context: container.mainContext)
         #expect(model.trips == [])
     }
 
-    @Test func cleanStaleTripsPersistsRemoval() async throws {
-        let network = MockTrafiklabService(tripsByKey: [
-            "900001/2099-01-01": Self.finishedTripJSON
-        ])
-        let container = try makeContainer()
-        let model = TripFavoritesModel()
-        model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext)
-        // When
-        await model.cleanStaleTrips(network: network, context: container.mainContext)
-        try container.mainContext.save()
-        // Then
-        let reader = TripFavoritesModel()
-        reader.loadTripFavorites(context: container.mainContext)
-        #expect(reader.trips == [])
+    // MARK: - Status classification
+
+    @Test func statusIsFinishedWhenFinalStopPassed() {
+        let now = Date()
+        let calls = [
+            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 30)),
+            RouteDetailsModelTests.call(stopId: "1", name: "Final", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 5))
+        ]
+        #expect(TripFavoritesModel.status(of: calls, now: now) == .finished)
+    }
+
+    @Test func statusIsUpcomingWhenTripHasNotStarted() {
+        let now = Date()
+        let calls = [
+            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.future(now, minutes: 10))
+        ]
+        #expect(TripFavoritesModel.status(of: calls, now: now) == .upcoming)
+    }
+
+    @Test func statusIsActiveWhileVehicleIsOnTheTrack() {
+        let now = Date()
+        // The vehicle is between stops, heading to the final one.
+        let calls = [
+            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 10)),
+            RouteDetailsModelTests.call(stopId: "1", name: "Final", scheduledDeparture: RouteDetailsModelTests.future(now, minutes: 6))
+        ]
+        #expect(TripFavoritesModel.status(of: calls, now: now) == .active)
+    }
+
+    @Test func statusIsUpcomingForEmptySchedule() {
+        let calls: [TripCall] = []
+        #expect(TripFavoritesModel.status(of: calls, now: Date()) == .upcoming)
     }
 
     // MARK: - isFinished
@@ -437,6 +526,25 @@ struct TripFavoritesModelTests {
     {
         "timestamp": "2099-01-01T12:00:00",
         "calls": []
+    }
+    """
+
+    /// A trip that hasn't begun yet: the first call is still in the future.
+    private static let upcomingTripJSON = """
+    {
+        "timestamp": "2099-01-01T12:00:00",
+        "calls": [
+            {
+                "scheduledArrival": "now+10",
+                "scheduledDeparture": "now+10",
+                "stop": { "id": "3-0", "name": "Skanstull", "lat": 59.3114, "lon": 18.0745 }
+            },
+            {
+                "scheduledArrival": "now+40",
+                "scheduledDeparture": "now+40",
+                "stop": { "id": "3-1", "name": "Karolinska sjukhuset", "lat": 59.3372, "lon": 18.0281 }
+            }
+        ]
     }
     """
 }
