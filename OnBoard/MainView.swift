@@ -16,6 +16,7 @@ struct MainView: View {
     @Environment(\.network) private var network
 
     @State var favoritesModel: FavoritesModel = FavoritesModel()
+    @State var tripFavoritesModel: TripFavoritesModel = TripFavoritesModel()
     @State var lineColoursModel: LineColoursModel = LineColoursModel()
 
     var body: some View {
@@ -49,12 +50,14 @@ struct MainView: View {
         }
         .onAppear {
             favoritesModel.loadFavorites(context: modelContext)
+            tripFavoritesModel.loadTripFavorites(context: modelContext)
         }
         .task {
             await lineColoursModel.loadLines(network: network)
         }
         .tabViewSearchActivation(.searchTabSelection)
         .environment(favoritesModel)
+        .environment(tripFavoritesModel)
         .environment(lineColoursModel)
         .tint(.accent)
         .accentColor(.accent)

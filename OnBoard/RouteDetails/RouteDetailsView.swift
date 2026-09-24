@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The Live Trip screen ("Step 3 • Tap a departure → track the bus stop by
 /// stop" in `Designs/storyboard.html`).
@@ -19,6 +20,8 @@ struct RouteDetailsView: View {
     @Environment(\.network) private var network
 
     @Environment(LineColoursModel.self) private var lineColours
+
+    @Environment(TripFavoritesModel.self) private var tripFavoritesModel
 
     @State private var model = RouteDetailsModel()
 
@@ -68,6 +71,15 @@ struct RouteDetailsView: View {
         .navigationTitle(route.lineTitle)
         .navigationBarTitleDisplayMode(.inline)
         .background(Color.paper)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                TripFavoriteToggle(
+                    route: route,
+                    model: tripFavoritesModel,
+                    endDate: model.calls.last?.date
+                )
+            }
+        }
         .task(id: loadingTrigger) {
             await model.loadTrip(
                 network: network,
@@ -348,6 +360,37 @@ private struct StopNode: View {
     }
 }
 
+// MARK: - Saved-trip toggle
+
+/// The toolbar star on the Live Trip screen that saves/removes the current
+/// journey to the Trips tab, mirroring the Stop board's ``FavoriteToggle``:
+/// the filled state reflects the shared ``TripFavoritesModel``, and the line
+/// label, direction, and transport mode are captured at save time so the
+/// saved row renders without a network round trip.
+private struct TripFavoriteToggle: View {
+
+    @Environment(\.modelContext) var modelContext
+
+    let route: RouteDetails
+    let model: TripFavoritesModel
+    /// The journey's end — the final stop's departure from the loaded
+    /// schedule — captured into the favourite so the Favourites list can
+    /// classify it without a network round trip. `nil` while the schedule
+    /// hasn't loaded, in which case the trip reads as live.
+    let endDate: Date?
+
+    var body: some View {
+        Button {
+            model.toggle(route, endDate: endDate, context: modelContext)
+        } label: {
+            Image(systemName: model.contains(route) ? "star.fill" : "star")
+                .font(.title3)
+                .foregroundStyle(model.contains(route) ? .star : .inkSoft)
+                .accessibilityLabel(model.contains(route) ? "Remove saved trip" : "Save trip")
+        }
+    }
+}
+
 // MARK: - Node dots
 
 /// The dot for an intermediate stop: a filled grey dot when passed, a larger
@@ -419,6 +462,7 @@ private struct TerminusDisc: View {
 }
 
 #Preview("Live trip") {
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
     NavigationStack {
         RouteDetailsView(
             route: RouteDetails(
@@ -433,9 +477,12 @@ private struct TerminusDisc: View {
     }
     .environment(\.network, MockTrafiklabService())
     .environment(previewLineColours())
+    .environment(tripFavoritesModel)
+    .modelContainer(emptyModelContainer())
 }
 
 #Preview("Delayed") {
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
     NavigationStack {
         RouteDetailsView(
             route: RouteDetails(
@@ -450,4 +497,6 @@ private struct TerminusDisc: View {
     }
     .environment(\.network, MockTrafiklabService())
     .environment(previewLineColours())
+    .environment(tripFavoritesModel)
+    .modelContainer(emptyModelContainer())
 }

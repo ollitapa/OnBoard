@@ -15,7 +15,10 @@ environment, so the same views run in previews, unit tests, and UI tests.
 
 - **Nearby** — finds stops around your location (ResRobot Nearby Stops) and
   shows upcoming departures for a chosen stop (Timetables).
-- **Favorites** — saves stops persistently with SwiftData.
+- **Favorites** — saves stops and journeys persistently with SwiftData: the
+  currently live trips (their saved end date not yet passed) are listed at the
+  top of the Favourites tab, the stops follow, and finished trips are shunted
+  to the end, removable with one tap.
 - **Search** — searches stops by name (Stop Lookup) and follows a vehicle's
   live trip between stops (Trips).
 
@@ -32,7 +35,8 @@ OnBoard/
 ├── Network/               # NetworkProtocol, LiveNetwork, MockNetwork
 ├── Location/              # Location authorization and permission UI
 ├── Nearby/                # NearbyModel + NearbyView
-├── Favorites/             # FavoritesModel + FavoritesView
+├── Favorites/             # FavoritesModel + FavoritesView (stops + saved trips)
+├── TripFavorites/         # TripFavoritesModel (saved-trip status & cleanup)
 ├── Search/                # SearchModel + SearchView
 ├── StopDetails/          # StopDetailsModel + StopDetailsView
 ├── RouteDetails/         # RouteDetailsModel + RouteDetailsView

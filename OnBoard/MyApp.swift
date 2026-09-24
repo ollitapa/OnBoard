@@ -44,7 +44,7 @@ import SwiftData
             return mockModelContainer()
         }
         do {
-            return try ModelContainer(for: StoredFavorites.self)
+            return try ModelContainer(for: StoredFavorites.self, StoredTripFavorites.self)
         } catch {
             // Fail fast on a store that can't open (e.g. an incompatible on-disk
             // schema): a container-less app has no working persistence, and a

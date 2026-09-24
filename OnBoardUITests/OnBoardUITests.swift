@@ -40,4 +40,31 @@ final class OnBoardUITests: XCTestCase {
         XCTAssertTrue(secondStop.exists,
                      "Expected the second mock stop to appear in the nearby list.")
     }
+
+    @MainActor
+    func testSavedTripAppearsInFavouritesFromMockStorage() throws {
+        // Launch with the mock network and storage: `mockModelContainer()`
+        // seeds one stop and one saved trip (Line 3 → Karolinska sjukhuset,
+        // its end date 30 minutes out, so it reads as live), so the
+        // Favourites tab shows the live trip above the stops.
+        let app = XCUIApplication()
+        app.launchArguments = ["--mock-network", "--skip-location-permission", "--mock-storage"]
+        app.launch()
+
+        // Open the Favourites tab.
+        app.buttons["Favorites"].tap()
+
+        // The live-trips section renders on top (the saved end date hasn't
+        // passed), the saved trip's direction and line summary in its row,
+        // followed by the stops section.
+        let destination = app.staticTexts["Karolinska sjukhuset"]
+        XCTAssertTrue(destination.waitForExistence(timeout: 10),
+                     "Expected the saved trip's destination to appear in the live-trips section.")
+        XCTAssertTrue(app.staticTexts["Line 3"].exists,
+                     "Expected the saved trip's line summary to appear in the live-trips section.")
+        XCTAssertTrue(app.staticTexts["Live trips"].exists,
+                     "Expected the live-trips section header above the stops.")
+        XCTAssertTrue(app.staticTexts["Medborgarplatsen"].waitForExistence(timeout: 10),
+                     "Expected the seeded favourite stop to appear below the live trips.")
+    }
 }
