@@ -141,7 +141,7 @@ The shared UI components live in `OnBoard/DesignSystem/` — one component per f
   }
   ```
 
-- **`PrimaryButtonStyle` / `TextButtonStyle` (ButtonStyles.swift)** — the storyboard's `btn-primary` / `btn-text` as custom `ButtonStyle`s, applied with `.buttonStyle(.primary)` / `.buttonStyle(.text)` on a plain `Button`. Both render `configuration.label` with the app's color tokens (accent capsule / ink-soft text) and react to `configuration.isPressed`; don't reach for the system `.borderedProminent`/`.borderless` styles for these:
+- **`PrimaryButtonStyle` / `TextButtonStyle` (ButtonStyles.swift)** — the storyboard's `btn-primary` / `btn-text` as custom `ButtonStyle`s, applied with `.buttonStyle(.primary)` / `.buttonStyle(.text)` on a plain `Button`. The primary renders its label on an accent-tinted Liquid Glass capsule (`.glassEffect(.regular.tint(.accent).interactive(), in: Capsule())`, iOS 26) with the built-in press response; the text style stays a flat ink-soft label, since Apple's Liquid Glass guidance reserves the material for navigation-layer and floating controls, not text links in content. Don't reach for the system `.borderedProminent`/`.borderless` (or `.glass`/`.glassProminent`) styles for these — go through the design-system styles so the tint and shape can't drift per screen:
 
   ```swift
   Button("Open Settings", action: onOpenSettings)
