@@ -31,7 +31,6 @@ struct FavoritesView: View {
 /// it when unrelated parent state changes.
 private struct FavoritesContent: View {
     @Environment(\.modelContext) var modelContext
-    @Environment(\.network) var network
     let model: FavoritesModel
     let tripModel: TripFavoritesModel
 
@@ -62,13 +61,6 @@ private struct FavoritesContent: View {
         .onAppear {
             model.loadFavorites(context: modelContext)
             tripModel.loadTripFavorites(context: modelContext)
-        }
-        .task {
-            // The statuses drive the active/inactive split, and `.task` may
-            // start before the first `onAppear` has loaded the aggregate,
-            // so make sure it's loaded.
-            tripModel.loadTripFavorites(context: modelContext)
-            await tripModel.refreshStatuses(network: network)
         }
     }
 
@@ -233,9 +225,8 @@ private struct TripFavoriteLineBadge: View {
     }
 }
 
-/// The toolbar button that removes finished trips (whose final stop has
-/// passed) from the list, showing a spinner while the classification that
-/// drives it is in flight.
+/// The toolbar button that removes finished trips (whose saved end date
+/// has passed) from the list.
 private struct CleanStaleTripsButton: View {
     @Environment(\.modelContext) var modelContext
     let model: TripFavoritesModel
@@ -244,13 +235,9 @@ private struct CleanStaleTripsButton: View {
         Button {
             model.cleanStaleTrips(context: modelContext)
         } label: {
-            if model.isRefreshing {
-                LoadingIndicator()
-            } else {
-                Image(systemName: "sparkles")
-                    .font(.title3)
-                    .foregroundStyle(.inkSoft)
-            }
+            Image(systemName: "sparkles")
+                .font(.title3)
+                .foregroundStyle(.inkSoft)
         }
         .accessibilityLabel("Clean finished trips")
     }

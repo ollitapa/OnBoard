@@ -73,7 +73,11 @@ struct RouteDetailsView: View {
         .background(Color.paper)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                TripFavoriteToggle(route: route, model: tripFavoritesModel)
+                TripFavoriteToggle(
+                    route: route,
+                    model: tripFavoritesModel,
+                    endDate: model.calls.last?.date
+                )
             }
         }
         .task(id: loadingTrigger) {
@@ -369,10 +373,15 @@ private struct TripFavoriteToggle: View {
 
     let route: RouteDetails
     let model: TripFavoritesModel
+    /// The journey's end — the final stop's departure from the loaded
+    /// schedule — captured into the favourite so the Favourites list can
+    /// classify it without a network round trip. `nil` while the schedule
+    /// hasn't loaded, in which case the trip reads as live.
+    let endDate: Date?
 
     var body: some View {
         Button {
-            model.toggle(route, context: modelContext)
+            model.toggle(route, endDate: endDate, context: modelContext)
         } label: {
             Image(systemName: model.contains(route) ? "star.fill" : "star")
                 .font(.title3)

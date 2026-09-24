@@ -45,7 +45,7 @@ final class OnBoardUITests: XCTestCase {
     func testSavedTripAppearsInFavouritesFromMockStorage() throws {
         // Launch with the mock network and storage: `mockModelContainer()`
         // seeds one stop and one saved trip (Line 3 → Karolinska sjukhuset,
-        // served by the canned trips fixture as mid-journey), so the
+        // its end date 30 minutes out, so it reads as live), so the
         // Favourites tab shows the live trip above the stops.
         let app = XCUIApplication()
         app.launchArguments = ["--mock-network", "--skip-location-permission", "--mock-storage"]
@@ -54,9 +54,9 @@ final class OnBoardUITests: XCTestCase {
         // Open the Favourites tab.
         app.buttons["Favorites"].tap()
 
-        // The live-trips section renders on top (the canned schedule is
-        // mid-journey, so the trip is active), the saved trip's direction
-        // and line summary in its row, followed by the stops section.
+        // The live-trips section renders on top (the saved end date hasn't
+        // passed), the saved trip's direction and line summary in its row,
+        // followed by the stops section.
         let destination = app.staticTexts["Karolinska sjukhuset"]
         XCTAssertTrue(destination.waitForExistence(timeout: 10),
                      "Expected the saved trip's destination to appear in the live-trips section.")

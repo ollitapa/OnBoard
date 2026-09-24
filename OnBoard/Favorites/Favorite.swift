@@ -77,7 +77,8 @@ func mockModelContainer() -> ModelContainer {
             startDate: "2099-01-01",
             lineLabel: "3",
             direction: "Karolinska sjukhuset",
-            transportMode: "BUS"
+            transportMode: "BUS",
+            endDate: Date().addingTimeInterval(30 * 60)
         )
     )
 

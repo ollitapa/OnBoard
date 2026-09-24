@@ -13,15 +13,17 @@ final class StoredTripFavorites {
     }
 }
 
-/// A journey saved to the Trips tab from the Live Trip screen ("save this
-/// trip → re-open it from the list next time"). Captures just enough to
+/// A journey saved to the Favourites tab from the Live Trip screen ("save
+/// this trip → re-open it from the list next time"). Captures just enough to
 /// render a row and re-open the stop-by-stop schedule: the trip id + start
-/// date (fed to `Trafiklab.trip`), plus the line label, direction, and
-/// transport mode shown in the row. The delay isn't captured — it changes
-/// minute to minute, so the Live Trip screen re-derives it on load.
-/// Uniqueness by trip id + start date is enforced by ``TripFavoritesModel``
-/// (which looks saved trips up by id with a predicate rather than via `==`),
-/// mirroring ``Favorite``.
+/// date (fed to `Trafiklab.trip`), the line label, direction, and transport
+/// mode shown in the row, and the journey's end — the final stop's departure,
+/// taken from the schedule the screen already loaded, which classifies the
+/// trip as live until it passes (see ``isActive(now:)``). The delay isn't
+/// captured — it changes minute to minute, so the Live Trip screen
+/// re-derives it on load. Uniqueness by trip id + start date is enforced by
+/// ``TripFavoritesModel`` (which looks saved trips up by id with a predicate
+/// rather than via `==`), mirroring ``Favorite``.
 @Model
 final class TripFavorite: Identifiable {
     /// The trip id + start date ("{tripId}-{startDate}"), used to open the
@@ -38,6 +40,10 @@ final class TripFavorite: Identifiable {
     var direction: String
     /// The raw `transport_mode` (`BUS`/`METRO`/…), for the row's mode blip.
     var transportModeRaw: String?
+    /// The journey's end: the final stop's departure, captured from the
+    /// loaded schedule when the trip was saved. The favourite reads as live
+    /// until this passes, so no schedule refresh is needed to classify it.
+    var endDate: Date?
     /// When the trip was saved; the list is kept sorted newest-first.
     var savedAt: Date
 
@@ -47,6 +53,7 @@ final class TripFavorite: Identifiable {
         lineLabel: String,
         direction: String,
         transportMode: TransportMode?,
+        endDate: Date?,
         savedAt: Date = Date()
     ) {
         self.id = "\(tripId)-\(startDate)"
@@ -55,6 +62,7 @@ final class TripFavorite: Identifiable {
         self.lineLabel = lineLabel
         self.direction = direction
         self.transportModeRaw = transportMode?.rawMode
+        self.endDate = endDate
         self.savedAt = savedAt
     }
 }
@@ -86,5 +94,14 @@ extension TripFavorite {
     /// accessibility and mirrors the favourites row's "Lines …" subtitle.
     var lineSummary: String {
         "Line " + lineLabel
+    }
+
+    /// Whether the journey is still live at `now` — its saved end date hasn't
+    /// passed, so the trip belongs in the Favourites list's top section.
+    /// A trip saved without a known end date (starred before its schedule
+    /// finished loading) reads as live, so it is never cleaned on a guess.
+    func isActive(now: Date = Date()) -> Bool {
+        guard let endDate else { return true }
+        return now <= endDate
     }
 }

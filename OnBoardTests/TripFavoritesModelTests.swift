@@ -30,15 +30,15 @@ struct TripFavoritesModelTests {
     @Test func containsIsTrueAfterSave() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
         #expect(model.contains(Self.route()) == true)
     }
 
     @Test func containsIsFalseAfterRemove() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(), context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
         #expect(model.contains(Self.route()) == false)
     }
 
@@ -47,8 +47,8 @@ struct TripFavoritesModelTests {
         // can be saved at once; identity matches `RouteDetails.id`.
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), context: container.mainContext)
-        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-02"), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), endDate: Self.inAnHour, context: container.mainContext)
+        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-02"), endDate: Self.inAnHour, context: container.mainContext)
         #expect(model.contains(Self.route(tripId: "900001", startDate: "2099-01-01")))
         #expect(model.contains(Self.route(tripId: "900001", startDate: "2099-01-02")))
     }
@@ -59,7 +59,7 @@ struct TripFavoritesModelTests {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         // When
-        model.toggle(Self.route(), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
         // Then
         #expect(model.trips.map(\.snapshot) == [
             TripFavoriteSnapshot(
@@ -68,7 +68,8 @@ struct TripFavoritesModelTests {
                 startDate: "2099-01-01",
                 lineLabel: "3",
                 direction: "Karolinska sjukhuset",
-                transportModeRaw: "BUS"
+                transportModeRaw: "BUS",
+                endDate: Self.inAnHour
             )
         ])
         #expect(model.failure == nil)
@@ -77,13 +78,14 @@ struct TripFavoritesModelTests {
     @Test func toggleRemovesExistingTrip() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
         model.toggle(
             Self.route(tripId: "900002", lineLabel: "7", direction: "Ropsten"),
+            endDate: Self.inAnHour,
             context: container.mainContext
         )
         // When
-        model.toggle(Self.route(), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
         // Then
         #expect(model.trips.map(\.snapshot) == [
             TripFavoriteSnapshot(
@@ -92,7 +94,8 @@ struct TripFavoritesModelTests {
                 startDate: "2099-01-01",
                 lineLabel: "7",
                 direction: "Ropsten",
-                transportModeRaw: "BUS"
+                transportModeRaw: "BUS",
+                endDate: Self.inAnHour
             )
         ])
     }
@@ -100,9 +103,9 @@ struct TripFavoritesModelTests {
     @Test func toggleDoesNotDuplicateTrip() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(), context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext)
-        model.toggle(Self.route(lineLabel: "55"), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
+        model.toggle(Self.route(lineLabel: "55"), endDate: Self.inAnHour, context: container.mainContext)
         // Then: still one entry, id-keyed; toggle removed then re-added.
         #expect(model.trips.count == 1)
         #expect(model.trips.first?.id == "900001-2099-01-01")
@@ -111,10 +114,10 @@ struct TripFavoritesModelTests {
     @Test func toggleUpdatesFieldsWhenReAdding() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(), context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext) // remove
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext) // remove
         // When
-        model.toggle(Self.route(direction: "Ropsten"), context: container.mainContext)
+        model.toggle(Self.route(direction: "Ropsten"), endDate: Self.inAnHour, context: container.mainContext)
         // Then
         #expect(model.trips.first?.direction == "Ropsten")
     }
@@ -124,9 +127,9 @@ struct TripFavoritesModelTests {
         let model = TripFavoritesModel()
         // Insert the "older" trip first, then a moment later the newer one,
         // so the two savedAt timestamps differ.
-        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), endDate: Self.inAnHour, context: container.mainContext)
         try await Task.sleep(for: .milliseconds(10))
-        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), endDate: Self.inAnHour, context: container.mainContext)
         // Then: the list is kept newest-first, not in insertion order.
         #expect(model.trips.map(\.tripId) == ["900002", "900001"])
     }
@@ -136,7 +139,7 @@ struct TripFavoritesModelTests {
     @Test func removeIsNoOpForUnknownId() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
         // When
         model.remove("999-2099-01-01", context: container.mainContext)
         // Then
@@ -146,8 +149,8 @@ struct TripFavoritesModelTests {
     @Test func removeDeletesTrip() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), context: container.mainContext)
-        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), endDate: Self.inAnHour, context: container.mainContext)
+        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), endDate: Self.inAnHour, context: container.mainContext)
         // When
         model.remove("900001-2099-01-01", context: container.mainContext)
         // Then
@@ -168,19 +171,20 @@ struct TripFavoritesModelTests {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         // When
-        model.toggle(Self.route(), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
         try container.mainContext.save()
         // Then: a fresh model reading the same context sees the saved trip.
         let reader = TripFavoritesModel()
         reader.loadTripFavorites(context: container.mainContext)
         #expect(reader.trips.map(\.tripId) == ["900001"])
+        #expect(reader.trips.first?.endDate == Self.inAnHour)
     }
 
     @Test func removePersistsToStorage() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), context: container.mainContext)
-        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), endDate: Self.inAnHour, context: container.mainContext)
+        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), endDate: Self.inAnHour, context: container.mainContext)
         // When
         model.remove("900001-2099-01-01", context: container.mainContext)
         try container.mainContext.save()
@@ -195,112 +199,67 @@ struct TripFavoritesModelTests {
         // rather than crashing, and the trip is visible through the context.
         let container = try makeContainer()
         let model = TripFavoritesModel()
-        model.toggle(Self.route(), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.inAnHour, context: container.mainContext)
         try container.mainContext.save()
         let reader = TripFavoritesModel()
         reader.loadTripFavorites(context: container.mainContext)
         #expect(reader.trips.map(\.tripId) == ["900001"])
     }
 
-    // MARK: - Status refresh and stale-trip cleanup
+    // MARK: - Live/finished split
 
-    @Test func refreshStatusesClassifiesEachSavedTrip() async throws {
-        // Given: one finished, one running, and one not-yet-begun trip,
-        // served from fixtures with relative timestamps resolved around now.
-        let network = MockTrafiklabService(tripsByKey: [
-            "900001/2099-01-01": Self.finishedTripJSON,
-            "900002/2099-01-01": Self.runningTripJSON,
-            "900003/2099-01-01": Self.upcomingTripJSON
-        ])
+    @Test func activeTripsAreThoseWhoseEndHasNotPassed() async throws {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), context: container.mainContext)
-        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), context: container.mainContext)
-        model.toggle(Self.route(tripId: "900003", startDate: "2099-01-01"), context: container.mainContext)
-        // When
-        await model.refreshStatuses(network: network)
+        model.toggle(Self.route(tripId: "900001"), endDate: now.addingTimeInterval(30 * 60), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900002"), endDate: now.addingTimeInterval(-30 * 60), context: container.mainContext)
         // Then
-        #expect(model.statuses["900001-2099-01-01"] == .finished)
-        #expect(model.statuses["900002-2099-01-01"] == .active)
-        #expect(model.statuses["900003-2099-01-01"] == .upcoming)
-        #expect(model.activeTrips.map(\.tripId) == ["900002"])
-        #expect(model.inactiveTrips.map(\.tripId) == ["900003", "900001"])
+        #expect(model.activeTrips.map(\.tripId) == ["900001"])
+        #expect(model.inactiveTrips.map(\.tripId) == ["900002"])
         #expect(model.finishedCount == 1)
-        #expect(model.isRefreshing == false)
     }
 
-    @Test func refreshStatusesKeepsTripWithEmptyScheduleAsUpcoming() async throws {
-        // Given: a trip whose fixture serves an empty calls list — never
-        // read as finished, so it shows in the trailing section and is
-        // never cleaned.
-        let network = MockTrafiklabService(tripsByKey: [
-            "900001/2099-01-01": Self.emptyTripJSON
-        ])
+    @Test func tripsWithoutEndDateReadAsLive() async throws {
+        // A trip starred before its schedule loaded has no end date; it
+        // reads as live so it is never shunted or cleaned on a guess.
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext)
-        // When
-        await model.refreshStatuses(network: network)
+        model.toggle(Self.route(tripId: "900001"), endDate: nil, context: container.mainContext)
         // Then
-        #expect(model.statuses["900001-2099-01-01"] == .upcoming)
+        #expect(model.activeTrips.map(\.tripId) == ["900001"])
+        #expect(model.inactiveTrips == [])
         #expect(model.finishedCount == 0)
     }
 
-    @Test func refreshStatusesKeepsTripWhenScheduleFailsToLoad() async throws {
-        // Given: a network with no handlers, so the schedule request throws —
-        // the trip keeps no status and reads as upcoming, never finished.
-        let network = MockNetwork()
-        let container = try makeContainer()
-        let model = TripFavoritesModel()
-        model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext)
-        // When
-        await model.refreshStatuses(network: network)
-        // Then
-        #expect(model.statuses["900001-2099-01-01"] == nil)
-        #expect(model.finishedCount == 0)
-        #expect(model.inactiveTrips.map(\.tripId) == ["900001"])
+    @Test func finishedTripIsLiveAgainAtEarlierNow() {
+        // The split is derived from the end date and the clock, so a trip
+        // that has finished "now" was live a minute ago — the model holds
+        // no refresh state to go stale.
+        let trip = TripFavorite(
+            tripId: "900001",
+            startDate: "2099-01-01",
+            lineLabel: "3",
+            direction: "Karolinska sjukhuset",
+            transportMode: "BUS",
+            endDate: now
+        )
+        #expect(trip.isActive(now: now.addingTimeInterval(-60)) == true)
+        #expect(trip.isActive(now: now.addingTimeInterval(60)) == false)
     }
 
-    @Test func refreshStatusesClearsStatusesWhenNothingIsSaved() async throws {
-        let network = MockNetwork()
-        let container = try makeContainer()
-        let model = TripFavoritesModel()
-        model.loadTripFavorites(context: container.mainContext)
-        // When
-        await model.refreshStatuses(network: network)
-        // Then
-        #expect(model.statuses == [:])
-        #expect(model.isRefreshing == false)
-    }
-
-    @Test func refreshStatusesIsNoOpWhenStoreNotLoaded() async throws {
-        let network = MockNetwork()
-        let container = try makeContainer()
-        let model = TripFavoritesModel()
-        // `stored` is nil before loadTripFavorites; refresh must not crash.
-        await model.refreshStatuses(network: network)
-        #expect(model.trips == [])
-        #expect(model.statuses == [:])
-    }
+    // MARK: - Stale-trip cleanup
 
     @Test func cleanStaleTripsRemovesFinishedTripsOnly() async throws {
-        // Given: a finished and a running trip, both classified.
-        let network = MockTrafiklabService(tripsByKey: [
-            "900001/2099-01-01": Self.finishedTripJSON,
-            "900002/2099-01-01": Self.runningTripJSON
-        ])
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(tripId: "900001", startDate: "2099-01-01"), context: container.mainContext)
-        model.toggle(Self.route(tripId: "900002", startDate: "2099-01-01"), context: container.mainContext)
-        await model.refreshStatuses(network: network)
+        model.toggle(Self.route(tripId: "900001"), endDate: now.addingTimeInterval(-30 * 60), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900002"), endDate: now.addingTimeInterval(30 * 60), context: container.mainContext)
         // When
-        model.cleanStaleTrips(context: container.mainContext)
-        // Then: only the running trip remains.
+        model.cleanStaleTrips(context: container.mainContext, now: now)
+        // Then: only the running trip remains, and the removal persists.
         #expect(model.trips.map(\.tripId) == ["900002"])
         #expect(model.finishedCount == 0)
         try container.mainContext.save()
@@ -310,30 +269,12 @@ struct TripFavoritesModelTests {
     }
 
     @Test func cleanStaleTripsIsNoOpWhenNothingIsFinished() async throws {
-        // Nothing classified as finished — the button wouldn't even show.
-        let network = MockTrafiklabService(tripsByKey: [
-            "900001/2099-01-01": Self.runningTripJSON
-        ])
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext)
-        await model.refreshStatuses(network: network)
+        model.toggle(Self.route(), endDate: now.addingTimeInterval(30 * 60), context: container.mainContext)
         // When
-        model.cleanStaleTrips(context: container.mainContext)
-        // Then
-        #expect(model.trips.map(\.tripId) == ["900001"])
-    }
-
-    @Test func cleanStaleTripsIsNoOpWithoutStatuses() async throws {
-        // No refresh has run, so no trip is classified finished and the
-        // cleanup must not delete anything on a guess.
-        let container = try makeContainer()
-        let model = TripFavoritesModel()
-        model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(), context: container.mainContext)
-        // When
-        model.cleanStaleTrips(context: container.mainContext)
+        model.cleanStaleTrips(context: container.mainContext, now: now)
         // Then
         #expect(model.trips.map(\.tripId) == ["900001"])
     }
@@ -342,76 +283,8 @@ struct TripFavoritesModelTests {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         // `stored` is nil before loadTripFavorites; clean must not crash.
-        model.cleanStaleTrips(context: container.mainContext)
+        model.cleanStaleTrips(context: container.mainContext, now: now)
         #expect(model.trips == [])
-    }
-
-    // MARK: - Status classification
-
-    @Test func statusIsFinishedWhenFinalStopPassed() {
-        let now = Date()
-        let calls = [
-            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 30)),
-            RouteDetailsModelTests.call(stopId: "1", name: "Final", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 5))
-        ]
-        #expect(TripFavoritesModel.status(of: calls, now: now) == .finished)
-    }
-
-    @Test func statusIsUpcomingWhenTripHasNotStarted() {
-        let now = Date()
-        let calls = [
-            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.future(now, minutes: 10))
-        ]
-        #expect(TripFavoritesModel.status(of: calls, now: now) == .upcoming)
-    }
-
-    @Test func statusIsActiveWhileVehicleIsOnTheTrack() {
-        let now = Date()
-        // The vehicle is between stops, heading to the final one.
-        let calls = [
-            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 10)),
-            RouteDetailsModelTests.call(stopId: "1", name: "Final", scheduledDeparture: RouteDetailsModelTests.future(now, minutes: 6))
-        ]
-        #expect(TripFavoritesModel.status(of: calls, now: now) == .active)
-    }
-
-    @Test func statusIsUpcomingForEmptySchedule() {
-        let calls: [TripCall] = []
-        #expect(TripFavoritesModel.status(of: calls, now: Date()) == .upcoming)
-    }
-
-    // MARK: - isFinished
-
-    @Test func isFinishedTrueWhenFinalStopPassed() {
-        let now = Date()
-        let calls = [
-            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 30)),
-            RouteDetailsModelTests.call(stopId: "1", name: "Final", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 5))
-        ]
-        #expect(calls.isFinished(now: now))
-    }
-
-    @Test func isFinishedFalseWhenTripHasNotStarted() {
-        let now = Date()
-        let calls = [
-            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.future(now, minutes: 10))
-        ]
-        #expect(calls.isFinished(now: now) == false)
-    }
-
-    @Test func isFinishedFalseWhileVehicleIsOnTheTrack() {
-        let now = Date()
-        // The vehicle is between stops, heading to the final one.
-        let calls = [
-            RouteDetailsModelTests.call(stopId: "0", name: "First", scheduledDeparture: RouteDetailsModelTests.past(now, minutes: 10)),
-            RouteDetailsModelTests.call(stopId: "1", name: "Final", scheduledDeparture: RouteDetailsModelTests.future(now, minutes: 6))
-        ]
-        #expect(calls.isFinished(now: now) == false)
-    }
-
-    @Test func isFinishedFalseForEmptySchedule() {
-        let calls: [TripCall] = []
-        #expect(calls.isFinished() == false)
     }
 
     // MARK: - Presentation
@@ -422,7 +295,8 @@ struct TripFavoritesModelTests {
             startDate: "2099-01-01",
             lineLabel: "3",
             direction: "Karolinska sjukhuset",
-            transportMode: "BUS"
+            transportMode: "BUS",
+            endDate: now
         )
         let route = trip.routeDetails
         #expect(route.tripId == "900001")
@@ -439,7 +313,8 @@ struct TripFavoritesModelTests {
             startDate: "2099-01-01",
             lineLabel: "3",
             direction: "Karolinska sjukhuset",
-            transportMode: "BUS"
+            transportMode: "BUS",
+            endDate: now
         )
         #expect(trip.lineSummary == "Line 3")
     }
@@ -475,78 +350,15 @@ struct TripFavoritesModelTests {
         )
     }
 
-    /// A trip whose every stop is in the past: the vehicle has left the
-    /// final stop, so the cleanup removes it.
-    private static let finishedTripJSON = """
-    {
-        "timestamp": "2099-01-01T12:00:00",
-        "calls": [
-            {
-                "scheduledArrival": "now-30",
-                "scheduledDeparture": "now-30",
-                "stop": { "id": "1-0", "name": "Skanstull", "lat": 59.3114, "lon": 18.0745 }
-            },
-            {
-                "scheduledArrival": "now-5",
-                "scheduledDeparture": "now-5",
-                "stop": { "id": "1-1", "name": "Karolinska sjukhuset", "lat": 59.3372, "lon": 18.0281 }
-            }
-        ]
-    }
-    """
+    /// The instant the suite's end dates are anchored to. A real `now` (not
+    /// a fixed epoch), because the derived properties — `activeTrips`,
+    /// `inactiveTrips`, `finishedCount` — classify against the live clock;
+    /// the ±30-minute offsets used in tests dwarf any drift within a run.
+    private static let now = Date()
 
-    /// A trip mid-journey: the first stop is passed and the final stop is
-    /// still ahead, so the cleanup keeps it.
-    private static let runningTripJSON = """
-    {
-        "timestamp": "2099-01-01T12:00:00",
-        "calls": [
-            {
-                "scheduledArrival": "now-10",
-                "scheduledDeparture": "now-10",
-                "stop": { "id": "1-0", "name": "Skanstull", "lat": 59.3114, "lon": 18.0745 }
-            },
-            {
-                "scheduledArrival": "now+6",
-                "scheduledDeparture": "now+6",
-                "stop": { "id": "1-1", "name": "Slussen", "lat": 59.3199, "lon": 18.0717 }
-            },
-            {
-                "scheduledArrival": "now+30",
-                "scheduledDeparture": "now+30",
-                "stop": { "id": "1-2", "name": "Karolinska sjukhuset", "lat": 59.3372, "lon": 18.0281 }
-            }
-        ]
-    }
-    """
-
-    /// A trip whose schedule carries no calls: never read as finished, so
-    /// the cleanup keeps it.
-    private static let emptyTripJSON = """
-    {
-        "timestamp": "2099-01-01T12:00:00",
-        "calls": []
-    }
-    """
-
-    /// A trip that hasn't begun yet: the first call is still in the future.
-    private static let upcomingTripJSON = """
-    {
-        "timestamp": "2099-01-01T12:00:00",
-        "calls": [
-            {
-                "scheduledArrival": "now+10",
-                "scheduledDeparture": "now+10",
-                "stop": { "id": "3-0", "name": "Skanstull", "lat": 59.3114, "lon": 18.0745 }
-            },
-            {
-                "scheduledArrival": "now+40",
-                "scheduledDeparture": "now+40",
-                "stop": { "id": "3-1", "name": "Karolinska sjukhuset", "lat": 59.3372, "lon": 18.0281 }
-            }
-        ]
-    }
-    """
+    /// An end date still in the future at the live clock, so a saved trip
+    /// with it reads as live.
+    private static var inAnHour: Date { now.addingTimeInterval(60 * 60) }
 }
 
 // MARK: - Snapshots
@@ -562,7 +374,8 @@ private extension TripFavorite {
             startDate: startDate,
             lineLabel: lineLabel,
             direction: direction,
-            transportModeRaw: transportModeRaw
+            transportModeRaw: transportModeRaw,
+            endDate: endDate
         )
     }
 }
@@ -576,4 +389,5 @@ struct TripFavoriteSnapshot: Equatable {
     let lineLabel: String
     let direction: String
     let transportModeRaw: String?
+    let endDate: Date?
 }
