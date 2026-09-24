@@ -11,10 +11,10 @@ struct AboutView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("OnBoard")
+                    Text(.aboutAppName)
                         .font(.title2.weight(.bold))
                         .foregroundStyle(.ink)
-                    Text("Follow buses and other public transport in Sweden.")
+                    Text(.aboutTagline)
                         .font(.subheadline)
                         .foregroundStyle(.inkSoft)
                 }
@@ -22,13 +22,13 @@ struct AboutView: View {
                 .listRowBackground(Color.panel)
             }
 
-            Section("Created by") {
+            Section(.aboutCreatedBy) {
                 Link(destination: creatorURL) {
                     HStack(spacing: 12) {
                         Image(systemName: "person.crop.circle")
                             .font(.title3)
                             .foregroundStyle(.accent)
-                        Text("Olli Tapaninen")
+                        Text(.aboutCreatorName)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.ink)
                     }
@@ -36,22 +36,22 @@ struct AboutView: View {
                 .listRowBackground(Color.panel)
             }
 
-            Section("Data") {
-                Text("Departures, trips, and stop data is provided by Trafiklab, the open data platform for Swedish public transport, operated by Samtrafiken.")
+            Section(.aboutData) {
+                Text(.aboutDataMessage)
                     .font(.subheadline)
                     .foregroundStyle(.inkSoft)
                     .listRowBackground(Color.panel)
 
-                Link("Visit Trafiklab", destination: trafiklabURL)
+                Link(.aboutVisitTrafiklab, destination: trafiklabURL)
                     .foregroundStyle(.accent)
                     .listRowBackground(Color.panel)
 
-                Link("Visit Samtrafiken", destination: samtrafikenURL)
+                Link(.aboutVisitSamtrafiken, destination: samtrafikenURL)
                     .foregroundStyle(.accent)
                     .listRowBackground(Color.panel)
             }
 
-            Section("APIs used") {
+            Section(.aboutApisUsed) {
                 ForEach(Self.apiNames, id: \.self) { name in
                     Text(name)
                         .font(.subheadline)
@@ -63,7 +63,7 @@ struct AboutView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(Color.paper)
-        .navigationTitle("About")
+        .navigationTitle(.tabAbout)
     }
 
     private static let apiNames = [

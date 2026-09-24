@@ -24,8 +24,8 @@ struct LocationFailureView: View {
     var body: some View {
         MessageScreen(
             icon: "location.badge.exclamationmark",
-            title: "Couldn't find your location",
-            message: "Something went wrong while locating you. Try again, or search for a stop manually."
+            title: .locationFailureTitle,
+            message: .locationFailureMessage
         ) {
             if let failure {
                 Text(failure)
@@ -34,9 +34,9 @@ struct LocationFailureView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
             }
-            Button("Try Again", action: onRetry)
+            Button(.locationTryAgain, action: onRetry)
                 .buttonStyle(.primary)
-            Button("Search manually instead", action: onManualSearch)
+            Button(.locationSearchManually, action: onManualSearch)
                 .buttonStyle(.text)
         }
     }

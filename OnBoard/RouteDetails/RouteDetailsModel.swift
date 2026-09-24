@@ -28,8 +28,8 @@ struct RouteDetails: Identifiable, Hashable, Sendable {
     var id: String { "\(tripId)-\(startDate)" }
 
     /// The inline nav title: "Line 55 • Ropsten"
-    var lineTitle: String {
-        "Line \(lineLabel) • \(direction)"
+    var lineTitle: LocalizedStringResource {
+        .tripLineTitle(line: lineLabel, direction: direction)
     }
 }
 

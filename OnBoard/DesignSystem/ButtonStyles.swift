@@ -4,7 +4,7 @@ import SwiftUI
 /// `btn-primary`: white bold text on the accent colour, in a capsule with
 /// 28/11 pt padding. Pressing deepens the fill to ``Color/accentDeep``.
 ///
-/// Used as `Button("Open Settings", action: ...).buttonStyle(.primary)`.
+/// Used as `Button(.locationOpenSettings, action: ...).buttonStyle(.primary)`.
 struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
@@ -25,7 +25,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 /// `btn-text`: ink-soft semibold text with no background. Pressing dims the
 /// text. Always paired below a primary button.
 ///
-/// Used as `Button("Search manually instead", action: ...).buttonStyle(.text)`.
+/// Used as `Button(.locationSearchManually, action: ...).buttonStyle(.text)`.
 struct TextButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
@@ -51,9 +51,9 @@ extension ButtonStyle where Self == TextButtonStyle {
 
 #Preview("Buttons") {
     VStack(spacing: 24) {
-        Button("Open Settings") {}
+        Button(.locationOpenSettings) {}
             .buttonStyle(.primary)
-        Button("Search manually instead") {}
+        Button(.locationSearchManually) {}
             .buttonStyle(.text)
     }
     .padding(32)

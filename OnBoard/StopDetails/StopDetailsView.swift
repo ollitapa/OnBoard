@@ -35,18 +35,18 @@ struct StopDetailsView: View {
         Group {
             if let failure = model.failure {
                 UnavailableScreen(
-                    title: "Couldn't load departures",
+                    title: .stopBoardErrorTitle,
                     systemImage: "wifi.exclamationmark",
-                    message: failure
+                    message: Text(verbatim: failure)
                 )
             } else if model.departures.isEmpty {
                 if model.isLoading {
                     LoadingIndicator()
                 } else {
                     UnavailableScreen(
-                        title: "No departures",
+                        title: .stopBoardEmptyTitle,
                         systemImage: "tray",
-                        message: "There are no departures in the next hour."
+                        message: Text(.stopBoardEmptyMessage)
                     )
                 }
             } else {
@@ -125,7 +125,7 @@ private struct DepartureRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 if departure.canceled == true {
-                    StatusPill(label: "Cancelled", tone: .red)
+                    StatusPill(label: String(localized: .departureCancelled), tone: .red)
                 } else if let delay = departure.delayMinutes {
                     StatusPill(
                         label: delay.label,
@@ -150,7 +150,7 @@ private struct Countdown: View {
 
     var body: some View {
         if departure.canceled == true {
-            Text("Cancelled")
+            Text(.departureCancelled)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(.inkSoft)
                 .strikethrough()
@@ -173,7 +173,9 @@ private struct Countdown: View {
                 to: date
             ).minute
             if let minutes, minutes >= 0, minutes < 60 {
-                return minutes == 0 ? "Now" : "\(minutes) min"
+                return minutes == 0
+                    ? String(localized: .departureNow)
+                    : String(localized: .departureMinutes(minutes: minutes))
             }
             return date.formatted(date: .omitted, time: .shortened)
         }
@@ -268,7 +270,11 @@ private struct FavoriteToggle: View {
             Image(systemName: model.contains(stopId) ? "star.fill" : "star")
                 .font(.title3)
                 .foregroundStyle(model.contains(stopId) ? .star : .inkSoft)
-                .accessibilityLabel(model.contains(stopId) ? "Remove favourite" : "Add favourite")
+                .accessibilityLabel(
+                    model.contains(stopId)
+                        ? LocalizedStringResource.stopBoardRemoveFavorite
+                        : LocalizedStringResource.stopBoardAddFavorite
+                )
         }
     }
 }

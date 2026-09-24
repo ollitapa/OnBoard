@@ -21,7 +21,7 @@ struct MainView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Tab("Nearby", systemImage: "location.fill", value: .nearby) {
+            Tab(.tabNearby, systemImage: "location.fill", value: .nearby) {
                 NavigationStack {
                     NearbyView()
                 }
@@ -30,19 +30,19 @@ struct MainView: View {
                 })
             }
 
-            Tab("Favorites", systemImage: "star.fill", value: .favorites) {
+            Tab(.tabFavorites, systemImage: "star.fill", value: .favorites) {
                 NavigationStack {
                     FavoritesView()
                 }
             }
 
-            Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
+            Tab(.tabSearch, systemImage: "magnifyingglass", value: .search, role: .search) {
                 NavigationStack {
                     SearchView()
                 }
             }
 
-            Tab("About", systemImage: "info.circle", value: .about) {
+            Tab(.tabAbout, systemImage: "info.circle", value: .about) {
                 NavigationStack {
                     AboutView()
                 }

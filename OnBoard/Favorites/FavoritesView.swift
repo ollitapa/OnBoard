@@ -22,9 +22,9 @@ struct FavoritesView: View {
         Group {
             if let failure = model.failure ?? tripModel.failure {
                 UnavailableScreen(
-                    title: "Couldn't load favourites",
+                    title: .favoritesErrorTitle,
                     systemImage: "wifi.exclamationmark",
-                    message: failure
+                    message: Text(verbatim: failure)
                 )
             } else if model.isLoading {
                 LoadingIndicator()
@@ -35,7 +35,7 @@ struct FavoritesView: View {
             }
         }
         .background(Color.paper)
-        .navigationTitle("Favourites")
+        .navigationTitle(.favoritesTitle)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if tripModel.finishedCount > 0 {
@@ -68,7 +68,7 @@ private struct FavoritesList: View {
     var body: some View {
         List {
             if !tripModel.activeTrips.isEmpty {
-                Section("Live trips") {
+                Section(.favoritesLiveTrips) {
                     ForEach(tripModel.activeTrips) { trip in
                         NavigationLink(value: trip.routeDetails) {
                             TripFavoriteRow(trip: trip)
@@ -81,7 +81,7 @@ private struct FavoritesList: View {
                 }
             }
             if !model.favorites.isEmpty {
-                Section("Stops") {
+                Section(.favoritesStops) {
                     ForEach(model.favorites) { favorite in
                         NavigationLink(value: favorite) {
                             FavoriteRow(favorite: favorite)
@@ -97,7 +97,7 @@ private struct FavoritesList: View {
                 }
             }
             if !tripModel.inactiveTrips.isEmpty {
-                Section("Saved trips") {
+                Section(.favoritesSavedTrips) {
                     ForEach(tripModel.inactiveTrips) { trip in
                         NavigationLink(value: trip.routeDetails) {
                             TripFavoriteRow(trip: trip)
@@ -224,18 +224,18 @@ private struct CleanStaleTripsButton: View {
                 .font(.title3)
                 .foregroundStyle(.inkSoft)
         }
-        .accessibilityLabel("Clean finished trips")
+        .accessibilityLabel(.favoritesCleanFinished)
     }
 }
 
 /// The dashed empty hint shown when nothing is saved, matching the
-/// storyboard's `empty-hint`. English per the app's English-only chrome.
+/// storyboard's `empty-hint`.
 private struct FavoritesEmptyHint: View {
     var body: some View {
         UnavailableScreen(
-            title: "No favourites yet",
+            title: .favoritesEmptyTitle,
             systemImage: "star",
-            message: "Add stops by tapping the star on any stop page."
+            message: Text(.favoritesAddStopHint)
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

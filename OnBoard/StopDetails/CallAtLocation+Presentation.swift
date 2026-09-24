@@ -52,9 +52,9 @@ struct DelayTime: Hashable, Sendable {
 
     var label: String {
         if minutes >= 0 {
-            return "Delayed \(minutes) min"
+            return String(localized: .departureDelayed(minutes: minutes))
         } else {
-            return "Early \(-minutes) min"
+            return String(localized: .departureEarly(minutes: -minutes))
         }
     }
 

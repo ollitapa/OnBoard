@@ -77,10 +77,14 @@ extension Stop {
     var distanceLabel: String? {
         guard let distance else { return nil }
         if distance < 1000 {
-            return "\(distance) m"
+            return String(localized: .stopMeters(distance: distance))
         }
         let kilometers = Double(distance) / 1000
-        return kilometers.formatted(.number.precision(.fractionLength(0...1))) + " km"
+        return String(
+            localized: .stopKilometers(
+                kilometers: kilometers.formatted(.number.precision(.fractionLength(0...1)))
+            )
+        )
     }
 
     /// Computed minutes to walk (for the green time chip)

@@ -38,18 +38,18 @@ struct RouteDetailsView: View {
         Group {
             if let failure = model.failure {
                 UnavailableScreen(
-                    title: "Couldn't load the trip",
+                    title: .tripErrorTitle,
                     systemImage: "wifi.exclamationmark",
-                    message: failure
+                    message: Text(verbatim: failure)
                 )
             } else if model.calls.isEmpty {
                 if model.isLoading {
                     LoadingIndicator()
                 } else {
                     UnavailableScreen(
-                        title: "No stops",
+                        title: .tripEmptyTitle,
                         systemImage: "tray",
-                        message: "This trip has no scheduled stops."
+                        message: Text(.tripEmptyMessage)
                     )
                 }
             } else {
@@ -289,7 +289,7 @@ private struct TransportModeMarker: View {
                 }
             }
             .offset(x: trackCenterX - 14)
-            .accessibilityLabel("Vehicle is here")
+            .accessibilityLabel(.tripVehicleHere)
     }
 }
 
@@ -309,7 +309,7 @@ private struct DisconnectedBadge: View {
             )
             .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
             .offset(x: 5, y: -5)
-            .accessibilityLabel("Not realtime")
+            .accessibilityLabel(.tripNotRealtime)
     }
 }
 
@@ -386,7 +386,11 @@ private struct TripFavoriteToggle: View {
             Image(systemName: model.contains(route) ? "star.fill" : "star")
                 .font(.title3)
                 .foregroundStyle(model.contains(route) ? .star : .inkSoft)
-                .accessibilityLabel(model.contains(route) ? "Remove saved trip" : "Save trip")
+                .accessibilityLabel(
+                    model.contains(route)
+                        ? LocalizedStringResource.tripRemoveSaved
+                        : LocalizedStringResource.tripSave
+                )
         }
     }
 }
@@ -437,7 +441,7 @@ private struct OriginRing: View {
             )
             .frame(width: isCurrent ? 17 : 16, height: isCurrent ? 17 : 16)
             .offset(x: trackCenterX - (isCurrent ? 17.0 : 16.0) / 2)
-            .accessibilityLabel("First stop")
+            .accessibilityLabel(.tripFirstStop)
     }
 }
 
@@ -457,7 +461,7 @@ private struct TerminusDisc: View {
                     .padding(-5)
             )
             .offset(x: trackCenterX - 8)
-            .accessibilityLabel("Final stop")
+            .accessibilityLabel(.tripFinalStop)
     }
 }
 
