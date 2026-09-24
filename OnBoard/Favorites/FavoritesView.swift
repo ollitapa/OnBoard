@@ -14,25 +14,9 @@ import SwiftData
 /// all mutate the same state. Each trip section hides itself when empty —
 /// typically only the stop rows render.
 struct FavoritesView: View {
-    @Environment(FavoritesModel.self) private var favoritesModel
-    @Environment(TripFavoritesModel.self) private var tripFavoritesModel
-
-    var body: some View {
-        FavoritesContent(
-            model: favoritesModel,
-            tripModel: tripFavoritesModel
-        )
-        .navigationTitle("Favourites")
-    }
-}
-
-/// The combined list and its empty/error/loading states, extracted as a
-/// struct taking only the models it needs so SwiftUI can skip re-rendering
-/// it when unrelated parent state changes.
-private struct FavoritesContent: View {
-    @Environment(\.modelContext) var modelContext
-    let model: FavoritesModel
-    let tripModel: TripFavoritesModel
+    @Environment(\.modelContext) private var modelContext
+    @Environment(FavoritesModel.self) private var model
+    @Environment(TripFavoritesModel.self) private var tripModel
 
     var body: some View {
         Group {
@@ -51,6 +35,7 @@ private struct FavoritesContent: View {
             }
         }
         .background(Color.paper)
+        .navigationTitle("Favourites")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if tripModel.finishedCount > 0 {
