@@ -40,4 +40,27 @@ final class OnBoardUITests: XCTestCase {
         XCTAssertTrue(secondStop.exists,
                      "Expected the second mock stop to appear in the nearby list.")
     }
+
+    @MainActor
+    func testSavedTripAppearsInTripsTabFromMockStorage() throws {
+        // Launch with the mock network and storage: `mockModelContainer()`
+        // seeds one saved trip (Line 3 → Karolinska sjukhuset, served by the
+        // canned trips fixture as mid-journey), so the Trips tab renders the
+        // saved row instead of the empty hint.
+        let app = XCUIApplication()
+        app.launchArguments = ["--mock-network", "--skip-location-permission", "--mock-storage"]
+        app.launch()
+
+        // Open the Trips tab.
+        app.buttons["Trips"].tap()
+
+        // The saved trip renders the direction captured at save time, and
+        // the stale-trip cleanup keeps it — the canned schedule is still
+        // mid-journey, so the final stop hasn't passed.
+        let destination = app.staticTexts["Karolinska sjukhuset"]
+        XCTAssertTrue(destination.waitForExistence(timeout: 10),
+                     "Expected the saved trip's destination to appear in the Trips list.")
+        XCTAssertTrue(app.staticTexts["Line 3"].exists,
+                     "Expected the saved trip's line summary to appear in the Trips list.")
+    }
 }

@@ -121,21 +121,25 @@ private struct FavoritesEmptyHint: View {
 
 #Preview("Favourites") {
     @Previewable @State var model = FavoritesModel()
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
 
     NavigationStack {
         FavoritesView()
     }
     .environment(model)
+    .environment(tripFavoritesModel)
     .modelContainer(mockModelContainer())
     .environment(\.network, mockNetwork())
 }
 
 #Preview("Empty") {
     @Previewable @State var model = FavoritesModel()
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
 
     NavigationStack {
         FavoritesView()
     }
     .environment(model)
+    .environment(tripFavoritesModel)
     .modelContainer(emptyModelContainer())
 }

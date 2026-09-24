@@ -207,22 +207,26 @@ private struct RecentRow: View {
 
 #Preview("Results") {
     @Previewable @State var favoritesModel = FavoritesModel()
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
 
     NavigationStack {
         SearchView()
     }
     .environment(\.network, mockNetwork())
     .environment(favoritesModel)
+    .environment(tripFavoritesModel)
     .modelContainer(mockModelContainer())
 }
 
 #Preview("Empty") {
     @Previewable @State var favoritesModel = FavoritesModel()
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
 
     NavigationStack {
         SearchView()
     }
     .environment(\.network, mockNetwork())
     .environment(favoritesModel)
+    .environment(tripFavoritesModel)
     .modelContainer(emptyModelContainer())
 }

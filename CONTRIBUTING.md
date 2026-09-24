@@ -170,6 +170,11 @@ The shared UI components live in `OnBoard/DesignSystem/` — one component per f
   ```
 
 - **`LoadingIndicator` (LoadingIndicator.swift)** — the accent-tinted spinner shown while a screen's first load is in flight. Use it instead of a bare `ProgressView().tint(.accent)`.
+- **`ModeBlip` (ModeBlip.swift)** — the small transport-mode icon overlapping a line badge's corner, matching the storyboard's `mode-blip`. The Stop board's and the Trips tab's badges both take a `TransportMode?`, so the blip lives here rather than being re-styled per screen:
+
+  ```swift
+  ModeBlip(mode: route.transport_mode)
+  ```
 
 Each component carries a `#Preview`, so the whole set is browsable in Xcode's canvas. When a new pattern shows up on two or more screens, extract it into this folder as its own file (view structs stay feature-local until that point, per the feature-folder rule) and document it here.
 

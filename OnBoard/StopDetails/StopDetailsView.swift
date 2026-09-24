@@ -219,30 +219,6 @@ private struct LineBadge: View {
     }
 }
 
-// MARK: - Mode blip
-
-/// The small transport-mode icon overlapping a `LineBadge`'s corner,
-/// matching the storyboard's `mode-blip`.
-private struct ModeBlip: View {
-
-    let mode: TransportMode?
-
-    var body: some View {
-        if let mode {
-            Image(systemName: mode.icon)
-                .resizable()
-                .font(.title.weight(.heavy))
-                .aspectRatio(contentMode: .fit)
-                .padding(5)
-                .frame(width: 30, height: 30)
-                .foregroundStyle(.accentDeep)
-                .background(Color.panel, in: Circle())
-                .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
-                .offset(x: 10, y: 15)
-        }
-    }
-}
-
 extension TransportMode {
     /// Maps a Trafiklab `transport_mode` to a SF Symbol, matching the icons in
     /// the storyboard (`BUS`/`TRAM`/`METRO`/`TRAIN`/`BOAT`/`TAXI`).
@@ -299,6 +275,7 @@ private struct FavoriteToggle: View {
 
 #Preview("Departures") {
     @Previewable @State var model = FavoritesModel()
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
     NavigationStack {
         StopDetailsView(
             stopId: "740000001",
@@ -307,6 +284,7 @@ private struct FavoriteToggle: View {
     }
     .environment(\.network, MockTrafiklabService())
     .environment(model)
+    .environment(tripFavoritesModel)
     .environment(previewLineColours())
     .modelContainer(mockModelContainer())
 }

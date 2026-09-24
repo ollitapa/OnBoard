@@ -4,6 +4,7 @@ import SwiftData
 enum Tabs: String, Hashable {
     case nearby
     case favorites
+    case trips
     case search
     case about
 }
@@ -16,6 +17,7 @@ struct MainView: View {
     @Environment(\.network) private var network
 
     @State var favoritesModel: FavoritesModel = FavoritesModel()
+    @State var tripFavoritesModel: TripFavoritesModel = TripFavoritesModel()
     @State var lineColoursModel: LineColoursModel = LineColoursModel()
 
     var body: some View {
@@ -34,6 +36,11 @@ struct MainView: View {
                     FavoritesView()
                 }
             }
+            Tab("Trips", systemImage: "bus.fill", value: .trips) {
+                NavigationStack {
+                    TripFavoritesView()
+                }
+            }
 
             Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
                 NavigationStack {
@@ -49,12 +56,14 @@ struct MainView: View {
         }
         .onAppear {
             favoritesModel.loadFavorites(context: modelContext)
+            tripFavoritesModel.loadTripFavorites(context: modelContext)
         }
         .task {
             await lineColoursModel.loadLines(network: network)
         }
         .tabViewSearchActivation(.searchTabSelection)
         .environment(favoritesModel)
+        .environment(tripFavoritesModel)
         .environment(lineColoursModel)
         .tint(.accent)
         .accentColor(.accent)

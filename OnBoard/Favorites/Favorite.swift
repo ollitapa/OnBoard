@@ -53,7 +53,10 @@ extension Favorite {
 @MainActor
 func mockModelContainer() -> ModelContainer {
     let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: StoredFavorites.self, configurations: configuration)
+    let container = try! ModelContainer(
+        for: StoredFavorites.self, StoredTripFavorites.self,
+        configurations: configuration
+    )
 
     let stored = StoredFavorites(favorites: [])
     container.mainContext.insert(stored)
@@ -64,6 +67,20 @@ func mockModelContainer() -> ModelContainer {
     stored.favorites.append(
         Favorite(id: "740000004", name: "Odenplan", lines: ["4", "42", "72"])
     )
+
+    let storedTrips = StoredTripFavorites(trips: [])
+    container.mainContext.insert(storedTrips)
+
+    storedTrips.trips.append(
+        TripFavorite(
+            tripId: "900001",
+            startDate: "2099-01-01",
+            lineLabel: "3",
+            direction: "Karolinska sjukhuset",
+            transportMode: "BUS"
+        )
+    )
+
     try! container.mainContext.save()
 
     return container
@@ -72,5 +89,8 @@ func mockModelContainer() -> ModelContainer {
 @MainActor
 func emptyModelContainer() -> ModelContainer {
     let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-    return try! ModelContainer(for: StoredFavorites.self, configurations: configuration)
+    return try! ModelContainer(
+        for: StoredFavorites.self, StoredTripFavorites.self,
+        configurations: configuration
+    )
 }
