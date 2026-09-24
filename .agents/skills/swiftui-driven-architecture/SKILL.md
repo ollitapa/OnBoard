@@ -1,16 +1,12 @@
 ---
 name: swiftui-driven-architecture
 description: >-
-  Build and refactor SwiftUI apps with an Apple-frameworks-only, environment-injected
-  architecture: @Observable screen models whose dependencies arrive on load methods (not
-  init), protocol seams published with @Entry defaulting to live implementations, shared
-  @Observable models read via @Environment(Model.self), SwiftData aggregate roots,
-  .task-driven async lifecycles, and wire-shape JSON mock services. USE FOR: adding a
-  SwiftUI screen, state management, dependency injection, previews, Swift Testing model
-  tests, mock/fixture services, or migrating an app off singletons, ObservableObject and
-  Combine MVVM, or a third-party state container such as TCA. DO NOT USE FOR: UIKit or
-  AppKit apps, code that must keep Combine publishers, non-Apple platforms, or general
-  Swift language questions.
+  Build and refactor SwiftUI apps with an Apple-only, environment-injected architecture:
+  @Observable screen models, @Entry protocol seams, @Environment(Model.self) shared
+  models, SwiftData aggregate roots, and .task-driven async lifecycles. USE FOR: adding
+  a SwiftUI screen, state management, dependency injection, previews, Swift Testing
+  tests, mocks, or migrating off singletons, Combine MVVM, or TCA. DO NOT USE FOR:
+  UIKit/AppKit, code that must keep Combine publishers, or general Swift questions.
 argument-hint: 'Screen to add, or the dependency/seam to migrate'
 ---
 
