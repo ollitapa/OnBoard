@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The Live Trip screen ("Step 3 • Tap a departure → track the bus stop by
 /// stop" in `Designs/storyboard.html`).
