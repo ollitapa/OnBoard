@@ -56,6 +56,9 @@ struct MockNearbyServer: NetworkProtocol {
 /// `departures/{areaId}`) are served canned data instead of making real
 /// network requests. `MockTrafiklabService()` already defaults to the shared
 /// canned nearby stops and per-stop departures, so this needs no setup.
+/// The fallback is `DisconnectedNetwork`, never `LiveNetwork`, so a request
+/// no mock serves fails loudly offline instead of reaching the real API —
+/// the harness must keep previews, unit tests, and UI tests off the network.
 func mockNetwork() -> some NetworkProtocol {
     let server = MockTrafiklabService()
     let slLines = MockSLTransportService()
@@ -66,7 +69,7 @@ func mockNetwork() -> some NetworkProtocol {
             network: server
         ),
         .init(baseURL: slLines.baseURL, network: slLines)
-    ], fallback: LiveNetwork())
+    ], fallback: DisconnectedNetwork())
 }
 
 /// Builds a pre-authorized `LocationAuthorization` delivering a fixed
