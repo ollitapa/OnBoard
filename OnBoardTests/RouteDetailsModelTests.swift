@@ -239,6 +239,20 @@ struct RouteDetailsModelTests {
         #expect(rows.last?.subtitle == "Final stop")
     }
 
+    @Test func stopRowsCarryRealtimeFlagFromCalls() {
+        let now = Date()
+        // The schedule mixes realtime and non-realtime calls, so each row
+        // carries its own call's realtime flag for the marker's badge.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10), isRealtime: true),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.past(now, minutes: 2), isRealtime: false),
+            Self.call(stopId: "2", name: "Third", scheduledDeparture: Self.future(now, minutes: 6)),
+            Self.call(stopId: "3", name: "Final", scheduledDeparture: Self.future(now, minutes: 13), isRealtime: true)
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.map(\.isRealtime) == [true, false, false, true])
+    }
+
     @Test func stopRowsSubtitleCountsDownAtTargetStop() {
         let now = Date()
         // The vehicle is between stop 0 and stop 1, which it reaches in 5

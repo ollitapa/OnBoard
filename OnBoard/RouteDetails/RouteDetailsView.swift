@@ -188,7 +188,11 @@ private struct TripNodes: View {
                     }
                     .overlay(alignment: .leading) {
                         if row.isCarryingMarker {
-                            TransportModeMarker(mode: route.transportMode, colour: lineColour)
+                            TransportModeMarker(
+                                mode: route.transportMode,
+                                colour: lineColour,
+                                isRealtime: row.isRealtime
+                            )
                                 .matchedGeometryEffect(id: Self.markerID, in: markerSpace)
                                 .transition(.identity)
                                 .offset(y: markerOffset(for: row))
@@ -238,7 +242,9 @@ private struct TripNodes: View {
 /// to, matching the storyboard's `bus-marker` • a small square with the mode
 /// icon, sitting on the line over the node. It is part of the target row and
 /// matched by geometry across rows, so SwiftUI animates it sliding along the
-/// track as the journey progresses.
+/// track as the journey progresses. When the trip carries no realtime data a
+/// small crossed-out-wifi badge sits on the marker's top-right corner, so the
+/// rider can see the position is driven by the schedule alone.
 private struct TransportModeMarker: View {
 
     let mode: TransportMode?
@@ -246,6 +252,10 @@ private struct TransportModeMarker: View {
     /// The line's badge colour, so the vehicle marker wears the same colour
     /// as the line badge the rider tapped on the stop board.
     let colour: Color
+
+    /// Whether the trip carries realtime data; when false the marker wears
+    /// the disconnected badge.
+    let isRealtime: Bool
 
     var body: some View {
         RoundedRectangle(cornerRadius: 7)
@@ -261,8 +271,33 @@ private struct TransportModeMarker: View {
                 }
             )
             .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.panel, lineWidth: 3))
+            .overlay(alignment: .topTrailing) {
+                if !isRealtime {
+                    DisconnectedBadge()
+                }
+            }
             .offset(x: trackCenterX - 14)
             .accessibilityLabel("Vehicle is here")
+    }
+}
+
+/// The small badge on the bus marker's top-right corner when the trip has no
+/// realtime data: a paper disc with a crossed-out wifi glyph in the hairline
+/// grey, sized to read as an overlay without hiding the mode icon.
+private struct DisconnectedBadge: View {
+
+    var body: some View {
+        Circle()
+            .fill(Color.paper)
+            .frame(width: 14, height: 14)
+            .overlay(
+                Image(systemName: "wifi.slash")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.inkSoft)
+            )
+            .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
+            .offset(x: 5, y: -5)
+            .accessibilityLabel("Not realtime")
     }
 }
 
