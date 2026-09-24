@@ -25,6 +25,10 @@ jobs:
       - name: List available schemes
         run: xcodebuild -list -project OnBoard.xcodeproj
 
+      - name: Provide placeholder API keys
+        run: |
+          printf 'TRAFIKLAB_REALTIME_KEY=placeholder\nTRAFIKLAB_RESROBOT_KEY=placeholder\n' > OnBoard/Secrets.env
+
       - name: Build for testing
         run: |
           set -o pipefail && xcodebuild build-for-testing \
