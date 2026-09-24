@@ -212,8 +212,8 @@ struct TripFavoritesModelTests {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(tripId: "900001"), endDate: now.addingTimeInterval(30 * 60), context: container.mainContext)
-        model.toggle(Self.route(tripId: "900002"), endDate: now.addingTimeInterval(-30 * 60), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900001"), endDate: Self.now.addingTimeInterval(30 * 60), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900002"), endDate: Self.now.addingTimeInterval(-30 * 60), context: container.mainContext)
         // Then
         #expect(model.activeTrips.map(\.tripId) == ["900001"])
         #expect(model.inactiveTrips.map(\.tripId) == ["900002"])
@@ -243,10 +243,10 @@ struct TripFavoritesModelTests {
             lineLabel: "3",
             direction: "Karolinska sjukhuset",
             transportMode: "BUS",
-            endDate: now
+            endDate: Self.now
         )
-        #expect(trip.isActive(now: now.addingTimeInterval(-60)) == true)
-        #expect(trip.isActive(now: now.addingTimeInterval(60)) == false)
+        #expect(trip.isActive(now: Self.now.addingTimeInterval(-60)) == true)
+        #expect(trip.isActive(now: Self.now.addingTimeInterval(60)) == false)
     }
 
     // MARK: - Stale-trip cleanup
@@ -255,10 +255,10 @@ struct TripFavoritesModelTests {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(tripId: "900001"), endDate: now.addingTimeInterval(-30 * 60), context: container.mainContext)
-        model.toggle(Self.route(tripId: "900002"), endDate: now.addingTimeInterval(30 * 60), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900001"), endDate: Self.now.addingTimeInterval(-30 * 60), context: container.mainContext)
+        model.toggle(Self.route(tripId: "900002"), endDate: Self.now.addingTimeInterval(30 * 60), context: container.mainContext)
         // When
-        model.cleanStaleTrips(context: container.mainContext, now: now)
+        model.cleanStaleTrips(context: container.mainContext, now: Self.now)
         // Then: only the running trip remains, and the removal persists.
         #expect(model.trips.map(\.tripId) == ["900002"])
         #expect(model.finishedCount == 0)
@@ -272,9 +272,9 @@ struct TripFavoritesModelTests {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         model.loadTripFavorites(context: container.mainContext)
-        model.toggle(Self.route(), endDate: now.addingTimeInterval(30 * 60), context: container.mainContext)
+        model.toggle(Self.route(), endDate: Self.now.addingTimeInterval(30 * 60), context: container.mainContext)
         // When
-        model.cleanStaleTrips(context: container.mainContext, now: now)
+        model.cleanStaleTrips(context: container.mainContext, now: Self.now)
         // Then
         #expect(model.trips.map(\.tripId) == ["900001"])
     }
@@ -283,7 +283,7 @@ struct TripFavoritesModelTests {
         let container = try makeContainer()
         let model = TripFavoritesModel()
         // `stored` is nil before loadTripFavorites; clean must not crash.
-        model.cleanStaleTrips(context: container.mainContext, now: now)
+        model.cleanStaleTrips(context: container.mainContext, now: Self.now)
         #expect(model.trips == [])
     }
 
@@ -296,7 +296,7 @@ struct TripFavoritesModelTests {
             lineLabel: "3",
             direction: "Karolinska sjukhuset",
             transportMode: "BUS",
-            endDate: now
+            endDate: Self.now
         )
         let route = trip.routeDetails
         #expect(route.tripId == "900001")
@@ -314,7 +314,7 @@ struct TripFavoritesModelTests {
             lineLabel: "3",
             direction: "Karolinska sjukhuset",
             transportMode: "BUS",
-            endDate: now
+            endDate: Self.now
         )
         #expect(trip.lineSummary == "Line 3")
     }
