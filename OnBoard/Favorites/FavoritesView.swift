@@ -219,7 +219,7 @@ private struct CleanStaleTripsButton: View {
         Button {
             model.cleanStaleTrips(context: modelContext)
         } label: {
-            Text("Clean finished trips")
+            Text(.favoritesCleanFinished)
         }
         .buttonStyle(.text)
         .accessibilityLabel(.favoritesCleanFinished)
