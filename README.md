@@ -1,7 +1,10 @@
-# OnBoard
+# OnBoard - Kyytiin
 
 A SwiftUI app for following buses and other public transport in Sweden, built on
 Trafiklab's Realtime APIs and ResRobot.
+
+**Kyytiin** is the app's user-facing name; the repository and Xcode project keep
+the **OnBoard** name.
 
 OnBoard is also an **example of an iOS architecture driven by SwiftUI**: the app
 uses only Apple frameworks — SwiftUI, SwiftData, Observation, CoreLocation, and
