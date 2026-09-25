@@ -36,13 +36,6 @@ struct FavoritesView: View {
         }
         .background(Color.paper)
         .navigationTitle(.favoritesTitle)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if tripModel.finishedCount > 0 {
-                    CleanStaleTripsButton(model: tripModel)
-                }
-            }
-        }
         .onAppear {
             model.loadFavorites(context: modelContext)
             tripModel.loadTripFavorites(context: modelContext)
@@ -103,6 +96,12 @@ private struct FavoritesList: View {
                             TripFavoriteRow(trip: trip)
                         }
                         .listRowBackground(Color.panel)
+
+
+                        if tripModel.finishedCount > 0 {
+                            CleanStaleTripsButton(model: tripModel)
+                                .listRowBackground(Color.clear)
+                        }
                     }
                     .onDelete { indexSet in
                         remove(indexSet, from: tripModel.inactiveTrips)
@@ -220,10 +219,9 @@ private struct CleanStaleTripsButton: View {
         Button {
             model.cleanStaleTrips(context: modelContext)
         } label: {
-            Image(systemName: "sparkles")
-                .font(.title3)
-                .foregroundStyle(.inkSoft)
+            Text("Clean finished trips")
         }
+        .buttonStyle(.text)
         .accessibilityLabel(.favoritesCleanFinished)
     }
 }

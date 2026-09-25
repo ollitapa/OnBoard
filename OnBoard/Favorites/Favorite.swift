@@ -82,6 +82,17 @@ func mockModelContainer() -> ModelContainer {
         )
     )
 
+    storedTrips.trips.append(
+        TripFavorite(
+            tripId: "900002",
+            startDate: "2099-01-01",
+            lineLabel: "5",
+            direction: "Nowhere",
+            transportMode: "BUS",
+            endDate: Date().addingTimeInterval(-30 * 60)
+        )
+    )
+
     try! container.mainContext.save()
 
     return container
