@@ -1,4 +1,4 @@
-# Contributing to OnBoard
+# Contributing to OnBoard - Kyytiin
 
 ## Development Guidelines
 

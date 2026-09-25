@@ -33,19 +33,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "OnBoard"
+            "value": "Kyytiin"
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "OnBoard"
+            "value": "Kyytiin"
           }
         },
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "OnBoard"
+            "value": "Kyytiin"
           }
         }
       },
@@ -660,19 +660,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "OnBoard uses your location to show the nearest stops as soon as you open the app."
+            "value": "Kyytiin uses your location to show the nearest stops as soon as you open the app."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "OnBoard käyttää sijaintiasi näyttämään lähimmät pysäkit heti, kun avaat sovelluksen."
+            "value": "Kyytiin käyttää sijaintiasi näyttämään lähimmät pysäkit heti, kun avaat sovelluksen."
           }
         },
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "OnBoard använder din plats för att visa närmaste hållplatser så snart du öppnar appen."
+            "value": "Kyytiin använder din plats för att visa närmaste hållplatser så snart du öppnar appen."
           }
         }
       },
