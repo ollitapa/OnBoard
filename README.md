@@ -56,7 +56,8 @@ a color means adding a `.colorset` in the catalog and using the generated
 symbol, nothing else.
 
 On top of the tokens, `OnBoard/DesignSystem/` holds the shared UI
-components — `StatusPill`, the `.primary`/`.text` button styles,
+components — `StatusPill`, the `.primary`/`.text` button styles (the primary
+button renders as an accent-tinted Liquid Glass capsule on iOS 26),
 `MessageScreen`, `UnavailableScreen`, and `LoadingIndicator` — extracted
 from the storyboard's repeated patterns so screens don't re-style them by
 hand. See CONTRIBUTING.md's "Design System" section for usage.
