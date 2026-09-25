@@ -1,0 +1,54 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "OnBoard"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kyytiin"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kyytiin"
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "The system location permission prompt's usage description; shown by iOS below the Allow/Don't Allow buttons.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OnBoard uses your location to show the nearest stops as soon as you open the app."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OnBoard käyttää sijaintiasi näyttämään lähimmät pysäkit heti, kun avaat sovelluksen."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OnBoard använder din plats för att visa närmaste hållplatser så snart du öppnar appen."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.1"
+}

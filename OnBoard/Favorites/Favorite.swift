@@ -41,11 +41,11 @@ final class Favorite: Identifiable {
 }
 
 extension Favorite {
-    /// The lines subtitle for a favourites row: "Lines 2, 3, 55" (English, per
-    /// the app's English-only chrome), or empty when no lines were captured.
+    /// The lines subtitle for a favourites row: "Lines 2, 3, 55", or empty
+    /// when no lines were captured.
     var lineSummary: String {
         guard !lines.isEmpty else { return "" }
-        return "Lines " + lines.joined(separator: ", ")
+        return String(localized: .favoriteLinesSummary(lines: lines.joined(separator: ", ")))
     }
 }
 

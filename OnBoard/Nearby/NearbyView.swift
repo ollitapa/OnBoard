@@ -14,31 +14,31 @@ struct NearbyView: View {
         Group {
             if let failure = model.failure {
                 UnavailableScreen(
-                    title: "Error loading stops",
+                    title: .nearbyErrorTitle,
                     systemImage: "wifi.exclamationmark",
-                    message: failure
+                    message: Text(verbatim: failure)
                 )
             } else if model.stops.isEmpty {
                 if location.coordinate == nil {
                     UnavailableScreen(
-                        title: "Waiting for your location",
+                        title: .nearbyWaitingTitle,
                         systemImage: "location",
-                        message: "Stops appear here as soon as a location is available."
+                        message: Text(.nearbyWaitingMessage)
                     )
                 } else if model.isLoading {
                     LoadingIndicator()
                 } else {
                     UnavailableScreen(
-                        title: "No stops nearby",
+                        title: .nearbyEmptyTitle,
                         systemImage: "mappin.and.ellipse",
-                        message: "There are no stops within 1 km of you."
+                        message: Text(.nearbyEmptyMessage)
                     )
                 }
             } else {
                 NearbyStopsList(stops: model.stops, failure: model.failure)
             }
         }
-        .navigationTitle("Nearby Stops")
+        .navigationTitle(.nearbyTitle)
         .navigationDestination(for: Stop.self) { stop in
             StopDetailsView(stopId: stop.id, stopName: stop.name)
         }
@@ -74,7 +74,7 @@ private struct NearbyStopsList: View {
         .listStyle(.insetGrouped)
         .overlay(alignment: .bottom) {
             if failure != nil {
-                Text("Couldn't refresh — showing stops from the last update")
+                Text(.nearbyRefreshFailed)
                     .font(.caption)
                     .foregroundStyle(.inkSoft)
                     .padding(8)

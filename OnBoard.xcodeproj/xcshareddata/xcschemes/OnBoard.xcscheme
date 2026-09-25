@@ -52,6 +52,14 @@
       </Testables>
       <CommandLineArguments>
          <CommandLineArgument
+            argument = "-AppleLanguages"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "(en)"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--mock-network"
             isEnabled = "YES">
          </CommandLineArgument>

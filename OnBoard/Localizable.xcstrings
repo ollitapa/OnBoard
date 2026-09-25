@@ -1,0 +1,1858 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "About.ApisUsed": {
+      "comment": "Section header above the list of APIs the app is built on.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "APIs used"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytetyt rajapinnat"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använda API:er"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "About.AppName": {
+      "comment": "The app's name; not translated.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OnBoard"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OnBoard"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OnBoard"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true,
+      "shouldTranslate": false
+    },
+    "About.CreatedBy": {
+      "comment": "Section header above the app creator's name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Created by"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kehittäjä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapad av"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "About.CreatorName": {
+      "comment": "The app creator's name; not translated.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olli Tapaninen"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olli Tapaninen"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olli Tapaninen"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true,
+      "shouldTranslate": false
+    },
+    "About.Data": {
+      "comment": "Section header above the data attribution.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiedot"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "About.DataMessage": {
+      "comment": "Attribution for the data sources the app is built on.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Departures, trips, and stop data is provided by Trafiklab, the open data platform for Swedish public transport, operated by Samtrafiken."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trafiklab, Samtrafikenin ylläpitämä Ruotsin joukkoliikenteen avoin data-alusta, tarjoaa lähtö-, matka- ja pysäkkitiedot."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avgångar, resor och hållplatsdata tillhandahålls av Trafiklab, den öppna dataplattformen för svensk kollektivtrafik, som drivs av Samtrafiken."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "About.Tagline": {
+      "comment": "One-line description of the app on the About tab.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow buses and other public transport in Sweden."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuraa busseja ja muuta joukkoliikennettä Ruotsissa."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Följ bussar och annan kollektivtrafik i Sverige."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "About.VisitSamtrafiken": {
+      "comment": "Link that opens the Samtrafiken website.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visit Samtrafiken"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siirry Samtrafikeniin"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Besök Samtrafiken"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "About.VisitTrafiklab": {
+      "comment": "Link that opens the Trafiklab website.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visit Trafiklab"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siirry Trafiklabiin"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Besök Trafiklab"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Departure.Cancelled": {
+      "comment": "Status pill and strikethrough time for a cancelled departure.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peruttu"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inställd"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Departure.Delayed": {
+      "comment": "Status pill for a delayed departure; the placeholder is minutes.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delayed %(minutes)lld min"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Myöhässä %(minutes)lld min"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad %(minutes)lld min"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Departure.Early": {
+      "comment": "Status pill for a departure running ahead of schedule; the placeholder is minutes.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Early %(minutes)lld min"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aikaisin %(minutes)lld min"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidig %(minutes)lld min"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Departure.Minutes": {
+      "comment": "Departure countdown; the placeholder is a number of whole minutes.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(minutes)lld min"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(minutes)lld min"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(minutes)lld min"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Departure.Now": {
+      "comment": "Departure countdown when the vehicle is due this minute.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nyt"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorite.LineSummary": {
+      "comment": "Subtitle of a saved trip row; the placeholder is the line label, e.g. '3'.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Line %(line)@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linja %(line)@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linje %(line)@"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorite.LinesSummary": {
+      "comment": "Subtitle of a saved stop row; the placeholder is a comma-separated list of line labels.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lines %(lines)@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linjat %(lines)@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linjer %(lines)@"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorites.AddStopHint": {
+      "comment": "Message under the no-favourites placeholder.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add stops by tapping the star on any stop page."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää pysäkkejä napauttamalla tähteä pysäkin sivulla."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till hållplatser genom att trycka på stjärnan på en hållplatssida."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorites.CleanFinished": {
+      "comment": "Accessibility label for the toolbar button that removes finished trips.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clean finished trips"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siivoa päättyneet matkat"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rensa avslutade resor"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorites.EmptyTitle": {
+      "comment": "Title of the placeholder shown when nothing is saved yet.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No favourites yet"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei vielä suosikkeja"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga favoriter ännu"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorites.ErrorTitle": {
+      "comment": "Title of the placeholder shown when saved stops or trips failed to load.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load favourites"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suosikkeja ei voitu ladata"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte läsa in favoriter"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorites.LiveTrips": {
+      "comment": "Section header for saved trips that are still running.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live trips"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meneillään olevat matkat"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pågående resor"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorites.SavedTrips": {
+      "comment": "Section header for saved trips that have finished.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved trips"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennetut matkat"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparade resor"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorites.Stops": {
+      "comment": "Section header for saved stops.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pysäkit"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hållplatser"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorites.Title": {
+      "comment": "Navigation title of the Favorites tab.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favourites"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suosikit"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favoriter"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.DeniedMessage": {
+      "comment": "Message under the location-access-off title.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We can't show stops near you. Search manually or turn on location access in Settings."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emme voi näyttää pysäkkejä lähelläsi. Hae manuaalisesti tai ota sijainti käyttöön asetuksista."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vi kan inte visa hållplatser nära dig. Sök manuellt eller slå på platsåtkomst i Inställningar."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.DeniedTitle": {
+      "comment": "Title of the screen shown when location access is turned off.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location access is off"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sijainnin käyttö on pois päältä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platsåtkomst är avstängd"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.ExplanationMessage": {
+      "comment": "Message under the explanation screen's title.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OnBoard uses your location to show the nearest stops as soon as you open the app."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OnBoard käyttää sijaintiasi näyttämään lähimmät pysäkit heti, kun avaat sovelluksen."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OnBoard använder din plats för att visa närmaste hållplatser så snart du öppnar appen."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.ExplanationTitle": {
+      "comment": "Title of the explanation screen shown before the system location prompt.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find stops near you"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löydä pysäkit läheltäsi"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hitta hållplatser nära dig"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.FailureMessage": {
+      "comment": "Message under the location failure title.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong while locating you. Try again, or search for a stop manually."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sijaintiasi etsittäessä tapahtui virhe. Yritä uudelleen tai hae pysäkkiä manuaalisesti."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Något gick fel när din plats skulle hittas. Försök igen eller sök efter en hållplats manuellt."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.FailureTitle": {
+      "comment": "Title of the screen shown when locating failed after permission was granted.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't find your location"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sijaintiasi ei löytynyt"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte hitta din plats"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.OpenSettings": {
+      "comment": "Primary button that opens the system Settings app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa asetukset"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna Inställningar"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.SearchManually": {
+      "comment": "Secondary button that switches to the Search tab instead of using location.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search manually instead"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hae manuaalisesti"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök manuellt i stället"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Location.TryAgain": {
+      "comment": "Primary button that restarts location updates.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try Again"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yritä uudelleen"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försök igen"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Nearby.EmptyMessage": {
+      "comment": "Message under the no-stops-nearby placeholder.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There are no stops within 1 km of you."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähelläsi ei ole pysäkkejä 1 km:n säteellä."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det finns inga hållplatser inom 1 km från dig."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Nearby.EmptyTitle": {
+      "comment": "Title of the placeholder shown when no stops are within range.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No stops nearby"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei pysäkkejä lähistöllä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga hållplatser nära dig"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Nearby.ErrorTitle": {
+      "comment": "Title of the placeholder shown when loading nearby stops failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Error loading stops"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pysäkkejä ei voitu ladata"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte läsa in hållplatser"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Nearby.RefreshFailed": {
+      "comment": "Banner shown over the stop list when a refresh fails and stale rows remain.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't refresh — showing stops from the last update"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitys epäonnistui — näytetään pysäkit edellisestä päivityksestä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte uppdatera — visar hållplatser från senaste uppdateringen"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Nearby.Title": {
+      "comment": "Navigation title of the Nearby tab's stop list.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nearby Stops"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähistön pysäkit"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Närliggande hållplatser"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Nearby.WaitingMessage": {
+      "comment": "Message under the waiting-for-location placeholder.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops appear here as soon as a location is available."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pysäkit näkyvät täällä, kun sijainti on saatavilla."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hållplatser visas här så snart din plats är tillgänglig."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Nearby.WaitingTitle": {
+      "comment": "Title of the placeholder shown while waiting for a location fix.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for your location"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odotetaan sijaintiasi"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Väntar på din plats"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Search.Clear": {
+      "comment": "Button that clears the recent searches list.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tyhjennä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rensa"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Search.EmptyMessage": {
+      "comment": "Message under the search-for-a-stop placeholder.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find stops and lines by name."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löydä pysäkit ja linjat nimen perusteella."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hitta hållplatser och linjer via namn."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Search.EmptyTitle": {
+      "comment": "Title of the placeholder shown when no search has been made yet.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search for a stop"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hae pysäkkiä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök efter en hållplats"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Search.ErrorTitle": {
+      "comment": "Title of the placeholder shown when the stop search failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load stops"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pysäkkejä ei voitu ladata"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte läsa in hållplatser"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Search.Prompt": {
+      "comment": "Placeholder text in the search field.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search stop or line"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hae pysäkkiä tai linjaa"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök hållplats eller linje"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Search.RecentTitle": {
+      "comment": "Section header above previous search terms.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent searches"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeisimmät haut"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste sökningar"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Search.Title": {
+      "comment": "Navigation title of the Search tab.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haku"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Stop.Kilometers": {
+      "comment": "Distance subtitle for a nearby stop; the placeholder is a pre-formatted kilometer value.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(kilometers)@ km"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(kilometers)@ km"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(kilometers)@ km"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Stop.Meters": {
+      "comment": "Distance subtitle for a nearby stop, in meters.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(distance)lld m"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(distance)lld m"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%(distance)lld m"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "StopBoard.AddFavorite": {
+      "comment": "Accessibility label for the star button that saves the stop.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add favourite"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää suosikkeihin"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till favorit"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "StopBoard.EmptyMessage": {
+      "comment": "Message under the no-departures placeholder.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There are no departures in the next hour."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähitunnilta ei ole lähtöjä."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det finns inga avgångar inom den närmaste timmen."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "StopBoard.EmptyTitle": {
+      "comment": "Title of the placeholder shown when a stop has no departures.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No departures"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei lähtöjä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga avgångar"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "StopBoard.ErrorTitle": {
+      "comment": "Title of the placeholder shown when a stop's departures failed to load.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load departures"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähtöjä ei voitu ladata"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte läsa in avgångar"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "StopBoard.RemoveFavorite": {
+      "comment": "Accessibility label for the star button when the stop is already saved.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove favourite"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista suosikeista"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort favorit"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "StopBoard.Updated": {
+      "comment": "Meta line under the stop board's title; the placeholder is a relative time such as 'just now'.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updated %(time)@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitetty %(time)@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppdaterad %(time)@"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "StopBoard.Updating": {
+      "comment": "Meta line shown while the stop board's first load is in flight.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updating…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitetään…"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppdaterar…"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Tab.About": {
+      "comment": "Tab bar label for the About tab.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tietoja"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Om appen"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Tab.Favorites": {
+      "comment": "Tab bar label for the Favorites tab, which lists saved stops and trips.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favorites"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suosikit"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favoriter"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Tab.Nearby": {
+      "comment": "Tab bar label for the Nearby tab, which lists stops around your location.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nearby"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähistöllä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nära dig"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Tab.Search": {
+      "comment": "Tab bar label for the Search tab.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haku"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.Arrived": {
+      "comment": "Subtitle on the stop the vehicle is standing at.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrived"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saapunut"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anländ"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.ArrivingIn": {
+      "comment": "Subtitle on the stop the vehicle is heading to; the placeholder is whole minutes.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arriving in %(minutes)lld min"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saapuu %(minutes)lld min päästä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anländer om %(minutes)lld min"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.ArrivingNow": {
+      "comment": "Subtitle on the stop the vehicle is about to arrive at.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arriving now"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saapuu nyt"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anländer nu"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.DepartingNow": {
+      "comment": "Subtitle on the stop the vehicle is standing at, during the last part of its dwell.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Departing now"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähtee nyt"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avgår nu"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.EmptyMessage": {
+      "comment": "Message under the no-stops placeholder.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This trip has no scheduled stops."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tällä matkalla ei ole aikataulun mukaisia pysäkkejä."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Den här resan har inga planerade hållplatser."
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.EmptyTitle": {
+      "comment": "Title of the placeholder shown when a trip has no stops.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No stops"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei pysäkkejä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga hållplatser"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.ErrorTitle": {
+      "comment": "Title of the placeholder shown when a trip failed to load.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load the trip"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matkaa ei voitu ladata"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte läsa in resan"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.FinalStop": {
+      "comment": "Accessibility label for the terminus disc on the trip track; also the final stop's row subtitle.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Final stop"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeinen pysäkki"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sista hållplatsen"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.FirstStop": {
+      "comment": "Accessibility label for the origin ring on the trip track.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First stop"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ensimmäinen pysäkki"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Första hållplatsen"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.LineTitle": {
+      "comment": "Inline navigation title of the Live Trip screen; the placeholders are the line label and the destination.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Line %1$(line)@ • %2$(direction)@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linja %1$(line)@ • %2$(direction)@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linje %1$(line)@ • %2$(direction)@"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.NotRealtime": {
+      "comment": "Accessibility label for the badge shown when a trip has no realtime data.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not realtime"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei reaaliaikainen"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte realtid"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.RemoveSaved": {
+      "comment": "Accessibility label for the star button when the trip is already saved.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove saved trip"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista tallennettu matka"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort sparad resa"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.Save": {
+      "comment": "Accessibility label for the star button that saves the trip.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save trip"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallenna matka"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spara resa"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Trip.VehicleHere": {
+      "comment": "Accessibility label for the vehicle marker on the trip track.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vehicle is here"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoneuvo on täällä"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fordonet är här"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    }
+  },
+  "version": "1.1"
+}

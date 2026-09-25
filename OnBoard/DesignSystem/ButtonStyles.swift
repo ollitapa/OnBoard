@@ -9,7 +9,7 @@ import SwiftUI
 /// (rebuilding `Glass` with a different tint per press state drops the
 /// system press interaction).
 ///
-/// Used as `Button("Open Settings", action: ...).buttonStyle(.primary)`.
+/// Used as `Button(.locationOpenSettings, action: ...).buttonStyle(.primary)`.
 struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
@@ -28,7 +28,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 /// Apple's Liquid Glass guidance reserves the material for navigation-layer
 /// and floating controls, not text links in content.
 ///
-/// Used as `Button("Search manually instead", action: ...).buttonStyle(.text)`.
+/// Used as `Button(.locationSearchManually, action: ...).buttonStyle(.text)`.
 struct TextButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
@@ -54,9 +54,9 @@ extension ButtonStyle where Self == TextButtonStyle {
 
 #Preview("Buttons") {
     VStack(spacing: 24) {
-        Button("Open Settings") {}
+        Button(.locationOpenSettings) {}
             .buttonStyle(.primary)
-        Button("Search manually instead") {}
+        Button(.locationSearchManually) {}
             .buttonStyle(.text)
     }
     .padding(32)

@@ -7,6 +7,7 @@ struct LoadingIndicator: View {
     var body: some View {
         ProgressView()
             .tint(.accent)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }
 

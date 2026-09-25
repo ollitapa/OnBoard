@@ -89,11 +89,11 @@ extension TripFavorite {
         )
     }
 
-    /// The row's subtitle: "Line 3" (English, per the app's English-only
-    /// chrome). The badge already shows the label; this reads it out for
-    /// accessibility and mirrors the favourites row's "Lines …" subtitle.
+    /// The row's subtitle: "Line 3". The badge already shows the label; this
+    /// reads it out for accessibility and mirrors the favourites row's
+    /// "Lines …" subtitle.
     var lineSummary: String {
-        "Line " + lineLabel
+        String(localized: .favoriteLineSummary(line: lineLabel))
     }
 
     /// Whether the journey is still live at `now` — its saved end date hasn't

@@ -59,16 +59,16 @@ struct StatusPill: View {
 }
 
 #Preview("Delayed") {
-    StatusPill(label: "Delayed 3 min", tone: .amber)
+    StatusPill(label: String(localized: .departureDelayed(minutes: 3)), tone: .amber)
         .padding()
 }
 
 #Preview("Early") {
-    StatusPill(label: "Early 2 min", tone: .green)
+    StatusPill(label: String(localized: .departureEarly(minutes: 2)), tone: .green)
         .padding()
 }
 
 #Preview("Cancelled") {
-    StatusPill(label: "Cancelled", tone: .red)
+    StatusPill(label: String(localized: .departureCancelled), tone: .red)
         .padding()
 }

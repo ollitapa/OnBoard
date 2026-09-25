@@ -10,17 +10,17 @@ struct MessageScreen<Content: View>: View {
     let icon: String
 
     /// The headline under the icon.
-    let title: String
+    let title: LocalizedStringResource
 
     /// The secondary body line under the headline.
-    let message: String
+    let message: LocalizedStringResource
 
     private let content: () -> Content
 
     init(
         icon: String,
-        title: String,
-        message: String,
+        title: LocalizedStringResource,
+        message: LocalizedStringResource,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.icon = icon
@@ -59,12 +59,12 @@ struct MessageScreen<Content: View>: View {
 #Preview("Message screen") {
     MessageScreen(
         icon: "location.slash",
-        title: "Location access is off",
-        message: "We can't show stops near you. Search manually or turn on location access in Settings."
+        title: .locationDeniedTitle,
+        message: .locationDeniedMessage
     ) {
-        Button("Open Settings") {}
+        Button(.locationOpenSettings) {}
             .buttonStyle(.primary)
-        Button("Search manually instead") {}
+        Button(.locationSearchManually) {}
             .buttonStyle(.text)
     }
 }

@@ -26,11 +26,13 @@ final class StopDetailsModel {
     private(set) var lastUpdated: Date?
 
     /// "Updated …" meta line.
-    var lastUpdatedText: String {
+    var lastUpdatedText: LocalizedStringResource {
         if let lastUpdated {
-            "Updated \(lastUpdated.formatted(.relative(presentation: .named)))"
+            .stopBoardUpdated(
+                time: lastUpdated.formatted(.relative(presentation: .named))
+            )
         } else {
-            "Updating…"
+            .stopBoardUpdating
         }
     }
 

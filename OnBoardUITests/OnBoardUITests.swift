@@ -25,7 +25,13 @@ final class OnBoardUITests: XCTestCase {
         // location permission gate doesn't cover the nearby tab in the simulator
         // (where real CoreLocation permission can't be granted).
         let app = XCUIApplication()
-        app.launchArguments = ["--mock-network", "--skip-location-permission", "--mock-storage"]
+        // `-AppleLanguages (en)` pins the app to English so the assertions on
+        // localized labels are locale-proof on any runner, mirroring the
+        // scheme's TestAction language pin.
+        app.launchArguments = [
+            "-AppleLanguages", "(en)",
+            "--mock-network", "--skip-location-permission", "--mock-storage"
+        ]
         app.launch()
         // Open home tab
         app/*@START_MENU_TOKEN@*/.images["location.fill"]/*[[".buttons[\"Nearby\"].images",".buttons",".images[\"location services\"]",".images[\"location.fill\"]"],[[[-1,3],[-1,2],[-1,1,1],[-1,0]],[[-1,3],[-1,2]]],[0]]@END_MENU_TOKEN@*/.firstMatch.tap()
@@ -48,7 +54,10 @@ final class OnBoardUITests: XCTestCase {
         // its end date 30 minutes out, so it reads as live), so the
         // Favourites tab shows the live trip above the stops.
         let app = XCUIApplication()
-        app.launchArguments = ["--mock-network", "--skip-location-permission", "--mock-storage"]
+        app.launchArguments = [
+            "-AppleLanguages", "(en)",
+            "--mock-network", "--skip-location-permission", "--mock-storage"
+        ]
         app.launch()
 
         // Open the Favourites tab.

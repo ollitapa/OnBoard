@@ -23,9 +23,9 @@ struct SearchView: View {
             onRecentTap: { handleRecent($0) },
             onClearRecents: { model.clearRecents() }
         )
-        .navigationTitle("Search")
+        .navigationTitle(.searchTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, prompt: "Search stop or line")
+        .searchable(text: $query, prompt: .searchPrompt)
         .onSubmit(of: .search) { handleSubmit() }
         .task(id: query) {
             await model.search(named: query, network: network)
@@ -62,9 +62,9 @@ private struct SearchContent: View {
         Group {
             if let failure = model.failure {
                 UnavailableScreen(
-                    title: "Couldn't load stops",
+                    title: .searchErrorTitle,
                     systemImage: "wifi.exclamationmark",
-                    message: failure
+                    message: Text(verbatim: failure)
                 )
             } else if query.trimmingCharacters(in: .whitespaces).isEmpty {
                 RecentsSection(
@@ -149,9 +149,9 @@ private struct RecentsSection: View {
     var body: some View {
         if recents.isEmpty {
             UnavailableScreen(
-                title: "Search for a stop",
+                title: .searchEmptyTitle,
                 systemImage: "magnifyingglass",
-                message: "Find stops and lines by name."
+                message: Text(.searchEmptyMessage)
             )
         } else {
             List {
@@ -166,11 +166,11 @@ private struct RecentsSection: View {
                     }
                 } header: {
                     HStack {
-                        Text("Recent searches")
+                        Text(.searchRecentTitle)
                             .foregroundStyle(.ink)
                             .font(.body.weight(.semibold))
                         Spacer()
-                        Button("Clear", action: onClear)
+                        Button(.searchClear, action: onClear)
                             .font(.subheadline)
                             .foregroundStyle(.inkSoft)
                     }
