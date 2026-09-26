@@ -25,6 +25,7 @@ final class SnapshotTests: XCTestCase {
     /// (`Tab.nearby`, `Tab.favorites`, `Tab.search`, `Tab.about`). Derived
     /// from `Snapshot.deviceLanguage`, which `setupSnapshot` reads from the
     /// language file fastlane writes for the current run.
+    @MainActor
     private var labels: (nearby: String, favorites: String, search: String, about: String) {
         switch Snapshot.deviceLanguage {
         case let lang where lang.hasPrefix("sv"):
