@@ -71,6 +71,14 @@ final class SnapshotTests: XCTestCase {
                       "Expected the search results to include Slussen.")
         snapshot("03_Search")
 
+        // Dismiss the keyboard before switching tabs: the tab bar minimizes
+        // while typing, so the tab buttons aren't hittable until the search
+        // field is closed. Opening the Slussen result navigates to its stop
+        // board and dismisses the keyboard.
+        app.staticTexts["Slussen"].tap()
+        XCTAssertTrue(app.staticTexts["Ropsten"].waitForExistence(timeout: 10),
+                      "Expected the mock departures to appear on the Slussen board.")
+
         // Favourites tab: `--mock-storage` seeds one live trip (Line 3 to
         // Karolinska sjukhuset) above the saved stops.
         app.buttons[labels.favorites].tap()
