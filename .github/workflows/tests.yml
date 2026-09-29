@@ -2,8 +2,20 @@ name: Tests
 
 on:
   pull_request:
+    paths:
+      - "OnBoard/**"
+      - "OnBoardTests/**"
+      - "OnBoardUITests/**"
+      - "OnBoard.xcodeproj/**"
+      - ".github/workflows/tests.yml"
   push:
     branches: [main]
+    paths:
+      - "OnBoard/**"
+      - "OnBoardTests/**"
+      - "OnBoardUITests/**"
+      - "OnBoard.xcodeproj/**"
+      - ".github/workflows/tests.yml"
 
 permissions:
   contents: read
