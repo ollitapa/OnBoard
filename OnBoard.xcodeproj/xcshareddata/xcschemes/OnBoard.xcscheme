@@ -28,28 +28,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9B0127223059458E00DE5115"
-               BuildableName = "OnBoardTests.xctest"
-               BlueprintName = "OnBoardTests"
-               ReferencedContainer = "container:OnBoard.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9B01272F305945D000DE5115"
-               BuildableName = "OnBoardUITests.xctest"
-               BlueprintName = "OnBoardUITests"
-               ReferencedContainer = "container:OnBoard.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
       <CommandLineArguments>
          <CommandLineArgument
             argument = "-AppleLanguages"
@@ -72,6 +50,28 @@
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
+      <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "9B0127223059458E00DE5115"
+               BuildableName = "OnBoardTests.xctest"
+               BlueprintName = "OnBoardTests"
+               ReferencedContainer = "container:OnBoard.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "9B01272F305945D000DE5115"
+               BuildableName = "OnBoardUITests.xctest"
+               BlueprintName = "OnBoardUITests"
+               ReferencedContainer = "container:OnBoard.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
