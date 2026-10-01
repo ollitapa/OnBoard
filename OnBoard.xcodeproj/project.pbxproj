@@ -29,9 +29,22 @@
 		9B012730305945D000DE5115 /* OnBoardUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OnBoardUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9B93486E306E644E00D0E122 /* Exceptions for "OnBoard" folder in "OnBoard" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 000000000000000100000000 /* OnBoard */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		000000000000000000000010 /* OnBoard */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9B93486E306E644E00D0E122 /* Exceptions for "OnBoard" folder in "OnBoard" target */,
+			);
 			path = OnBoard;
 			sourceTree = "<group>";
 		};
@@ -389,6 +402,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OnBoard/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Kyytiin;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Kyytiin uses your location to show the nearest stops as soon as you open the app.";
@@ -433,6 +447,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OnBoard/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Kyytiin;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Kyytiin uses your location to show the nearest stops as soon as you open the app.";
