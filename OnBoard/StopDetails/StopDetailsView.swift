@@ -39,7 +39,7 @@ struct StopDetailsView: View {
                     systemImage: "wifi.exclamationmark",
                     message: Text(verbatim: failure)
                 )
-            } else if model.departures.isEmpty {
+            } else if model.filteredDepartures.isEmpty {
                 if model.isLoading {
                     LoadingIndicator()
                 } else {
@@ -50,7 +50,7 @@ struct StopDetailsView: View {
                     )
                 }
             } else {
-                DeparturesList(departures: model.departures)
+                DeparturesList(departures: model.filteredDepartures)
             }
         }
         .background(Color.paper)
@@ -68,7 +68,19 @@ struct StopDetailsView: View {
                     model: favoritesModel
                 )
             }
+
+            // NEW: Bottom toolbar for platform selection
+            ToolbarItem(placement: .bottomBar) {
+                if model.platforms.count > 1 {
+                    PlatformSelectorToolbar(
+                        selectedPlatformId: $model.selectedPlatformId,
+                        platforms: model.platforms,
+                        onToggle: model.togglePlatform
+                    )
+                }
+            }
         }
+        .toolbarBackground(.hidden, for: .tabBar) // Hide the tab bar
         .task(id: refreshTrigger) {
             await model.loadDepartures(network: network, areaId: stopId)
             // Refresh every 60 seconds

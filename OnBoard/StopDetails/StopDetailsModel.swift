@@ -22,6 +22,26 @@ final class StopDetailsModel {
     /// The departures returned for the loaded stop, in API order (soonest first).
     var departures: [CallAtLocation] = []
 
+    /// All physical platforms at the current stop.
+    private(set) var platforms: [StopPlatform] = []
+
+    /// The currently selected platform ID (nil = show all platforms).
+    /// **Toggle behavior:** Setting to the same ID deselects it (sets to nil).
+    var selectedPlatformId: String? = nil {
+        didSet {
+            // Reset to nil if the selected platform no longer exists
+            if let id = selectedPlatformId, !platforms.contains(where: { $0.id == id }) {
+                selectedPlatformId = nil
+            }
+        }
+    }
+
+    /// Departures filtered by the selected platform (or all if nil).
+    var filteredDepartures: [CallAtLocation] {
+        guard let selectedPlatformId else { return departures }
+        return departures.filter { $0.stop?.id == selectedPlatformId }
+    }
+
     /// When the most recent successful load completed, for the header's
     private(set) var lastUpdated: Date?
 
@@ -37,6 +57,15 @@ final class StopDetailsModel {
     }
 
     init() {}
+
+    /// Toggles the selected platform. If the same platform is passed, deselects it.
+    func togglePlatform(_ platformId: String?) {
+        if selectedPlatformId == platformId {
+            selectedPlatformId = nil  // Deselect if tapping the same platform
+        } else {
+            selectedPlatformId = platformId
+        }
+    }
 
     /// Loads departures for the given stop group id via the Trafiklab Timetables API.
     /// - Parameters:
@@ -55,12 +84,19 @@ final class StopDetailsModel {
             try Task.checkCancellation()
 
             departures = response.departures
+            platforms = response.stops?.map(StopPlatform.init) ?? []
+            // Reset selection if platforms changed
+            if !platforms.contains(where: { $0.id == selectedPlatformId }) {
+                selectedPlatformId = nil
+            }
             lastUpdated = Date()
             failure = nil
         } catch is CancellationError {
             // Task was cancelled, ignore.
         } catch {
             departures = []
+            platforms = []
+            selectedPlatformId = nil
             failure = String(describing: error)
         }
     }
