@@ -6,6 +6,7 @@ struct NearbyView: View {
     // Dependencies
     @Environment(\.network) var network
     @Environment(LocationAuthorization.self) private var location
+    @Environment(FavoritesModel.self) private var favoritesModel
 
     // Model
     @State var model = NearbyModel()
@@ -35,7 +36,11 @@ struct NearbyView: View {
                     )
                 }
             } else {
-                NearbyStopsList(stops: model.stops, failure: model.failure)
+                NearbyStopsList(
+                    stops: model.stops,
+                    failure: model.failure,
+                    closestFavorite: closestFavorite
+                )
             }
         }
         .navigationTitle(.nearbyTitle)
@@ -53,6 +58,31 @@ struct NearbyView: View {
             )
         }
     }
+
+    /// The saved favourite nearest to the user, matching favourites against the
+    /// loaded nearby stops by stop-group id and picking the match with the
+    /// shortest reported distance. `nil` while no location is known, the nearby
+    /// stops have not loaded, or no favourite appears among them.
+    private var closestFavorite: ClosestFavorite? {
+        guard location.coordinate != nil else { return nil }
+        let stops = model.stops
+        guard !stops.isEmpty else { return nil }
+        let match = favoritesModel.favorites
+            .compactMap { favorite in
+                stops.first { $0.id == favorite.id }.map {
+                    ClosestFavorite(favorite: favorite, stop: $0)
+                }
+            }
+            .min { $0.stop.distance ?? .max < $1.stop.distance ?? .max }
+        return match
+    }
+}
+
+/// The pairing of a saved favourite with its nearby-stop hit that drives the
+/// Home Screen's first section.
+struct ClosestFavorite: Equatable {
+    let favorite: Favorite
+    let stop: Stop
 }
 
 /// The list of nearby stops with the storyboard's stop-row styling:
@@ -62,13 +92,29 @@ private struct NearbyStopsList: View {
     /// The most recent refresh failure, if any. While non-nil the rows shown
     /// are from the last successful load, surfaced as a banner.
     let failure: String?
+    /// The saved favourite nearest to the user, surfaced as the first
+    /// section. `nil` hides the section without leaving an empty gap.
+    let closestFavorite: ClosestFavorite?
 
     var body: some View {
-        List(stops) { stop in
-            NavigationLink(value: stop) {
-                NearbyStopRow(stop: stop)
+        List {
+            if let closestFavorite {
+                Section(.nearbyClosestFavorite) {
+                    NavigationLink(value: closestFavorite.stop) {
+                        ClosestFavoriteRow(closest: closestFavorite)
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                }
             }
-            .listRowBackground(Color.panel)
+            Section {
+                ForEach(stops) { stop in
+                    NavigationLink(value: stop) {
+                        NearbyStopRow(stop: stop)
+                    }
+                    .listRowBackground(Color.panel)
+                }
+            }
         }
         .scrollContentBackground(.hidden)
         .listStyle(.insetGrouped)
@@ -84,6 +130,42 @@ private struct NearbyStopsList: View {
             }
         }
         .animation(.default, value: failure)
+        .animation(.default, value: closestFavorite)
+    }
+}
+
+/// The Home Screen's first section: the saved favourite nearest to the user,
+/// rendered as a highlight card with a bright accent glow — a star, the stop
+/// name, and its distance from the user.
+private struct ClosestFavoriteRow: View {
+    let closest: ClosestFavorite
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "star.fill")
+                .foregroundStyle(Color.star)
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(closest.favorite.name)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.ink)
+                Text(closest.stop.distanceLabel ?? "")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.inkSoft)
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 13)
+        .padding(.horizontal, 13)
+        .background(Color.panel, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Color.accent, lineWidth: 1.5)
+        )
+        .shadow(color: .accent.opacity(0.55), radius: 14, y: 6)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
     }
 }
 
@@ -113,28 +195,38 @@ private struct NearbyStopRow: View {
 #Preview("Default") {
     @Previewable @State var network: NetworkProtocol = mockNetwork()
     @Previewable @State var locationModel: LocationAuthorization = previewLocationAuthorization()
+    @Previewable @State var favoritesModel = FavoritesModel()
 
     NavigationStack {
         NearbyView()
     }
     .environment(\.network, network)
     .environment(locationModel)
+    .environment(favoritesModel)
+    .modelContainer(mockModelContainer())
 }
 
 #Preview("Failure") {
     @Previewable @State var locationModel: LocationAuthorization = previewLocationAuthorization()
+    @Previewable @State var favoritesModel = FavoritesModel()
 
     NavigationStack {
         NearbyView()
     }
     .environment(\.network, DisconnectedNetwork())
     .environment(locationModel)
+    .environment(favoritesModel)
+    .modelContainer(mockModelContainer())
 }
 
 #Preview("Always loading location") {
+    @Previewable @State var favoritesModel = FavoritesModel()
+
     NavigationStack {
         NearbyView()
     }
     .environment(\.network, DisconnectedNetwork())
     .environment(LocationAuthorization(manager: AlwaysLoadingLocationManager()))
+    .environment(favoritesModel)
+    .modelContainer(mockModelContainer())
 }

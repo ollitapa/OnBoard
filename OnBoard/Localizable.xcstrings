@@ -853,6 +853,31 @@
       },
       "shouldGenerateSymbol": true
     },
+    "Nearby.ClosestFavorite": {
+      "comment": "Section header for the saved favourite nearest to the user, shown as the Home Screen's first section.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Closest favourite"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähin suosikki"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Närmaste favorit"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
     "Nearby.EmptyTitle": {
       "comment": "Title of the placeholder shown when no stops are within range.",
       "extractionState": "manual",
