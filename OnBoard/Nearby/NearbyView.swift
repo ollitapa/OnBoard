@@ -39,7 +39,10 @@ struct NearbyView: View {
                 NearbyStopsList(
                     stops: model.stops,
                     failure: model.failure,
-                    closestFavorite: closestFavorite
+                    closestFavorite: favoritesModel.closestFavourite(
+                        coordinate: location.coordinate,
+                        stops: model.stops
+                    )
                 )
             }
         }
@@ -58,31 +61,6 @@ struct NearbyView: View {
             )
         }
     }
-
-    /// The saved favourite nearest to the user, matching favourites against the
-    /// loaded nearby stops by stop-group id and picking the match with the
-    /// shortest reported distance. `nil` while no location is known, the nearby
-    /// stops have not loaded, or no favourite appears among them.
-    private var closestFavorite: ClosestFavorite? {
-        guard location.coordinate != nil else { return nil }
-        let stops = model.stops
-        guard !stops.isEmpty else { return nil }
-        let match = favoritesModel.favorites
-            .compactMap { favorite in
-                stops.first { $0.id == favorite.id }.map {
-                    ClosestFavorite(favorite: favorite, stop: $0)
-                }
-            }
-            .min { $0.stop.distance ?? .max < $1.stop.distance ?? .max }
-        return match
-    }
-}
-
-/// The pairing of a saved favourite with its nearby-stop hit that drives the
-/// Home Screen's first section.
-struct ClosestFavorite: Equatable {
-    let favorite: Favorite
-    let stop: Stop
 }
 
 /// The list of nearby stops with the storyboard's stop-row styling:

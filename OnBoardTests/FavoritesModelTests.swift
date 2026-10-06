@@ -153,6 +153,59 @@ struct FavoritesModelTests {
         #expect(model.favorites == [])
     }
 
+    // MARK: - closestFavourite
+    @Test func closestFavouriteIsNilWithoutCoordinate() async throws {
+        let container = try makeContainer()
+        let model = FavoritesModel()
+        model.toggle("1", name: "Medborgarplatsen", lines: ["3"], context: container.mainContext)
+        // When
+        let closest = model.closestFavourite(
+            coordinate: nil,
+            stops: [Stop(id: "1", name: "Medborgarplatsen", latitude: 59.31, longitude: 18.07, distance: 180)]
+        )
+        // Then
+        #expect(closest == nil)
+    }
+
+    @Test func closestFavouriteIsNilWithoutStops() async throws {
+        let container = try makeContainer()
+        let model = FavoritesModel()
+        model.toggle("1", name: "Medborgarplatsen", lines: ["3"], context: container.mainContext)
+        // When
+        let closest = model.closestFavourite(coordinate: Coordinate(latitude: 59.31, longitude: 18.07), stops: [])
+        // Then
+        #expect(closest == nil)
+    }
+
+    @Test func closestFavouritePicksNearestMatch() async throws {
+        let container = try makeContainer()
+        let model = FavoritesModel()
+        model.toggle("1", name: "Medborgarplatsen", lines: ["3"], context: container.mainContext)
+        model.toggle("2", name: "Slussen", lines: ["4"], context: container.mainContext)
+        let stops = [
+            Stop(id: "1", name: "Medborgarplatsen", latitude: 59.31, longitude: 18.07, distance: 180),
+            Stop(id: "2", name: "Slussen", latitude: 59.32, longitude: 18.07, distance: 90)
+        ]
+        // When
+        let closest = model.closestFavourite(coordinate: Coordinate(latitude: 59.31, longitude: 18.07), stops: stops)
+        // Then
+        #expect(closest?.favorite.id == "2")
+        #expect(closest?.stop.distance == 90)
+    }
+
+    @Test func closestFavouriteIsNilWhenNoFavouriteIsNearby() async throws {
+        let container = try makeContainer()
+        let model = FavoritesModel()
+        model.toggle("1", name: "Medborgarplatsen", lines: ["3"], context: container.mainContext)
+        let stops = [
+            Stop(id: "9", name: "Odenplan", latitude: 59.34, longitude: 18.05, distance: 2500)
+        ]
+        // When
+        let closest = model.closestFavourite(coordinate: Coordinate(latitude: 59.31, longitude: 18.07), stops: stops)
+        // Then
+        #expect(closest == nil)
+    }
+
     // MARK: - Persistence
 
     @Test func togglePersistsToStorage() async throws {
