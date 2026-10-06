@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import CoreLocation
 
 struct NearbyView: View {
