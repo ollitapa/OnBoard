@@ -8,62 +8,64 @@ struct AboutView: View {
     private let creatorURL = URL(string: "https://www.linkedin.com/in/olli-tapaninen")!
 
     var body: some View {
-        List {
-            Section {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(.aboutAppName)
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.ink)
-                    Text(.aboutTagline)
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(.aboutAppName)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(.ink)
+                        Text(.aboutTagline)
+                            .font(.subheadline)
+                            .foregroundStyle(.inkSoft)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .listRowBackground(Color.panel)
+                }
+
+                Section(.aboutCreatedBy) {
+                    Link(destination: creatorURL) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "person.crop.circle")
+                                .font(.title3)
+                                .foregroundStyle(.accent)
+                            Text(.aboutCreatorName)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.ink)
+                        }
+                    }
+                    .listRowBackground(Color.panel)
+                }
+
+                Section(.aboutData) {
+                    Text(.aboutDataMessage)
                         .font(.subheadline)
                         .foregroundStyle(.inkSoft)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .listRowBackground(Color.panel)
-            }
+                        .listRowBackground(Color.panel)
 
-            Section(.aboutCreatedBy) {
-                Link(destination: creatorURL) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.crop.circle")
-                            .font(.title3)
-                            .foregroundStyle(.accent)
-                        Text(.aboutCreatorName)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.ink)
-                    }
-                }
-                .listRowBackground(Color.panel)
-            }
+                    Link(.aboutVisitTrafiklab, destination: trafiklabURL)
+                        .foregroundStyle(.accent)
+                        .listRowBackground(Color.panel)
 
-            Section(.aboutData) {
-                Text(.aboutDataMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.inkSoft)
-                    .listRowBackground(Color.panel)
-
-                Link(.aboutVisitTrafiklab, destination: trafiklabURL)
-                    .foregroundStyle(.accent)
-                    .listRowBackground(Color.panel)
-
-                Link(.aboutVisitSamtrafiken, destination: samtrafikenURL)
-                    .foregroundStyle(.accent)
-                    .listRowBackground(Color.panel)
-            }
-
-            Section(.aboutApisUsed) {
-                ForEach(Self.apiNames, id: \.self) { name in
-                    Text(name)
-                        .font(.subheadline)
-                        .foregroundStyle(.ink)
+                    Link(.aboutVisitSamtrafiken, destination: samtrafikenURL)
+                        .foregroundStyle(.accent)
                         .listRowBackground(Color.panel)
                 }
+
+                Section(.aboutApisUsed) {
+                    ForEach(Self.apiNames, id: \.self) { name in
+                        Text(name)
+                            .font(.subheadline)
+                            .foregroundStyle(.ink)
+                            .listRowBackground(Color.panel)
+                    }
+                }
             }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.paper)
+            .navigationTitle(.tabAbout)
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(Color.paper)
-        .navigationTitle(.tabAbout)
     }
 
     private static let apiNames = [
@@ -75,7 +77,5 @@ struct AboutView: View {
 }
 
 #Preview {
-    NavigationStack {
-        AboutView()
-    }
+    AboutView()
 }

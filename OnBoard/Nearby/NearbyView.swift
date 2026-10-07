@@ -11,46 +11,48 @@ struct NearbyView: View {
     @State var model = NearbyModel()
 
     var body: some View {
-        Group {
-            if let failure = model.failure {
-                UnavailableScreen(
-                    title: .nearbyErrorTitle,
-                    systemImage: "wifi.exclamationmark",
-                    message: Text(verbatim: failure)
-                )
-            } else if model.stops.isEmpty {
-                if location.coordinate == nil {
+        NavigationStack {
+            Group {
+                if let failure = model.failure {
                     UnavailableScreen(
-                        title: .nearbyWaitingTitle,
-                        systemImage: "location",
-                        message: Text(.nearbyWaitingMessage)
+                        title: .nearbyErrorTitle,
+                        systemImage: "wifi.exclamationmark",
+                        message: Text(verbatim: failure)
                     )
-                } else if model.isLoading {
-                    LoadingIndicator()
+                } else if model.stops.isEmpty {
+                    if location.coordinate == nil {
+                        UnavailableScreen(
+                            title: .nearbyWaitingTitle,
+                            systemImage: "location",
+                            message: Text(.nearbyWaitingMessage)
+                        )
+                    } else if model.isLoading {
+                        LoadingIndicator()
+                    } else {
+                        UnavailableScreen(
+                            title: .nearbyEmptyTitle,
+                            systemImage: "mappin.and.ellipse",
+                            message: Text(.nearbyEmptyMessage)
+                        )
+                    }
                 } else {
-                    UnavailableScreen(
-                        title: .nearbyEmptyTitle,
-                        systemImage: "mappin.and.ellipse",
-                        message: Text(.nearbyEmptyMessage)
-                    )
+                    NearbyStopsList(stops: model.stops, failure: model.failure)
                 }
-            } else {
-                NearbyStopsList(stops: model.stops, failure: model.failure)
             }
-        }
-        .navigationTitle(.nearbyTitle)
-        .navigationDestination(for: Stop.self) { stop in
-            StopDetailsView(stopId: stop.id, stopName: stop.name)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.paper)
-        .task(id: location.coordinate) {
-            guard let coordinate = location.coordinate else { return }
-            await model.loadStops(
-                network: network,
-                latitude: coordinate.latitude,
-                longitude: coordinate.longitude
-            )
+            .navigationTitle(.nearbyTitle)
+            .navigationDestination(for: Stop.self) { stop in
+                StopDetailsView(stopId: stop.id, stopName: stop.name)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.paper)
+            .task(id: location.coordinate) {
+                guard let coordinate = location.coordinate else { return }
+                await model.loadStops(
+                    network: network,
+                    latitude: coordinate.latitude,
+                    longitude: coordinate.longitude
+                )
+            }
         }
     }
 }
@@ -114,9 +116,7 @@ private struct NearbyStopRow: View {
     @Previewable @State var network: NetworkProtocol = mockNetwork()
     @Previewable @State var locationModel: LocationAuthorization = previewLocationAuthorization()
 
-    NavigationStack {
-        NearbyView()
-    }
+    NearbyView()
     .environment(\.network, network)
     .environment(locationModel)
 }
@@ -124,17 +124,13 @@ private struct NearbyStopRow: View {
 #Preview("Failure") {
     @Previewable @State var locationModel: LocationAuthorization = previewLocationAuthorization()
 
-    NavigationStack {
-        NearbyView()
-    }
+    NearbyView()
     .environment(\.network, DisconnectedNetwork())
     .environment(locationModel)
 }
 
 #Preview("Always loading location") {
-    NavigationStack {
-        NearbyView()
-    }
+    NearbyView()
     .environment(\.network, DisconnectedNetwork())
     .environment(LocationAuthorization(manager: AlwaysLoadingLocationManager()))
 }
