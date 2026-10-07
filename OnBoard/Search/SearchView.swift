@@ -17,18 +17,23 @@ struct SearchView: View {
     @State private var query = ""
 
     var body: some View {
-        SearchContent(
-            model: model,
-            query: query,
-            onRecentTap: { handleRecent($0) },
-            onClearRecents: { model.clearRecents() }
-        )
-        .navigationTitle(.searchTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, prompt: .searchPrompt)
-        .onSubmit(of: .search) { handleSubmit() }
-        .task(id: query) {
-            await model.search(named: query, network: network)
+        NavigationStack {
+            SearchContent(
+                model: model,
+                query: query,
+                onRecentTap: { handleRecent($0) },
+                onClearRecents: { model.clearRecents() }
+            )
+            .navigationTitle(.searchTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: StopGroup.self) { group in
+                StopDetailsView(stopId: group.id, stopName: group.name)
+            }
+            .searchable(text: $query, prompt: .searchPrompt)
+            .onSubmit(of: .search) { handleSubmit() }
+            .task(id: query) {
+                await model.search(named: query, network: network)
+            }
         }
     }
 
@@ -101,9 +106,6 @@ private struct SearchResultsList: View {
         }
         .listStyle(.plain)
         .background(Color.paper)
-        .navigationDestination(for: StopGroup.self) { group in
-            StopDetailsView(stopId: group.id, stopName: group.name)
-        }
     }
 }
 
@@ -209,9 +211,7 @@ private struct RecentRow: View {
     @Previewable @State var favoritesModel = FavoritesModel()
     @Previewable @State var tripFavoritesModel = TripFavoritesModel()
 
-    NavigationStack {
-        SearchView()
-    }
+    SearchView()
     .environment(\.network, mockNetwork())
     .environment(favoritesModel)
     .environment(tripFavoritesModel)
@@ -222,9 +222,7 @@ private struct RecentRow: View {
     @Previewable @State var favoritesModel = FavoritesModel()
     @Previewable @State var tripFavoritesModel = TripFavoritesModel()
 
-    NavigationStack {
-        SearchView()
-    }
+    SearchView()
     .environment(\.network, mockNetwork())
     .environment(favoritesModel)
     .environment(tripFavoritesModel)
