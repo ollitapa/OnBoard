@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import CoreLocation
 
 struct NearbyView: View {
@@ -6,6 +7,7 @@ struct NearbyView: View {
     // Dependencies
     @Environment(\.network) var network
     @Environment(LocationAuthorization.self) private var location
+    @Environment(FavoritesModel.self) private var favoritesModel
 
     // Model
     @State var model = NearbyModel()
@@ -36,7 +38,14 @@ struct NearbyView: View {
                         )
                     }
                 } else {
-                    NearbyStopsList(stops: model.stops, failure: model.failure)
+                    NearbyStopsList(
+                        stops: model.stops,
+                        failure: model.failure,
+                        closestFavorite: favoritesModel.closestFavourite(
+                            coordinate: location.coordinate,
+                            stops: model.stops
+                        )
+                    )
                 }
             }
             .navigationTitle(.nearbyTitle)
@@ -64,13 +73,29 @@ private struct NearbyStopsList: View {
     /// The most recent refresh failure, if any. While non-nil the rows shown
     /// are from the last successful load, surfaced as a banner.
     let failure: String?
+    /// The saved favourite nearest to the user, surfaced as the first
+    /// section. `nil` hides the section without leaving an empty gap.
+    let closestFavorite: ClosestFavorite?
 
     var body: some View {
-        List(stops) { stop in
-            NavigationLink(value: stop) {
-                NearbyStopRow(stop: stop)
+        List {
+            if let closestFavorite {
+                Section(.nearbyClosestFavorite) {
+                    NavigationLink(value: closestFavorite.stop) {
+                        ClosestFavoriteRow(closest: closestFavorite)
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                }
             }
-            .listRowBackground(Color.panel)
+            Section {
+                ForEach(stops) { stop in
+                    NavigationLink(value: stop) {
+                        NearbyStopRow(stop: stop)
+                    }
+                    .listRowBackground(Color.panel)
+                }
+            }
         }
         .scrollContentBackground(.hidden)
         .listStyle(.insetGrouped)
@@ -86,6 +111,41 @@ private struct NearbyStopsList: View {
             }
         }
         .animation(.default, value: failure)
+        .animation(.default, value: closestFavorite)
+    }
+}
+
+/// The Home Screen's first section: the saved favourite nearest to the user,
+/// rendered as a highlight card with a bright accent glow — a star, the stop
+/// name, and its distance from the user.
+private struct ClosestFavoriteRow: View {
+    let closest: ClosestFavorite
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "star.fill")
+                .foregroundStyle(Color.star)
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(closest.favorite.name)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.ink)
+                Text(closest.stop.distanceLabel ?? "")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.inkSoft)
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 13)
+        .padding(.horizontal, 13)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .foregroundStyle(Color.panel)
+                .shadow(color: .accent.opacity(0.50), radius: 4, y: 1)
+        )
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
     }
 }
 
@@ -115,22 +175,41 @@ private struct NearbyStopRow: View {
 #Preview("Default") {
     @Previewable @State var network: NetworkProtocol = mockNetwork()
     @Previewable @State var locationModel: LocationAuthorization = previewLocationAuthorization()
+    @Previewable @State var favoritesModel = FavoritesModel()
 
     NearbyView()
     .environment(\.network, network)
     .environment(locationModel)
+    .environment(favoritesModel)
+    .modelContainer(mockModelContainer())
 }
 
 #Preview("Failure") {
     @Previewable @State var locationModel: LocationAuthorization = previewLocationAuthorization()
+    @Previewable @State var favoritesModel = FavoritesModel()
 
     NearbyView()
     .environment(\.network, DisconnectedNetwork())
     .environment(locationModel)
+    .environment(favoritesModel)
+    .modelContainer(mockModelContainer())
 }
 
 #Preview("Always loading location") {
+    @Previewable @State var favoritesModel = FavoritesModel()
+
     NearbyView()
     .environment(\.network, DisconnectedNetwork())
     .environment(LocationAuthorization(manager: AlwaysLoadingLocationManager()))
+    .environment(favoritesModel)
+    .modelContainer(mockModelContainer())
+}
+
+#Preview("ClosestFavoriteRow") {
+    ClosestFavoriteRow(
+        closest: ClosestFavorite(
+            favorite: Favorite(id: "1", name: "Slusseen", lines: []),
+            stop: Stop(id: "2", name: "Slussen", latitude: 1, longitude: 2, distance: 2)
+        )
+    )
 }
