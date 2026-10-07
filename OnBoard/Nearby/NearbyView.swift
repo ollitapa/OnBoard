@@ -139,12 +139,11 @@ private struct ClosestFavoriteRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 13)
         .padding(.horizontal, 13)
-        .background(Color.panel, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(
+        .background(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.accent, lineWidth: 1.5)
+                .foregroundStyle(Color.panel)
+                .shadow(color: .accent.opacity(0.50), radius: 4, y: 1)
         )
-        .shadow(color: .accent.opacity(0.55), radius: 14, y: 6)
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
     }
@@ -204,4 +203,13 @@ private struct NearbyStopRow: View {
     .environment(LocationAuthorization(manager: AlwaysLoadingLocationManager()))
     .environment(favoritesModel)
     .modelContainer(mockModelContainer())
+}
+
+#Preview("ClosestFavoriteRow") {
+    ClosestFavoriteRow(
+        closest: ClosestFavorite(
+            favorite: Favorite(id: "1", name: "Slusseen", lines: []),
+            stop: Stop(id: "2", name: "Slussen", latitude: 1, longitude: 2, distance: 2)
+        )
+    )
 }
