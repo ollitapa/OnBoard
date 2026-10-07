@@ -37,7 +37,6 @@ struct PlatformSelectorToolbar: View {
             }
         }
         .frame(height: 44) // Match tab bar height
-        .background(Color.panel.shadow(.drop(color: .black.opacity(0.1), radius: 2)))
     }
 }
 
