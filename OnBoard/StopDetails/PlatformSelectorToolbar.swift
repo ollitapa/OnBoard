@@ -25,7 +25,7 @@ struct PlatformSelectorToolbar: View {
                     }
                 }
                 .padding(.horizontal, 8)
-                .onChange(of: selectedPlatformId) { _ in
+                .onChange(of: selectedPlatformId, initial: true) { _, selectedPlatformId  in
                     // Scroll to the selected button (or first button if deselected)
                     withAnimation {
                         let targetId = selectedPlatformId ?? platforms.first?.id

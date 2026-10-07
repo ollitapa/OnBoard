@@ -59,6 +59,7 @@ struct StopDetailsView: View {
         .navigationDestination(for: RouteDetails.self) { route in
             RouteDetailsView(route: route)
         }
+        .toolbarVisibility(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 FavoriteToggle(

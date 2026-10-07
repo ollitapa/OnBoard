@@ -9,8 +9,8 @@ struct StopPlatform: Identifiable, Hashable, Equatable, Sendable {
     let lon: Double?
 
     init(from stop: TimetableStop) {
-        self.id = stop.id ?? UUID().uuidString
-        self.name = stop.name ?? "Unknown"
+        self.id = stop.id
+        self.name = stop.name
         self.lat = stop.lat
         self.lon = stop.lon
     }

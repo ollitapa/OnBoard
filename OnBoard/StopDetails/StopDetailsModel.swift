@@ -23,7 +23,14 @@ final class StopDetailsModel {
     var departures: [CallAtLocation] = []
 
     /// All physical platforms at the current stop.
-    private(set) var platforms: [StopPlatform] = []
+    private(set) var platforms: [StopPlatform] = [] {
+        didSet {
+            // Reset selection if platforms changed
+            if !platforms.contains(where: { $0.id == selectedPlatformId }) {
+                selectedPlatformId = nil
+            }
+        }
+    }
 
     /// The currently selected platform ID (nil = show all platforms).
     /// **Toggle behavior:** Setting to the same ID deselects it (sets to nil).
@@ -85,10 +92,6 @@ final class StopDetailsModel {
 
             departures = response.departures
             platforms = response.stops.map(StopPlatform.init)
-            // Reset selection if platforms changed
-            if !platforms.contains(where: { $0.id == selectedPlatformId }) {
-                selectedPlatformId = nil
-            }
             lastUpdated = Date()
             failure = nil
         } catch is CancellationError {
