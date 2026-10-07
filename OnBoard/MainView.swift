@@ -22,30 +22,22 @@ struct MainView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab(.tabNearby, systemImage: "location.fill", value: .nearby) {
-                NavigationStack {
-                    NearbyView()
-                }
-                .locationPermissions(onManualSearch: {
-                    selectedTab = .search
-                })
+                NearbyView()
+                    .locationPermissions(onManualSearch: {
+                        selectedTab = .search
+                    })
             }
 
             Tab(.tabFavorites, systemImage: "star.fill", value: .favorites) {
-                NavigationStack {
-                    FavoritesView()
-                }
+                FavoritesView()
             }
 
             Tab(.tabSearch, systemImage: "magnifyingglass", value: .search, role: .search) {
-                NavigationStack {
-                    SearchView()
-                }
+                SearchView()
             }
 
             Tab(.tabAbout, systemImage: "info.circle", value: .about) {
-                NavigationStack {
-                    AboutView()
-                }
+                AboutView()
             }
         }
         .onAppear {

@@ -27,6 +27,7 @@
 		000000000000000000000120 /* OnBoard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B0127233059458E00DE5115 /* OnBoardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OnBoardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B012730305945D000DE5115 /* OnBoardUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OnBoardUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B222B8F30763E2800DB5604 /* StEriksplan.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = StEriksplan.gpx; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -86,6 +87,7 @@
 				9B0127243059458E00DE5115 /* OnBoardTests */,
 				9B012731305945D000DE5115 /* OnBoardUITests */,
 				000000000000000000000020 /* Products */,
+				9B222B8F30763E2800DB5604 /* StEriksplan.gpx */,
 			);
 			sourceTree = "<group>";
 		};

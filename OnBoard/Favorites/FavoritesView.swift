@@ -19,26 +19,34 @@ struct FavoritesView: View {
     @Environment(TripFavoritesModel.self) private var tripModel
 
     var body: some View {
-        Group {
-            if let failure = model.failure ?? tripModel.failure {
-                UnavailableScreen(
-                    title: .favoritesErrorTitle,
-                    systemImage: "wifi.exclamationmark",
-                    message: Text(verbatim: failure)
-                )
-            } else if model.isLoading {
-                LoadingIndicator()
-            } else if isEmpty {
-                FavoritesEmptyHint()
-            } else {
-                FavoritesList(model: model, tripModel: tripModel)
+        NavigationStack {
+            Group {
+                if let failure = model.failure ?? tripModel.failure {
+                    UnavailableScreen(
+                        title: .favoritesErrorTitle,
+                        systemImage: "wifi.exclamationmark",
+                        message: Text(verbatim: failure)
+                    )
+                } else if model.isLoading {
+                    LoadingIndicator()
+                } else if isEmpty {
+                    FavoritesEmptyHint()
+                } else {
+                    FavoritesList(model: model, tripModel: tripModel)
+                }
             }
-        }
-        .background(Color.paper)
-        .navigationTitle(.favoritesTitle)
-        .onAppear {
-            model.loadFavorites(context: modelContext)
-            tripModel.loadTripFavorites(context: modelContext)
+            .background(Color.paper)
+            .navigationTitle(.favoritesTitle)
+            .navigationDestination(for: Favorite.self) { favorite in
+                StopDetailsView(stopId: favorite.id, stopName: favorite.name)
+            }
+            .navigationDestination(for: RouteDetails.self) { route in
+                RouteDetailsView(route: route)
+            }
+            .onAppear {
+                model.loadFavorites(context: modelContext)
+                tripModel.loadTripFavorites(context: modelContext)
+            }
         }
     }
 
@@ -111,12 +119,6 @@ private struct FavoritesList: View {
         }
         .listStyle(.plain)
         .background(Color.paper)
-        .navigationDestination(for: Favorite.self) { favorite in
-            StopDetailsView(stopId: favorite.id, stopName: favorite.name)
-        }
-        .navigationDestination(for: RouteDetails.self) { route in
-            RouteDetailsView(route: route)
-        }
     }
 
     /// Swipe-to-delete for a trip section, whose rows come from the model's
@@ -242,9 +244,7 @@ private struct FavoritesEmptyHint: View {
 #Preview("Stops and trips") {
     @Previewable @State var model = FavoritesModel()
     @Previewable @State var tripModel = TripFavoritesModel()
-    NavigationStack {
-        FavoritesView()
-    }
+    FavoritesView()
     .environment(model)
     .environment(tripModel)
     .environment(previewLineColours())
@@ -255,9 +255,7 @@ private struct FavoritesEmptyHint: View {
 #Preview("Empty") {
     @Previewable @State var model = FavoritesModel()
     @Previewable @State var tripModel = TripFavoritesModel()
-    NavigationStack {
-        FavoritesView()
-    }
+    FavoritesView()
     .environment(model)
     .environment(tripModel)
     .modelContainer(emptyModelContainer())

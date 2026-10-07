@@ -65,12 +65,12 @@ private struct PlatformButton: View {
             .padding(.vertical, 8)
             .background(
                 isSelected 
-                    ? Color.magenta 
+                    ? Color.accent 
                     : Color.panel
             )
             .clipShape(Capsule())
             .shadow(
-                color: isSelected ? .magenta.opacity(0.3) : .clear,
+                color: isSelected ? .accent.opacity(0.3) : .clear,
                 radius: 2,
                 y: 1
             )

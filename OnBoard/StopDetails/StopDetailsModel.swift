@@ -84,7 +84,7 @@ final class StopDetailsModel {
             try Task.checkCancellation()
 
             departures = response.departures
-            platforms = response.stops?.map(StopPlatform.init) ?? []
+            platforms = response.stops.map(StopPlatform.init)
             // Reset selection if platforms changed
             if !platforms.contains(where: { $0.id == selectedPlatformId }) {
                 selectedPlatformId = nil
