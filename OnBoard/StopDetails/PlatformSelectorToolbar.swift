@@ -1,13 +1,14 @@
 import SwiftUI
 
 /// A horizontal scrollable toolbar for selecting between platforms at a combined stop.
-/// - Displays a button for each platform.
+/// - Displays a button for each platform showing its most common destinations.
 /// - **Toggle behavior:** Tapping the selected platform deselects it (shows all).
 /// - Automatically scrolls to center the selected platform.
 /// - Uses the app's design tokens (colors, typography).
 struct PlatformSelectorToolbar: View {
     @Binding var selectedPlatformId: String?
     let platforms: [StopPlatform]
+    let departures: [CallAtLocation]
     let onToggle: (String?) -> Void
 
     var body: some View {
@@ -17,7 +18,8 @@ struct PlatformSelectorToolbar: View {
                     // Platform buttons
                     ForEach(platforms) { platform in
                         PlatformButton(
-                            label: platform.name,
+                            platform: platform,
+                            departures: departures,
                             isSelected: selectedPlatformId == platform.id,
                             action: { onToggle(platform.id) }
                         )
@@ -40,19 +42,49 @@ struct PlatformSelectorToolbar: View {
     }
 }
 
-/// A pill-style button for platform selection.
+/// A pill-style button for platform selection showing route destinations.
 /// **Toggle behavior:** Tapping a selected button deselects it.
 private struct PlatformButton: View {
-    let label: String
+    let platform: StopPlatform
+    let departures: [CallAtLocation]
     let isSelected: Bool
     let action: () -> Void
+
+    /// Extracts the most common destinations from departures for this platform.
+    private var destinationSummary: String {
+        let platformDepartures = departures.filter { $0.stop?.id == platform.id }
+        let directions = platformDepartures.compactMap { $0.route?.direction }
+        
+        // Group by direction and count
+        let directionCounts = Dictionary(directions.map { ($0, 1) }, uniquingKeysWith: +)
+        
+        // Sort by count (most common first), then alphabetically
+        let sortedDirections = directionCounts.sorted { a, b in
+            if a.value != b.value {
+                return a.value > b.value
+            }
+            return a.key < b.key
+        }
+        
+        // Take top 2-3 destinations
+        let topDirections = sortedDirections.prefix(3).map { $0.key }
+        
+        // Format as "→ Dest1, Dest2" or just "→ Dest1" if only one
+        if topDirections.count == 1 {
+            return "→ \(topDirections[0])"
+        } else {
+            return "→ \(topDirections.joined(separator: ", "))"
+        }
+    }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
-                Text(label)
+                Text(destinationSummary)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(isSelected ? .white : .ink)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 
                 if isSelected {
                     Image(systemName: "xmark.circle.fill")
@@ -75,7 +107,7 @@ private struct PlatformButton: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Platform \(label), \(isSelected ? "selected" : "not selected")")
+        .accessibilityLabel("Platform to \(destinationSummary), \(isSelected ? "selected" : "not selected")")
         .accessibilityHint(isSelected ? "Tap to show all platforms" : "Tap to filter to this platform")
     }
 }

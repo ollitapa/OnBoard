@@ -76,6 +76,7 @@ struct StopDetailsView: View {
                     PlatformSelectorToolbar(
                         selectedPlatformId: $model.selectedPlatformId,
                         platforms: model.platforms,
+                        departures: model.departures,
                         onToggle: model.togglePlatform
                     )
                 }
