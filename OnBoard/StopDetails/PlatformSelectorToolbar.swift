@@ -75,7 +75,7 @@ private struct PlatformButton: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: .platformButtonLabel(label: label, selected: isSelected)))
-        .accessibilityHint(String(localized: isSelected ? .platformButtonHintDeselect : .platformButtonHintSelect))
+        .accessibilityLabel("Platform \(label), \(isSelected ? "selected" : "not selected")")
+        .accessibilityHint(isSelected ? "Tap to show all platforms" : "Tap to filter to this platform")
     }
 }
