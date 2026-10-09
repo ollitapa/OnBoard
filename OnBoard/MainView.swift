@@ -27,18 +27,22 @@ struct MainView: View {
                         selectedTab = .search
                     })
             }
+            .accessibilityIdentifier("Tab.Nearby")
 
             Tab(.tabFavorites, systemImage: "star.fill", value: .favorites) {
                 FavoritesView()
             }
+            .accessibilityIdentifier("Tab.Favorites")
 
             Tab(.tabSearch, systemImage: "magnifyingglass", value: .search, role: .search) {
                 SearchView()
             }
+            .accessibilityIdentifier("Tab.Search")
 
             Tab(.tabAbout, systemImage: "info.circle", value: .about) {
                 AboutView()
             }
+            .accessibilityIdentifier("Tab.About")
         }
         .onAppear {
             favoritesModel.loadFavorites(context: modelContext)

@@ -81,23 +81,25 @@ final class SnapshotTests: XCTestCase {
                       "Expected the search results to include Slussen.")
         snapshot("03_Search")
 
-        // Dismiss the keyboard before switching tabs: the tab bar minimizes
-        // while typing, so the tab buttons aren't hittable until the search
-        // field is closed. Opening the Slussen result navigates to its stop
-        // board and dismisses the keyboard.
+        // Dismiss the keyboard before switching tabs: the tab bar is hidden
+        // in pushed views, so open the Slussen result, then go back to Search.
         slussen.tap()
         XCTAssertTrue(app.staticTexts["Ropsten"].firstMatch.waitForExistence(timeout: 10),
                       "Expected the mock departures to appear on the Slussen board.")
+        // Return to Search to make the tab bar visible again
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        // Wait for Search to be active
+        XCTAssertTrue(app.buttons["Tab.Search"].firstMatch.waitForExistence(timeout: 10))
 
         // Favourites tab: `--mock-storage` seeds one live trip (Line 3 to
         // Karolinska sjukhuset) above the saved stops.
-        tabButton(app, labels.favorites).tap()
+        app.buttons["Tab.Favorites"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Karolinska sjukhuset"].firstMatch.waitForExistence(timeout: 10),
                       "Expected the seeded live trip to appear in Favourites.")
         snapshot("04_Favorites")
 
         // About tab: the app's attribution screen.
-        tabButton(app, labels.about).tap()
+        app.buttons["Tab.About"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Olli Tapaninen"].firstMatch.waitForExistence(timeout: 10),
                       "Expected the creator name on the About screen.")
         snapshot("05_About")
