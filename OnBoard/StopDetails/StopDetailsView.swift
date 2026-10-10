@@ -39,7 +39,7 @@ struct StopDetailsView: View {
                     systemImage: "wifi.exclamationmark",
                     message: Text(verbatim: failure)
                 )
-            } else if model.departures.isEmpty {
+            } else if model.filteredDepartures.isEmpty {
                 if model.isLoading {
                     LoadingIndicator()
                 } else {
@@ -50,16 +50,16 @@ struct StopDetailsView: View {
                     )
                 }
             } else {
-                DeparturesList(departures: model.departures)
+                DeparturesList(departures: model.filteredDepartures)
             }
         }
         .background(Color.paper)
-        .toolbar(.hidden, for: .tabBar)
         .navigationSubtitle(model.lastUpdatedText)
         .navigationTitle(stopName)
         .navigationDestination(for: RouteDetails.self) { route in
             RouteDetailsView(route: route)
         }
+        .toolbarVisibility(model.platforms.count > 1 ? .hidden : .visible, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 FavoriteToggle(
@@ -69,7 +69,20 @@ struct StopDetailsView: View {
                     model: favoritesModel
                 )
             }
+
+            // NEW: Bottom toolbar for platform selection
+            ToolbarItem(placement: .bottomBar) {
+                if model.platforms.count > 1 {
+                    PlatformSelectorToolbar(
+                        selectedPlatformId: $model.selectedPlatformId,
+                        platforms: model.platforms,
+                        departures: model.departures,
+                        onToggle: model.togglePlatform
+                    )
+                }
+            }
         }
+        .toolbarBackground(.hidden, for: .tabBar) // Hide the tab bar
         .task(id: refreshTrigger) {
             await model.loadDepartures(network: network, areaId: stopId)
             // Refresh every 60 seconds
@@ -241,6 +254,27 @@ extension TransportMode {
             return "car.fill"
         default:
             return "questionmark"
+        }
+    }
+
+    /// The mode's user-facing name, used as a platform label when a platform
+    /// is served by a single mode (e.g. "Tram").
+    var displayName: String {
+        switch rawMode {
+        case "BUS":
+            return String(localized: .transportModeBus)
+        case "TRAM":
+            return String(localized: .transportModeTram)
+        case "METRO":
+            return String(localized: .transportModeMetro)
+        case "TRAIN":
+            return String(localized: .transportModeTrain)
+        case "BOAT":
+            return String(localized: .transportModeBoat)
+        case "TAXI":
+            return String(localized: .transportModeTaxi)
+        default:
+            return rawMode.capitalized
         }
     }
 }
