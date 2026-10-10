@@ -39,8 +39,10 @@ final class SnapshotTests: XCTestCase {
         return fallback
     }
 
-    /// Captures the main screens: Nearby, a stop's departure board, Search
-    /// mid-query, Favourites with the seeded live trip and stops, and About.
+    /// Captures the main screens: Nearby, a stop's departure board,
+    /// Favourites with the seeded live trip and stops, About, and Search
+    /// mid-query (visited last so no tab switch happens while the search
+    /// keyboard is up, which intermittently hid the tab bar).
     @MainActor
     func testCaptureScreenshots() throws {
         let app = XCUIApplication()
@@ -67,7 +69,22 @@ final class SnapshotTests: XCTestCase {
         XCTAssertTrue(firstStop.waitForExistence(timeout: 10),
                       "Expected to return to the nearby list after pressing back.")
 
-        // Search tab: type a query so matching stop groups are listed.
+        // Favourites tab: `--mock-storage` seeds one live trip (Line 3 to
+        // Karolinska sjukhuset) above the saved stops.
+        tabButton(app, "Tab.Favorites").tap()
+        XCTAssertTrue(app.staticTexts["Karolinska sjukhuset"].firstMatch.waitForExistence(timeout: 10),
+                      "Expected the seeded live trip to appear in Favourites.")
+        snapshot("03_Favorites")
+
+        // About tab: the app's attribution screen.
+        tabButton(app, "Tab.About").tap()
+        XCTAssertTrue(app.staticTexts["Olli Tapaninen"].firstMatch.waitForExistence(timeout: 10),
+                      "Expected the creator name on the About screen.")
+        snapshot("04_About")
+
+        // Search tab (visited last): type a query so matching stop groups
+        // are listed. No tab switch follows, so the keyboard never needs
+        // dismissing first.
         tabButton(app, "Tab.Search").tap()
         let searchField = app.searchFields.firstMatch
         XCTAssertTrue(searchField.waitForExistence(timeout: 10),
@@ -77,34 +94,6 @@ final class SnapshotTests: XCTestCase {
         let slussen = app.staticTexts["Slussen"].firstMatch
         XCTAssertTrue(slussen.waitForExistence(timeout: 10),
                       "Expected the search results to include Slussen.")
-        snapshot("03_Search")
-
-        // The tab bar is hidden in pushed views, so open the Slussen result
-        // (which also dismisses the keyboard), then press the back button to
-        // return to Search before switching tabs.
-        slussen.tap()
-        XCTAssertTrue(app.staticTexts["Ropsten"].firstMatch.waitForExistence(timeout: 10),
-                      "Expected the mock departures to appear on the Slussen board.")
-        app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(searchField.waitForExistence(timeout: 10),
-                      "Expected to return to Search after pressing back.")
-        // The tab bar minimizes while the keyboard is up, so dismiss it by
-        // sending a return-key press (locale-proof) before switching tabs.
-        if app.keyboards.firstMatch.exists {
-            app.typeText("\n")
-        }
-
-        // Favourites tab: `--mock-storage` seeds one live trip (Line 3 to
-        // Karolinska sjukhuset) above the saved stops.
-        tabButton(app, "Tab.Favorites").tap()
-        XCTAssertTrue(app.staticTexts["Karolinska sjukhuset"].firstMatch.waitForExistence(timeout: 10),
-                      "Expected the seeded live trip to appear in Favourites.")
-        snapshot("04_Favorites")
-
-        // About tab: the app's attribution screen.
-        tabButton(app, "Tab.About").tap()
-        XCTAssertTrue(app.staticTexts["Olli Tapaninen"].firstMatch.waitForExistence(timeout: 10),
-                      "Expected the creator name on the About screen.")
-        snapshot("05_About")
+        snapshot("05_Search")
     }
 }
