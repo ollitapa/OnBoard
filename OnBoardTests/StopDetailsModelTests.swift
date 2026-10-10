@@ -112,7 +112,7 @@ struct StopDetailsModelTests {
 
     /// A full departures response envelope with two child stops, only one of
     /// which has departures in the current window.
-    private static let mixedPlatformsDeparturesJSON = #"""
+    nonisolated private static let mixedPlatformsDeparturesJSON = #"""
     {
       "timestamp": "2099-01-01T12:00:00",
       "query": { "queryTime": "2099-01-01T12:00:00" },
@@ -122,7 +122,7 @@ struct StopDetailsModelTests {
       ],
       "departures": [
         {
-          "scheduled": "now+2",
+          "scheduled": "2099-01-01T12:00:00",
           "route": { "designation": "3", "transport_mode": "BUS", "direction": "Sickla" },
           "stop": { "id": "740000002", "name": "Platform B", "lat": 59.32, "lon": 18.08 },
           "trip": { "trip_id": "900010", "start_date": "2099-01-01" }
@@ -197,7 +197,9 @@ struct StopDetailsModelTests {
             id: "740000002", name: "Platform B", lat: 59.32, lon: 18.08,
             area_id: nil, transport_modes: nil, alerts: nil
         ))
-        let tram = Self.departure(tripId: "900010", transportMode: "TRAM", direction: "Ropsten")
+        let tram = Self.atPlatformB(
+            Self.departure(tripId: "900010", transportMode: "TRAM", direction: "Ropsten")
+        )
         var bus = Self.departure(tripId: "900011", transportMode: "BUS", direction: "Sickla")
         bus.stop = TimetableStop(
             id: "740000001", name: "Platform A", lat: 59.31, lon: 18.07,
