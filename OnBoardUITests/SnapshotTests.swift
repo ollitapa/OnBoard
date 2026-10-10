@@ -30,7 +30,13 @@ final class SnapshotTests: XCTestCase {
     @MainActor
     private func tabButton(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         let inTabBar = app.tabBars.buttons[identifier].firstMatch
-        return inTabBar.exists ? inTabBar : app.buttons[identifier].firstMatch
+        if inTabBar.waitForExistence(timeout: 10) { return inTabBar }
+        let fallback = app.buttons[identifier].firstMatch
+        XCTAssertTrue(
+            fallback.waitForExistence(timeout: 10),
+            "Expected the \(identifier) tab button to appear."
+        )
+        return fallback
     }
 
     /// Captures the main screens: Nearby, a stop's departure board, Search
