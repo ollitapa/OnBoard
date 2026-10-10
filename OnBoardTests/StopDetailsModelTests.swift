@@ -112,7 +112,7 @@ struct StopDetailsModelTests {
 
     /// A full departures response envelope with two child stops, only one of
     /// which has departures in the current window.
-    private static let mixedPlatformsDeparturesJSON = #"
+    private static let mixedPlatformsDeparturesJSON = #"""
     {
       "timestamp": "2099-01-01T12:00:00",
       "query": { "queryTime": "2099-01-01T12:00:00" },
@@ -129,7 +129,7 @@ struct StopDetailsModelTests {
         }
       ]
     }
-    "#
+    """#
 
     @Test func loadDeparturesOmitsPlatformsWithoutDepartures() async throws {
         // Given: two child stops in the response envelope but only one has
