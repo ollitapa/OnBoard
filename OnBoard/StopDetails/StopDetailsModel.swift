@@ -91,7 +91,14 @@ final class StopDetailsModel {
             try Task.checkCancellation()
 
             departures = response.departures
-            platforms = response.stops.map(StopPlatform.init)
+            // Only offer platforms that actually have departures in the
+            // current window; platforms with no departures would show an
+            // empty board when selected.
+            platforms = response.stops
+                .filter { stop in
+                    response.departures.contains { $0.stop?.id == stop.id }
+                }
+                .map(StopPlatform.init)
             lastUpdated = Date()
             failure = nil
         } catch is CancellationError {

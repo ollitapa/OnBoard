@@ -203,6 +203,156 @@
       },
       "shouldGenerateSymbol": true
     },
+    "TransportMode.Bus": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bus"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bussi"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buss"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Tram": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tram"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raitiovaunu"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spårvagn"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Metro": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metro"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metro"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tunnelbana"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Train": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Train"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juna"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tåg"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Boat": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boat"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laiva"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båt"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Taxi": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taxi"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taksi"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taxi"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
     "About.VisitTrafiklab": {
       "comment": "Link that opens the Trafiklab website.",
       "extractionState": "manual",

@@ -108,6 +108,106 @@ struct StopDetailsModelTests {
         #expect(model.failure != nil)
     }
 
+    // MARK: - Platform filtering
+
+    /// A full departures response envelope with two child stops, only one of
+    /// which has departures in the current window.
+    private static let mixedPlatformsDeparturesJSON = #""
+    {
+      "timestamp": "2099-01-01T12:00:00",
+      "query": { "queryTime": "2099-01-01T12:00:00" },
+      "stops": [
+        { "id": "740000001", "name": "Platform A", "lat": 59.31, "lon": 18.07 },
+        { "id": "740000002", "name": "Platform B", "lat": 59.32, "lon": 18.08 }
+      ],
+      "departures": [
+        {
+          "scheduled": "now+2",
+          "route": { "designation": "3", "transport_mode": "BUS", "direction": "Sickla" },
+          "stop": { "id": "740000002", "name": "Platform B", "lat": 59.32, "lon": 18.08 },
+          "trip": { "trip_id": "900010", "start_date": "2099-01-01" }
+        }
+      ]
+    }
+    ""#
+
+    @Test func loadDeparturesOmitsPlatformsWithoutDepartures() async throws {
+        // Given: two child stops in the response envelope but only one has
+        // departures in the current window.
+        var network = MockNetwork()
+        network.registerHandler { request in
+            if request.url?.path.contains("/departures/") == true {
+                return MockNetwork.makeResponse(json: Self.mixedPlatformsDeparturesJSON)
+            }
+            return nil
+        }
+        let model = StopDetailsModel()
+
+        // When
+        await model.loadDepartures(network: network, areaId: "740000001")
+
+        // Then: only the platform with departures is offered.
+        #expect(model.platforms.map(\.id) == ["740000002"])
+    }
+
+    @Test func platformsWithoutDeparturesHaveNoDominantTransportMode() {
+        // Given: a platform with no departures.
+        let platform = StopPlatform(from: TimetableStop(
+            id: "740000002", name: "Platform B", lat: 59.32, lon: 18.08,
+            area_id: nil, transport_modes: nil, alerts: nil
+        ))
+
+        // Then: no dominant mode can be derived.
+        #expect(platform.dominantTransportMode(departures: []) == nil)
+    }
+
+    @Test func platformWithSingleTransportModeHasDominantMode() {
+        // Given: a platform served only by trams.
+        let platform = StopPlatform(from: TimetableStop(
+            id: "740000002", name: "Platform B", lat: 59.32, lon: 18.08,
+            area_id: nil, transport_modes: nil, alerts: nil
+        ))
+        let departures = [
+            Self.departure(tripId: "900010", transportMode: "TRAM", direction: "Ropsten"),
+            Self.departure(tripId: "900011", transportMode: "TRAM", direction: "Sickla")
+        ].map(Self.atPlatformB)
+
+        // Then: the tram mode is dominant and can label the platform.
+        #expect(platform.dominantTransportMode(departures: departures) == "TRAM")
+    }
+
+    @Test func platformWithMixedTransportModesHasNoDominantMode() {
+        // Given: a platform served by both buses and trams.
+        let platform = StopPlatform(from: TimetableStop(
+            id: "740000002", name: "Platform B", lat: 59.32, lon: 18.08,
+            area_id: nil, transport_modes: nil, alerts: nil
+        ))
+        let departures = [
+            Self.departure(tripId: "900010", transportMode: "BUS", direction: "Sickla"),
+            Self.departure(tripId: "900011", transportMode: "TRAM", direction: "Ropsten")
+        ].map(Self.atPlatformB)
+
+        // Then: no single mode can label the platform.
+        #expect(platform.dominantTransportMode(departures: departures) == nil)
+    }
+
+    @Test func dominantTransportModeIgnoresDeparturesAtOtherPlatforms() {
+        // Given: trams at this platform and a bus at another platform.
+        let platform = StopPlatform(from: TimetableStop(
+            id: "740000002", name: "Platform B", lat: 59.32, lon: 18.08,
+            area_id: nil, transport_modes: nil, alerts: nil
+        ))
+        let tram = Self.departure(tripId: "900010", transportMode: "TRAM", direction: "Ropsten")
+        var bus = Self.departure(tripId: "900011", transportMode: "BUS", direction: "Sickla")
+        bus.stop = TimetableStop(
+            id: "740000001", name: "Platform A", lat: 59.31, lon: 18.07,
+            area_id: nil, transport_modes: nil, alerts: nil
+        )
+
+        // Then: the other platform's bus doesn't break the tram dominance.
+        #expect(platform.dominantTransportMode(departures: [tram, bus]) == "TRAM")
+    }
+
     // MARK: - Presentation helpers
 
     @Test func lineLabelPrefersDesignation() {
@@ -185,6 +285,17 @@ struct StopDetailsModelTests {
     }
 
     // MARK: - Helpers
+
+    /// Pins a departure to platform B (`740000002`) so it counts for that
+    /// platform in stop-based filtering.
+    static func atPlatformB(_ departure: CallAtLocation) -> CallAtLocation {
+        var departure = departure
+        departure.stop = TimetableStop(
+            id: "740000002", name: "Platform B", lat: 59.32, lon: 18.08,
+            area_id: nil, transport_modes: nil, alerts: nil
+        )
+        return departure
+    }
 
     /// Builds a `CallAtLocation` with sensible defaults for tests.
     static func departure(

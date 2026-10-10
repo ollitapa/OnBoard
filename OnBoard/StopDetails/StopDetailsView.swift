@@ -257,6 +257,27 @@ extension TransportMode {
             return "questionmark"
         }
     }
+
+    /// The mode's user-facing name, used as a platform label when a platform
+    /// is served by a single mode (e.g. "Tram").
+    var displayName: String {
+        switch rawMode {
+        case "BUS":
+            return String(localized: .transportModeBus)
+        case "TRAM":
+            return String(localized: .transportModeTram)
+        case "METRO":
+            return String(localized: .transportModeMetro)
+        case "TRAIN":
+            return String(localized: .transportModeTrain)
+        case "BOAT":
+            return String(localized: .transportModeBoat)
+        case "TAXI":
+            return String(localized: .transportModeTaxi)
+        default:
+            return rawMode.capitalized
+        }
+    }
 }
 
 // MARK: - Favorite toggle

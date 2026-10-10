@@ -50,6 +50,15 @@ private struct PlatformButton: View {
     let isSelected: Bool
     let action: () -> Void
 
+    /// The platform's label: its transport mode name when every departure
+    /// uses the same mode, otherwise its most common destinations.
+    private var label: String {
+        if let mode = platform.dominantTransportMode(departures: departures) {
+            return mode.displayName
+        }
+        return destinationSummary
+    }
+
     /// Extracts the most common destinations from departures for this platform.
     private var destinationSummary: String {
         let platformDepartures = departures.filter { $0.stop?.id == platform.id }
@@ -80,7 +89,12 @@ private struct PlatformButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
-                Text(destinationSummary)
+                if let mode = platform.dominantTransportMode(departures: departures) {
+                    Image(systemName: mode.icon)
+                        .font(.caption)
+                        .foregroundStyle(isSelected ? .white : .ink)
+                }
+                Text(label)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(isSelected ? .white : .ink)
                     .lineLimit(1)
@@ -107,7 +121,7 @@ private struct PlatformButton: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Platform to \(destinationSummary), \(isSelected ? "selected" : "not selected")")
+        .accessibilityLabel("Platform \(label), \(isSelected ? "selected" : "not selected")")
         .accessibilityHint(isSelected ? "Tap to show all platforms" : "Tap to filter to this platform")
     }
 }
