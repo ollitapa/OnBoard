@@ -7,7 +7,8 @@
 //  harness, so the shots are deterministic and need no real Trafiklab keys.
 //  `setupSnapshot` pins the app's language and locale per run (fastlane
 //  re-runs this test once per language in the Snapfile's `languages` list),
-//  and tab navigation switches on that language so it works everywhere.
+//  and tab navigation uses the accessibility identifiers set on the tab bar
+//  buttons in `MainView`, so it works in every language.
 //
 
 import XCTest
@@ -21,29 +22,15 @@ final class SnapshotTests: XCTestCase {
 
     override func tearDownWithError() throws {}
 
-    /// The tab-bar labels per language, matching `Localizable.xcstrings`
-    /// (`Tab.nearby`, `Tab.favorites`, `Tab.search`, `Tab.about`). Derived
-    /// from `Snapshot.deviceLanguage`, which `setupSnapshot` reads from the
-    /// language file fastlane writes for the current run.
+    /// Resolves a tab bar button by its accessibility identifier (set in
+    /// `MainView` on each `Tab`), so navigation is locale-proof. On iPad the
+    /// floating tab bar exposes each item as nested buttons with the same
+    /// identifier, and tapping an ambiguous query fails at once. Always
+    /// resolve to a single element.
     @MainActor
-    private var labels: (nearby: String, favorites: String, search: String, about: String) {
-        switch Snapshot.deviceLanguage {
-        case let lang where lang.hasPrefix("sv"):
-            return ("Nära dig", "Favoriter", "Sök", "Om appen")
-        case let lang where lang.hasPrefix("fi"):
-            return ("Lähistöllä", "Suosikit", "Haku", "Tietoja")
-        default:
-            return ("Nearby", "Favorites", "Search", "About")
-        }
-    }
-
-    /// On iPad the floating tab bar exposes each item as nested buttons with the
-    /// same label, and tapping an ambiguous query fails at once. Always resolve
-    /// to a single element.
-    @MainActor
-    private func tabButton(_ app: XCUIApplication, _ label: String) -> XCUIElement {
-        let inTabBar = app.tabBars.buttons[label].firstMatch
-        return inTabBar.exists ? inTabBar : app.buttons[label].firstMatch
+    private func tabButton(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        let inTabBar = app.tabBars.buttons[identifier].firstMatch
+        return inTabBar.exists ? inTabBar : app.buttons[identifier].firstMatch
     }
 
     /// Captures the main screens: Nearby, a stop's departure board, Search
@@ -62,15 +49,20 @@ final class SnapshotTests: XCTestCase {
         snapshot("01_Nearby")
 
         // Stop board: tap the first stop and wait for its mock departures
-        // (Line 3 towards Karolinska sjukhuset) to render.
+        // (Line 3 towards Karolinska sjukhuset) to render. The tab bar is
+        // hidden on the stop board, so afterwards press the back button to
+        // return to Nearby before switching tabs.
         firstStop.tap()
         let departureDestination = app.staticTexts["Karolinska sjukhuset"].firstMatch
         XCTAssertTrue(departureDestination.waitForExistence(timeout: 10),
                       "Expected the mock departures to appear on the stop board.")
         snapshot("02_StopBoard")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(firstStop.waitForExistence(timeout: 10),
+                      "Expected to return to the nearby list after pressing back.")
 
         // Search tab: type a query so matching stop groups are listed.
-        tabButton(app, labels.search).tap()
+        tabButton(app, "Tab.Search").tap()
         let searchField = app.searchFields.firstMatch
         XCTAssertTrue(searchField.waitForExistence(timeout: 10),
                       "Expected the search field to appear.")
@@ -81,25 +73,30 @@ final class SnapshotTests: XCTestCase {
                       "Expected the search results to include Slussen.")
         snapshot("03_Search")
 
-        // Dismiss the keyboard before switching tabs: the tab bar is hidden
-        // in pushed views, so open the Slussen result, then go back to Search.
+        // The tab bar is hidden in pushed views, so open the Slussen result
+        // (which also dismisses the keyboard), then press the back button to
+        // return to Search before switching tabs.
         slussen.tap()
         XCTAssertTrue(app.staticTexts["Ropsten"].firstMatch.waitForExistence(timeout: 10),
                       "Expected the mock departures to appear on the Slussen board.")
-        // Return to Search to make the tab bar visible again
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        // Wait for Search to be active
-        XCTAssertTrue(app.buttons["Tab.Search"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(searchField.waitForExistence(timeout: 10),
+                      "Expected to return to Search after pressing back.")
+        // The tab bar minimizes while the keyboard is up, so dismiss it by
+        // sending a return-key press (locale-proof) before switching tabs.
+        if app.keyboards.firstMatch.exists {
+            app.typeText("\n")
+        }
 
         // Favourites tab: `--mock-storage` seeds one live trip (Line 3 to
         // Karolinska sjukhuset) above the saved stops.
-        app.buttons["Tab.Favorites"].firstMatch.tap()
+        tabButton(app, "Tab.Favorites").tap()
         XCTAssertTrue(app.staticTexts["Karolinska sjukhuset"].firstMatch.waitForExistence(timeout: 10),
                       "Expected the seeded live trip to appear in Favourites.")
         snapshot("04_Favorites")
 
         // About tab: the app's attribution screen.
-        app.buttons["Tab.About"].firstMatch.tap()
+        tabButton(app, "Tab.About").tap()
         XCTAssertTrue(app.staticTexts["Olli Tapaninen"].firstMatch.waitForExistence(timeout: 10),
                       "Expected the creator name on the About screen.")
         snapshot("05_About")

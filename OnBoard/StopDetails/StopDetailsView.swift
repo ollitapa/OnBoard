@@ -54,6 +54,7 @@ struct StopDetailsView: View {
             }
         }
         .background(Color.paper)
+        .toolbar(.hidden, for: .tabBar)
         .navigationSubtitle(model.lastUpdatedText)
         .navigationTitle(stopName)
         .navigationDestination(for: RouteDetails.self) { route in
