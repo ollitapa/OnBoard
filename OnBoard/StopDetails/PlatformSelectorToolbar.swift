@@ -38,7 +38,6 @@ struct PlatformSelectorToolbar: View {
                 }
             }
         }
-        .frame(height: 44) // Match tab bar height
     }
 }
 

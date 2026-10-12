@@ -59,7 +59,6 @@ struct StopDetailsView: View {
         .navigationDestination(for: RouteDetails.self) { route in
             RouteDetailsView(route: route)
         }
-        .toolbarVisibility(model.platforms.count > 1 ? .hidden : .visible, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 FavoriteToggle(
@@ -82,7 +81,7 @@ struct StopDetailsView: View {
                 }
             }
         }
-        .toolbarBackground(.hidden, for: .tabBar) // Hide the tab bar
+        .toolbarVisibility(.hidden, for: .tabBar)
         .task(id: refreshTrigger) {
             await model.loadDepartures(network: network, areaId: stopId)
             // Refresh every 60 seconds
