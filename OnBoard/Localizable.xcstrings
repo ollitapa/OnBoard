@@ -203,6 +203,156 @@
       },
       "shouldGenerateSymbol": true
     },
+    "TransportMode.Bus": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bus"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bussi"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buss"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Tram": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tram"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raitiovaunu"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spårvagn"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Metro": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metro"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metro"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tunnelbana"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Train": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Train"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juna"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tåg"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Boat": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boat"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laiva"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båt"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "TransportMode.Taxi": {
+      "comment": "Transport mode name; used as a platform label when the platform serves a single mode.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taxi"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taksi"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taxi"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
     "About.VisitTrafiklab": {
       "comment": "Link that opens the Trafiklab website.",
       "extractionState": "manual",
@@ -353,31 +503,6 @@
       },
       "shouldGenerateSymbol": true
     },
-    "Favorite.LineSummary": {
-      "comment": "Subtitle of a saved trip row; the placeholder is the line label, e.g. '3'.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Line %(line)@"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Linja %(line)@"
-          }
-        },
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Linje %(line)@"
-          }
-        }
-      },
-      "shouldGenerateSymbol": true
-    },
     "Favorite.LinesSummary": {
       "comment": "Subtitle of a saved stop row; the placeholder is a comma-separated list of line labels.",
       "extractionState": "manual",
@@ -398,6 +523,31 @@
           "stringUnit": {
             "state": "translated",
             "value": "Linjer %(lines)@"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Favorite.LineSummary": {
+      "comment": "Subtitle of a saved trip row; the placeholder is the line label, e.g. '3'.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Line %(line)@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linja %(line)@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linje %(line)@"
           }
         }
       },
@@ -828,31 +978,6 @@
       },
       "shouldGenerateSymbol": true
     },
-    "Nearby.EmptyMessage": {
-      "comment": "Message under the no-stops-nearby placeholder.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "There are no stops within 1 km of you."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lähelläsi ei ole pysäkkejä 1 km:n säteellä."
-          }
-        },
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Det finns inga hållplatser inom 1 km från dig."
-          }
-        }
-      },
-      "shouldGenerateSymbol": true
-    },
     "Nearby.ClosestFavorite": {
       "comment": "Section header for the saved favourite nearest to the user, shown as the Home Screen's first section.",
       "extractionState": "manual",
@@ -873,6 +998,31 @@
           "stringUnit": {
             "state": "translated",
             "value": "Närmaste favorit"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "Nearby.EmptyMessage": {
+      "comment": "Message under the no-stops-nearby placeholder.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There are no stops within 1 km of you."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähelläsi ei ole pysäkkejä 1 km:n säteellä."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det finns inga hållplatser inom 1 km från dig."
           }
         }
       },
@@ -1027,6 +1177,16 @@
         }
       },
       "shouldGenerateSymbol": true
+    },
+    "Platform %@, %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Platform %1$@, %2$@"
+          }
+        }
+      }
     },
     "Search.Clear": {
       "comment": "Button that clears the recent searches list.",
@@ -1528,6 +1688,8 @@
       },
       "shouldGenerateSymbol": true
     },
+    "Tap to filter to this platform": {},
+    "Tap to show all platforms": {},
     "Trip.Arrived": {
       "comment": "Subtitle on the stop the vehicle is standing at.",
       "extractionState": "manual",
@@ -1873,6 +2035,81 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fordonet är här"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "platformButtonLabel": {
+      "comment": "Accessibility label for platform selector button. Parameters: label (platform name), selected (boolean).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platform %1$@, %2$@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alusta %1$@, %2$@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plattform %1$@, %2$@"
+          }
+        }
+      },
+      "shouldGenerateSymbol": false
+    },
+    "platformButtonHintSelect": {
+      "comment": "Accessibility hint for unselected platform button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to filter to this platform"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta suodattaaksesi tälle alustaan"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck för att filtrera till denna plattform"
+          }
+        }
+      },
+      "shouldGenerateSymbol": true
+    },
+    "platformButtonHintDeselect": {
+      "comment": "Accessibility hint for selected platform button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to show all platforms"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta nähdäksesi kaikki alustat"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck för att visa alla plattformar"
           }
         }
       },
