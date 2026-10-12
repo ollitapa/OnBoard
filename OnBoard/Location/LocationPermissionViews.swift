@@ -22,8 +22,8 @@ struct LocationExplanationView: View {
     var body: some View {
         MessageScreen(
             icon: "location.circle",
-            title: "Find stops near you",
-            message: "OnBoard uses your location to show the nearest stops as soon as you open the app."
+            title: .locationExplanationTitle,
+            message: .locationExplanationMessage
         ) {
             LocationButton(.currentLocation) {
                 onTap()
@@ -49,12 +49,12 @@ struct LocationDeniedView: View {
     var body: some View {
         MessageScreen(
             icon: "location.slash",
-            title: "Location access is off",
-            message: "We can't show stops near you. Search manually or turn on location access in Settings."
+            title: .locationDeniedTitle,
+            message: .locationDeniedMessage
         ) {
-            Button("Open Settings", action: onOpenSettings)
+            Button(.locationOpenSettings, action: onOpenSettings)
                 .buttonStyle(.primary)
-            Button("Search manually instead", action: onManualSearch)
+            Button(.locationSearchManually, action: onManualSearch)
                 .buttonStyle(.text)
         }
     }

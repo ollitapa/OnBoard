@@ -1,7 +1,10 @@
-# OnBoard
+# OnBoard - Kyytiin
 
 A SwiftUI app for following buses and other public transport in Sweden, built on
 Trafiklab's Realtime APIs and ResRobot.
+
+**Kyytiin** is the app's user-facing name; the repository and Xcode project keep
+the **OnBoard** name.
 
 OnBoard is also an **example of an iOS architecture driven by SwiftUI**: the app
 uses only Apple frameworks — SwiftUI, SwiftData, Observation, CoreLocation, and
@@ -15,7 +18,10 @@ environment, so the same views run in previews, unit tests, and UI tests.
 
 - **Nearby** — finds stops around your location (ResRobot Nearby Stops) and
   shows upcoming departures for a chosen stop (Timetables).
-- **Favorites** — saves stops persistently with SwiftData.
+- **Favorites** — saves stops and journeys persistently with SwiftData: the
+  currently live trips (their saved end date not yet passed) are listed at the
+  top of the Favourites tab, the stops follow, and finished trips are shunted
+  to the end, removable with one tap.
 - **Search** — searches stops by name (Stop Lookup) and follows a vehicle's
   live trip between stops (Trips).
 
@@ -32,7 +38,8 @@ OnBoard/
 ├── Network/               # NetworkProtocol, LiveNetwork, MockNetwork
 ├── Location/              # Location authorization and permission UI
 ├── Nearby/                # NearbyModel + NearbyView
-├── Favorites/             # FavoritesModel + FavoritesView
+├── Favorites/             # FavoritesModel + FavoritesView (stops + saved trips)
+├── TripFavorites/         # TripFavoritesModel (saved-trip status & cleanup)
 ├── Search/                # SearchModel + SearchView
 ├── StopDetails/          # StopDetailsModel + StopDetailsView
 ├── RouteDetails/         # RouteDetailsModel + RouteDetailsView
@@ -52,7 +59,8 @@ a color means adding a `.colorset` in the catalog and using the generated
 symbol, nothing else.
 
 On top of the tokens, `OnBoard/DesignSystem/` holds the shared UI
-components — `StatusPill`, the `.primary`/`.text` button styles,
+components — `StatusPill`, the `.primary`/`.text` button styles (the primary
+button renders as an accent-tinted Liquid Glass capsule on iOS 26),
 `MessageScreen`, `UnavailableScreen`, and `LoadingIndicator` — extracted
 from the storyboard's repeated patterns so screens don't re-style them by
 hand. See CONTRIBUTING.md's "Design System" section for usage.

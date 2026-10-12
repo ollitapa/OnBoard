@@ -239,6 +239,20 @@ struct RouteDetailsModelTests {
         #expect(rows.last?.subtitle == "Final stop")
     }
 
+    @Test func stopRowsCarryRealtimeFlagFromCalls() {
+        let now = Date()
+        // The schedule mixes realtime and non-realtime calls, so each row
+        // carries its own call's realtime flag for the marker's badge.
+        let calls = [
+            Self.call(stopId: "0", name: "First", scheduledDeparture: Self.past(now, minutes: 10), isRealtime: true),
+            Self.call(stopId: "1", name: "Second", scheduledDeparture: Self.past(now, minutes: 2), isRealtime: false),
+            Self.call(stopId: "2", name: "Third", scheduledDeparture: Self.future(now, minutes: 6)),
+            Self.call(stopId: "3", name: "Final", scheduledDeparture: Self.future(now, minutes: 13), isRealtime: true)
+        ]
+        let rows = calls.stopRows(now: now)
+        #expect(rows.map(\.isRealtime) == [true, false, false, true])
+    }
+
     @Test func stopRowsSubtitleCountsDownAtTargetStop() {
         let now = Date()
         // The vehicle is between stop 0 and stop 1, which it reaches in 5
@@ -335,7 +349,7 @@ struct RouteDetailsModelTests {
         let later = laterRows.first(where: \.isCarryingMarker)?.travelProgress
         #expect(laterRows[1].isCarryingMarker)
         #expect(later != nil && later! > 0.5 && later! < 1)
-        #expect(later! > early!)
+        #expect(later != nil && early != nil && later! > early!)
 
         // Once the arrival time is reached the vehicle stands at the stop and
         // the marker's progress hands over to the resting position.
@@ -375,7 +389,7 @@ struct RouteDetailsModelTests {
         // The glide keeps advancing until the arrival.
         let furtherRows = calls.stopRows(now: now.addingTimeInterval(15))
         let further = furtherRows.first(where: \.isCarryingMarker)?.travelProgress
-        #expect(further != nil && further! > gliding!)
+        #expect(further != nil && gliding != nil && further! > gliding!)
 
         // Pulling up to stop 1 hands the marker back to the resting position.
         let arrived = calls.stopRows(now: now.addingTimeInterval(30))[1]
@@ -531,17 +545,18 @@ struct RouteDetailsModelTests {
     }
 
     /// Formats a `Date` as the Trafiklab realtime format `YYYY-MM-DDTHH:mm:ss`:
-    /// local wall-clock time with no time-zone designator, mirroring the format
-    /// style `LocalDate` parses with. Emitting UTC (`...Z`) here would be
-    /// re-read as local time and shift every stop by the UTC offset.
+    /// Stockholm wall-clock time with no time-zone designator, mirroring the
+    /// format style `LocalDate` parses with. Formatting in any other zone —
+    /// the runner's, say UTC — would be re-read as Stockholm time and shift
+    /// every stop by the offset between the two.
     static func timestamp(_ date: Date) -> String {
         date.formatted(formatStyle)
     }
 
-    /// The same ISO8601 configuration `LocalDate` uses: current time zone,
+    /// The same ISO8601 configuration `LocalDate` uses: Europe/Stockholm,
     /// full date, whole-second time, no zone designator.
     private static let formatStyle = Date.ISO8601FormatStyle
-        .iso8601(timeZone: .current)
+        .iso8601(timeZone: TimeZone(identifier: "Europe/Stockholm")!)
         .year()
         .month()
         .day()

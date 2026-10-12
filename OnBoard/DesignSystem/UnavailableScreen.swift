@@ -8,22 +8,24 @@ struct UnavailableScreen: View {
 
     /// The label naming what couldn't load or what's missing, e.g.
     /// "Couldn't load departures".
-    let title: String
+    let title: LocalizedStringResource
 
     /// The SF Symbol beside the title, e.g. `wifi.exclamationmark` for
     /// failures or `tray` for an empty list.
     let systemImage: String
 
     /// The secondary description under the title, e.g. the model's failure
-    /// message.
-    let message: String
+    /// message. A `Text` so callers can pass either a localized resource
+    /// (`Text(.stopBoardEmptyMessage)`) or a runtime string
+    /// (`Text(verbatim: failure)`).
+    let message: Text
 
     var body: some View {
         ContentUnavailableView {
             Label(title, systemImage: systemImage)
                 .foregroundStyle(.ink)
         } description: {
-            Text(message)
+            message
                 .foregroundStyle(.inkSoft)
         }
     }
@@ -31,8 +33,8 @@ struct UnavailableScreen: View {
 
 #Preview("Unavailable screen") {
     UnavailableScreen(
-        title: "No departures",
+        title: .stopBoardEmptyTitle,
         systemImage: "tray",
-        message: "There are no departures in the next hour."
+        message: Text(.stopBoardEmptyMessage)
     )
 }

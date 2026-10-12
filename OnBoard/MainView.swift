@@ -16,45 +16,44 @@ struct MainView: View {
     @Environment(\.network) private var network
 
     @State var favoritesModel: FavoritesModel = FavoritesModel()
+    @State var tripFavoritesModel: TripFavoritesModel = TripFavoritesModel()
     @State var lineColoursModel: LineColoursModel = LineColoursModel()
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Tab("Nearby", systemImage: "location.fill", value: .nearby) {
-                NavigationStack {
-                    NearbyView()
-                }
-                .locationPermissions(onManualSearch: {
-                    selectedTab = .search
-                })
+            Tab(.tabNearby, systemImage: "location.fill", value: .nearby) {
+                NearbyView()
+                    .locationPermissions(onManualSearch: {
+                        selectedTab = .search
+                    })
             }
+            .accessibilityIdentifier("Tab.Nearby")
 
-            Tab("Favorites", systemImage: "star.fill", value: .favorites) {
-                NavigationStack {
-                    FavoritesView()
-                }
+            Tab(.tabFavorites, systemImage: "star.fill", value: .favorites) {
+                FavoritesView()
             }
+            .accessibilityIdentifier("Tab.Favorites")
 
-            Tab("Search", systemImage: "magnifyingglass", value: .search, role: .search) {
-                NavigationStack {
-                    SearchView()
-                }
+            Tab(.tabSearch, systemImage: "magnifyingglass", value: .search, role: .search) {
+                SearchView()
             }
+            .accessibilityIdentifier("Tab.Search")
 
-            Tab("About", systemImage: "info.circle", value: .about) {
-                NavigationStack {
-                    AboutView()
-                }
+            Tab(.tabAbout, systemImage: "info.circle", value: .about) {
+                AboutView()
             }
+            .accessibilityIdentifier("Tab.About")
         }
         .onAppear {
             favoritesModel.loadFavorites(context: modelContext)
+            tripFavoritesModel.loadTripFavorites(context: modelContext)
         }
         .task {
             await lineColoursModel.loadLines(network: network)
         }
         .tabViewSearchActivation(.searchTabSelection)
         .environment(favoritesModel)
+        .environment(tripFavoritesModel)
         .environment(lineColoursModel)
         .tint(.accent)
         .accentColor(.accent)

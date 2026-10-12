@@ -49,6 +49,28 @@ final class FavoritesModel {
         favorites.contains { $0.id == stopId }
     }
 
+    /// The saved favourite nearest to the user for the Home Screen's first
+    /// section: favourites are matched against the given nearby stops by
+    /// stop-group id, and the match with the shortest reported distance wins.
+    /// - Parameters:
+    ///   - coordinate: The user's current coordinate, or `nil` while unknown —
+    ///     without it there is no ranking to show.
+    ///   - stops: The nearby stops loaded for that coordinate, carrying each
+    ///     stop's distance from the user.
+    /// - Returns: The closest favourite paired with its nearby-stop hit, or
+    ///     `nil` when no location is known, no nearby stops have loaded, or no
+    ///     favourite appears among them.
+    func closestFavourite(coordinate: Coordinate?, stops: [Stop]) -> ClosestFavorite? {
+        guard coordinate != nil, !stops.isEmpty else { return nil }
+        return favorites
+            .compactMap { favorite in
+                stops.first { $0.id == favorite.id }.map {
+                    ClosestFavorite(favorite: favorite, stop: $0)
+                }
+            }
+            .min { $0.stop.distance ?? .max < $1.stop.distance ?? .max }
+    }
+
     /// Saves a stop as a favourite, or removes it if already saved. When
     /// saving, the line labels captured at save time are stored so the row can
     /// show a "Lines …" subtitle. A `StoredFavorites` aggregate is created on
@@ -100,4 +122,11 @@ final class FavoritesModel {
         let fav = stored.favorites.remove(at: index)
         context.delete(fav)
     }
+}
+
+/// The pairing of a saved favourite with its nearby-stop hit that drives the
+/// Home Screen's first section.
+struct ClosestFavorite: Equatable {
+    let favorite: Favorite
+    let stop: Stop
 }

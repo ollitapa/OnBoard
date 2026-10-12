@@ -17,18 +17,23 @@ struct SearchView: View {
     @State private var query = ""
 
     var body: some View {
-        SearchContent(
-            model: model,
-            query: query,
-            onRecentTap: { handleRecent($0) },
-            onClearRecents: { model.clearRecents() }
-        )
-        .navigationTitle("Search")
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, prompt: "Search stop or line")
-        .onSubmit(of: .search) { handleSubmit() }
-        .task(id: query) {
-            await model.search(named: query, network: network)
+        NavigationStack {
+            SearchContent(
+                model: model,
+                query: query,
+                onRecentTap: { handleRecent($0) },
+                onClearRecents: { model.clearRecents() }
+            )
+            .navigationTitle(.searchTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: StopGroup.self) { group in
+                StopDetailsView(stopId: group.id, stopName: group.name)
+            }
+            .searchable(text: $query, prompt: .searchPrompt)
+            .onSubmit(of: .search) { handleSubmit() }
+            .task(id: query) {
+                await model.search(named: query, network: network)
+            }
         }
     }
 
@@ -62,9 +67,9 @@ private struct SearchContent: View {
         Group {
             if let failure = model.failure {
                 UnavailableScreen(
-                    title: "Couldn't load stops",
+                    title: .searchErrorTitle,
                     systemImage: "wifi.exclamationmark",
-                    message: failure
+                    message: Text(verbatim: failure)
                 )
             } else if query.trimmingCharacters(in: .whitespaces).isEmpty {
                 RecentsSection(
@@ -101,9 +106,6 @@ private struct SearchResultsList: View {
         }
         .listStyle(.plain)
         .background(Color.paper)
-        .navigationDestination(for: StopGroup.self) { group in
-            StopDetailsView(stopId: group.id, stopName: group.name)
-        }
     }
 }
 
@@ -149,9 +151,9 @@ private struct RecentsSection: View {
     var body: some View {
         if recents.isEmpty {
             UnavailableScreen(
-                title: "Search for a stop",
+                title: .searchEmptyTitle,
                 systemImage: "magnifyingglass",
-                message: "Find stops and lines by name."
+                message: Text(.searchEmptyMessage)
             )
         } else {
             List {
@@ -166,11 +168,11 @@ private struct RecentsSection: View {
                     }
                 } header: {
                     HStack {
-                        Text("Recent searches")
+                        Text(.searchRecentTitle)
                             .foregroundStyle(.ink)
                             .font(.body.weight(.semibold))
                         Spacer()
-                        Button("Clear", action: onClear)
+                        Button(.searchClear, action: onClear)
                             .font(.subheadline)
                             .foregroundStyle(.inkSoft)
                     }
@@ -207,22 +209,22 @@ private struct RecentRow: View {
 
 #Preview("Results") {
     @Previewable @State var favoritesModel = FavoritesModel()
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
 
-    NavigationStack {
-        SearchView()
-    }
+    SearchView()
     .environment(\.network, mockNetwork())
     .environment(favoritesModel)
+    .environment(tripFavoritesModel)
     .modelContainer(mockModelContainer())
 }
 
 #Preview("Empty") {
     @Previewable @State var favoritesModel = FavoritesModel()
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
 
-    NavigationStack {
-        SearchView()
-    }
+    SearchView()
     .environment(\.network, mockNetwork())
     .environment(favoritesModel)
+    .environment(tripFavoritesModel)
     .modelContainer(emptyModelContainer())
 }

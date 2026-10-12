@@ -35,22 +35,22 @@ struct StopDetailsView: View {
         Group {
             if let failure = model.failure {
                 UnavailableScreen(
-                    title: "Couldn't load departures",
+                    title: .stopBoardErrorTitle,
                     systemImage: "wifi.exclamationmark",
-                    message: failure
+                    message: Text(verbatim: failure)
                 )
-            } else if model.departures.isEmpty {
+            } else if model.filteredDepartures.isEmpty {
                 if model.isLoading {
                     LoadingIndicator()
                 } else {
                     UnavailableScreen(
-                        title: "No departures",
+                        title: .stopBoardEmptyTitle,
                         systemImage: "tray",
-                        message: "There are no departures in the next hour."
+                        message: Text(.stopBoardEmptyMessage)
                     )
                 }
             } else {
-                DeparturesList(departures: model.departures)
+                DeparturesList(departures: model.filteredDepartures)
             }
         }
         .background(Color.paper)
@@ -68,7 +68,20 @@ struct StopDetailsView: View {
                     model: favoritesModel
                 )
             }
+
+            // NEW: Bottom toolbar for platform selection
+            ToolbarItem(placement: .bottomBar) {
+                if model.platforms.count > 1 {
+                    PlatformSelectorToolbar(
+                        selectedPlatformId: $model.selectedPlatformId,
+                        platforms: model.platforms,
+                        departures: model.departures,
+                        onToggle: model.togglePlatform
+                    )
+                }
+            }
         }
+        .toolbarVisibility(.hidden, for: .tabBar)
         .task(id: refreshTrigger) {
             await model.loadDepartures(network: network, areaId: stopId)
             // Refresh every 60 seconds
@@ -125,7 +138,7 @@ private struct DepartureRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 if departure.canceled == true {
-                    StatusPill(label: "Cancelled", tone: .red)
+                    StatusPill(label: String(localized: .departureCancelled), tone: .red)
                 } else if let delay = departure.delayMinutes {
                     StatusPill(
                         label: delay.label,
@@ -150,7 +163,7 @@ private struct Countdown: View {
 
     var body: some View {
         if departure.canceled == true {
-            Text("Cancelled")
+            Text(.departureCancelled)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(.inkSoft)
                 .strikethrough()
@@ -173,7 +186,9 @@ private struct Countdown: View {
                 to: date
             ).minute
             if let minutes, minutes >= 0, minutes < 60 {
-                return minutes == 0 ? "Now" : "\(minutes) min"
+                return minutes == 0
+                    ? String(localized: .departureNow)
+                    : String(localized: .departureMinutes(minutes: minutes))
             }
             return date.formatted(date: .omitted, time: .shortened)
         }
@@ -219,30 +234,6 @@ private struct LineBadge: View {
     }
 }
 
-// MARK: - Mode blip
-
-/// The small transport-mode icon overlapping a `LineBadge`'s corner,
-/// matching the storyboard's `mode-blip`.
-private struct ModeBlip: View {
-
-    let mode: TransportMode?
-
-    var body: some View {
-        if let mode {
-            Image(systemName: mode.icon)
-                .resizable()
-                .font(.title.weight(.heavy))
-                .aspectRatio(contentMode: .fit)
-                .padding(5)
-                .frame(width: 30, height: 30)
-                .foregroundStyle(.accentDeep)
-                .background(Color.panel, in: Circle())
-                .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
-                .offset(x: 10, y: 15)
-        }
-    }
-}
-
 extension TransportMode {
     /// Maps a Trafiklab `transport_mode` to a SF Symbol, matching the icons in
     /// the storyboard (`BUS`/`TRAM`/`METRO`/`TRAIN`/`BOAT`/`TAXI`).
@@ -262,6 +253,27 @@ extension TransportMode {
             return "car.fill"
         default:
             return "questionmark"
+        }
+    }
+
+    /// The mode's user-facing name, used as a platform label when a platform
+    /// is served by a single mode (e.g. "Tram").
+    var displayName: String {
+        switch rawMode {
+        case "BUS":
+            return String(localized: .transportModeBus)
+        case "TRAM":
+            return String(localized: .transportModeTram)
+        case "METRO":
+            return String(localized: .transportModeMetro)
+        case "TRAIN":
+            return String(localized: .transportModeTrain)
+        case "BOAT":
+            return String(localized: .transportModeBoat)
+        case "TAXI":
+            return String(localized: .transportModeTaxi)
+        default:
+            return rawMode.capitalized
         }
     }
 }
@@ -292,13 +304,18 @@ private struct FavoriteToggle: View {
             Image(systemName: model.contains(stopId) ? "star.fill" : "star")
                 .font(.title3)
                 .foregroundStyle(model.contains(stopId) ? .star : .inkSoft)
-                .accessibilityLabel(model.contains(stopId) ? "Remove favourite" : "Add favourite")
+                .accessibilityLabel(
+                    model.contains(stopId)
+                        ? LocalizedStringResource.stopBoardRemoveFavorite
+                        : LocalizedStringResource.stopBoardAddFavorite
+                )
         }
     }
 }
 
 #Preview("Departures") {
     @Previewable @State var model = FavoritesModel()
+    @Previewable @State var tripFavoritesModel = TripFavoritesModel()
     NavigationStack {
         StopDetailsView(
             stopId: "740000001",
@@ -307,6 +324,7 @@ private struct FavoriteToggle: View {
     }
     .environment(\.network, MockTrafiklabService())
     .environment(model)
+    .environment(tripFavoritesModel)
     .environment(previewLineColours())
     .modelContainer(mockModelContainer())
 }

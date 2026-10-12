@@ -143,7 +143,11 @@ struct NearbyModelTests {
 
     @Test func distanceLabelFormatsKilometersAbove1000Meters() {
         let stop = Stop(id: "1", name: "Central Station", latitude: 60.1756, longitude: 24.9420, distance: 1800)
-        #expect(stop.distanceLabel == "1,8 km")
+        // Then: kilometers with at most one decimal, in the current locale's
+        // number format ("1,8 km" on a Swedish device, "1.8 km" on an English
+        // one) — the label formats for the rider's locale, not a fixed one.
+        let expected = 1.8.formatted(.number.precision(.fractionLength(0...1))) + " km"
+        #expect(stop.distanceLabel == expected)
     }
 
     @Test func distanceLabelNilWithoutDistance() {

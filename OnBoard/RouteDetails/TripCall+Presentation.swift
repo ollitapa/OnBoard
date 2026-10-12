@@ -56,7 +56,7 @@ extension TripCall {
     /// `nil` for every other row.
     func subtitle(isTarget: Bool, isBetweenStops: Bool, isFinal: Bool, now: Date) -> String? {
         if isCanceled {
-            return "Cancelled"
+            return String(localized: .departureCancelled)
         }
         if isTarget, isBetweenStops {
             // En route: count up to the arrival (falling back to the
@@ -66,10 +66,12 @@ extension TripCall {
             // last minute.
             guard let arrival = arrivalDate ?? departureDate else { return nil }
             let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.up))
-            return minutes <= 0 ? "Arriving now" : "Arriving in \(minutes) min"
+            return minutes <= 0
+                ? String(localized: .tripArrivingNow)
+                : String(localized: .tripArrivingIn(minutes: minutes))
         }
         if isFinal {
-            return "Final stop"
+            return String(localized: .tripFinalStop)
         }
         if isTarget {
             // Standing at the stop: "Arrived" until the last tenth of the
@@ -79,7 +81,9 @@ extension TripCall {
                   let departure = departureDate ?? arrivalDate else { return nil }
             let dwell = departure.timeIntervalSince(arrival)
             let departingFrom = arrival.addingTimeInterval(Swift.max(dwell * 0.9, dwell - 10))
-            return now >= departingFrom ? "Departing now" : "Arrived"
+            return now >= departingFrom
+                ? String(localized: .tripDepartingNow)
+                : String(localized: .tripArrived)
         }
         return nil
     }
@@ -93,8 +97,10 @@ extension TripCall {
         guard !isTarget, !isPassed, let arrival = arrivalDate ?? departureDate else { return nil }
         let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.down))
         if minutes < 1 {
-            return "1 min"
+            return String(localized: .departureMinutes(minutes: 1))
         }
-        return minutes <= 10 ? "\(minutes) min" : arrival.formatted(date: .omitted, time: .shortened)
+        return minutes <= 10
+            ? String(localized: .departureMinutes(minutes: minutes))
+            : arrival.formatted(date: .omitted, time: .shortened)
     }
 }

@@ -1,4 +1,4 @@
-# Contributing to OnBoard
+# Contributing to OnBoard - Kyytiin
 
 ## Development Guidelines
 
@@ -125,7 +125,7 @@ These conventions keep view code consistent and avoid SwiftUI initialization pit
   ```
   This is also why a preview that needs a `@Environment(\.modelContext)` (any view with `@Environment(\.modelContext)`) **must** get a `.modelContainer(...)` — a `@Model`-reading view traps at runtime if no container is in the environment.
 
-- **User-facing text is English**: All in-app strings — view `Text`, `Button` titles, labels — are in English. The Trafiklab API is Swedish and its data (stop names, etc.) is surfaced as-is, but the app's own UI chrome stays English. The `NSLocationWhenInUseUsageDescription` Info.plist value is an exception: it is the *system* permission prompt, not in-app UI, so it may be localized to match the OS sheet.
+- **User-facing text goes through the string catalog**: All in-app strings — view `Text`, `Button` titles, labels — live in `OnBoard/Localizable.xcstrings` (English source with Swedish and Finnish translations) and are referenced through the Xcode-generated `LocalizedStringResource` symbols, e.g. `Text(.stopBoardEmptyTitle)`; the `STRING_CATALOG_GENERATE_SYMBOLS = YES` build setting makes those symbols compile-checked. Add a key with a dotted, PascalCase-per-segment name (`StopBoard.EmptyTitle`), a translator comment, and the three translations; Xcode camel-cases the key into the symbol (`.stopBoardEmptyTitle`), and named placeholders (`%(minutes)lld`) become typed function parameters (`.departureMinutes(minutes: 3)`). The Trafiklab API is Swedish and its data (stop names, etc.) is surfaced as-is, outside the catalog. Runtime-built strings (a model's `failure` text) are not localized — pass them to a `Text`-typed slot with `Text(verbatim:)`. The `NSLocationWhenInUseUsageDescription` Info.plist value is the *system* permission prompt, not in-app UI, so it may be localized to match the OS sheet. Unit and UI tests pin `-AppleLanguages (en)` so their English string expectations are locale-proof on any runner.
 
 - **Drive `.searchable` queries with `.task(id:)`, not `.onChange` + `Task`**: For a live (search-as-you-type) screen, bind the `.searchable(text: $query, ...)` field to `@State` and run the load from `.task(id: query) { await model.search(named: query, ...) }`. SwiftUI cancels the previous task when `id` changes, so a single in-model debounce — `try? await Task.sleep(for: .milliseconds(400))` followed by `guard !Task.isCancelled else { return }` before and after the request — yields a correct debounce without unstructured `Task`s or manual cancellation bookkeeping. A `.onChange(of: query) { Task { ... } }` instead spawns a *new* task per keystroke that races the old ones and overwrites results out of order; never use it for debounced search. The `.task(id:)` form also re-runs the initial (blank) query on appear, which the model uses to clear results and show the recents section.
 
@@ -141,7 +141,7 @@ The shared UI components live in `OnBoard/DesignSystem/` — one component per f
   }
   ```
 
-- **`PrimaryButtonStyle` / `TextButtonStyle` (ButtonStyles.swift)** — the storyboard's `btn-primary` / `btn-text` as custom `ButtonStyle`s, applied with `.buttonStyle(.primary)` / `.buttonStyle(.text)` on a plain `Button`. Both render `configuration.label` with the app's color tokens (accent capsule / ink-soft text) and react to `configuration.isPressed`; don't reach for the system `.borderedProminent`/`.borderless` styles for these:
+- **`PrimaryButtonStyle` / `TextButtonStyle` (ButtonStyles.swift)** — the storyboard's `btn-primary` / `btn-text` as custom `ButtonStyle`s, applied with `.buttonStyle(.primary)` / `.buttonStyle(.text)` on a plain `Button`. The primary renders its label on an accent-tinted Liquid Glass capsule (`.glassEffect(.regular.tint(.accent).interactive(), in: Capsule())`, iOS 26) with the built-in press response; the text style stays a flat ink-soft label, since Apple's Liquid Glass guidance reserves the material for navigation-layer and floating controls, not text links in content. Don't reach for the system `.borderedProminent`/`.borderless` (or `.glass`/`.glassProminent`) styles for these — go through the design-system styles so the tint and shape can't drift per screen:
 
   ```swift
   Button("Open Settings", action: onOpenSettings)
@@ -170,6 +170,11 @@ The shared UI components live in `OnBoard/DesignSystem/` — one component per f
   ```
 
 - **`LoadingIndicator` (LoadingIndicator.swift)** — the accent-tinted spinner shown while a screen's first load is in flight. Use it instead of a bare `ProgressView().tint(.accent)`.
+- **`ModeBlip` (ModeBlip.swift)** — the small transport-mode icon overlapping a line badge's corner, matching the storyboard's `mode-blip`. The Stop board's and the Trips tab's badges both take a `TransportMode?`, so the blip lives here rather than being re-styled per screen:
+
+  ```swift
+  ModeBlip(mode: route.transport_mode)
+  ```
 
 Each component carries a `#Preview`, so the whole set is browsable in Xcode's canvas. When a new pattern shows up on two or more screens, extract it into this folder as its own file (view structs stay feature-local until that point, per the feature-folder rule) and document it here.
 

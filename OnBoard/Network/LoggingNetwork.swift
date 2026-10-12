@@ -23,7 +23,7 @@ struct LoggingNetwork: NetworkProtocol {
 
     private let counter = RequestCounter()
     private let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "OnBoard",
+        subsystem: Bundle.main.bundleIdentifier ?? "com.tapaninen.kyytiin",
         category: "LoggingNetwork"
     )
 
