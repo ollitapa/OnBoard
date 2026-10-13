@@ -2,20 +2,8 @@ name: Tests
 
 on:
   pull_request:
-    paths:
-      - "OnBoard/**"
-      - "OnBoardTests/**"
-      - "OnBoardUITests/**"
-      - "OnBoard.xcodeproj/**"
-      - ".github/workflows/tests.yml"
   push:
     branches: [main]
-    paths:
-      - "OnBoard/**"
-      - "OnBoardTests/**"
-      - "OnBoardUITests/**"
-      - "OnBoard.xcodeproj/**"
-      - ".github/workflows/tests.yml"
 
 permissions:
   contents: read
@@ -30,18 +18,44 @@ jobs:
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant changes
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --name-only "$BASE_SHA...HEAD" -- \
+            'OnBoard/**' \
+            'OnBoardTests/**' \
+            'OnBoardUITests/**' \
+            'OnBoard.xcodeproj/**' \
+            '.github/workflows/tests.yml' | grep -q .; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Show Xcode version
+        if: steps.changes.outputs.run == 'true'
         run: xcodebuild -version
 
       - name: List available schemes
+        if: steps.changes.outputs.run == 'true'
         run: xcodebuild -list -project OnBoard.xcodeproj
 
       - name: Provide placeholder API keys
+        if: steps.changes.outputs.run == 'true'
         run: |
           printf 'TRAFIKLAB_REALTIME_KEY=placeholder\nTRAFIKLAB_RESROBOT_KEY=placeholder\n' > OnBoard/Secrets.env
 
       - name: Build for testing
+        if: steps.changes.outputs.run == 'true'
         run: |
           set -o pipefail && xcodebuild build-for-testing \
             -project OnBoard.xcodeproj \
@@ -50,9 +64,14 @@ jobs:
             | xcbeautify --renderer github-actions
 
       - name: Test
+        if: steps.changes.outputs.run == 'true'
         run: |
           set -o pipefail && xcodebuild test-without-building \
             -project OnBoard.xcodeproj \
             -scheme OnBoard \
             -destination "platform=iOS Simulator,name=iPhone 17,OS=latest" \
             | xcbeautify --renderer github-actions
+
+      - name: Skip tests
+        if: steps.changes.outputs.run != 'true'
+        run: echo "No relevant changes (OnBoard/, OnBoardTests/, OnBoardUITests/, OnBoard.xcodeproj/, workflow file) — skipping tests"
