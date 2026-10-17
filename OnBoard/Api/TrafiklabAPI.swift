@@ -150,9 +150,19 @@ struct Trafiklab {
 
     private static let decoder = JSONDecoder()
 
-    /// Performs a request and decodes its JSON body.
+    /// Performs a request and decodes its JSON body. Transport problems are
+    /// reported as a `TrafiklabHTTPError` before decoding, so a server error
+    /// (e.g. a quota or key failure) surfaces as itself instead of a decoding
+    /// failure on its error body: `unexpectedStatus` for a non-2xx response,
+    /// `noHTTPResponse` when the response carries no HTTP status at all.
     private func decode<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, _) = try await network.data(for: request)
+        let (data, response) = try await network.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw TrafiklabHTTPError.noHTTPResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw TrafiklabHTTPError.unexpectedStatus(statusCode: http.statusCode, body: data)
+        }
         return try Self.decoder.decode(T.self, from: data)
     }
 }
@@ -160,13 +170,40 @@ struct Trafiklab {
 /// Errors thrown by `Trafiklab`.
 struct TrafiklabInvalidURL: Error, Sendable { }
 
+/// An HTTP-level problem with a Trafiklab response, reported before any
+/// decoding is attempted.
+enum TrafiklabHTTPError: Error, Sendable, CustomStringConvertible {
+    /// A non-2xx response; carries the status code and raw body so the
+    /// failure message describes the server's answer (e.g. a quota or key
+    /// error) instead of a decoding error.
+    case unexpectedStatus(statusCode: Int, body: Data)
+    /// The response was not an `HTTPURLResponse`, so no status exists to
+    /// check — the request never reached an HTTP server or the transport
+    /// returned a bare response.
+    case noHTTPResponse
+
+    var description: String {
+        switch self {
+        case let .unexpectedStatus(statusCode, body):
+            let body = String(data: body, encoding: .utf8) ?? ""
+            return body.isEmpty
+                ? "Unexpected status \(statusCode)"
+                : "Unexpected status \(statusCode): \(body)"
+        case .noHTTPResponse:
+            return "No HTTP response (missing status)"
+        }
+    }
+}
+
 
 // MARK: - Response models
 
 /// Top-level response for Stop Lookup (`NationalStopGroupResponse`).
 struct NationalStopGroupResponse: Codable, Equatable, Sendable {
-    var timestamp: String
-    var query: StopLookupQuery
+    /// Envelope metadata; optional because the app never reads it and error
+    /// or additive variants of the envelope must not fail decoding.
+    var timestamp: String?
+    var query: StopLookupQuery?
     var stop_groups: [StopGroup]
 
     struct StopLookupQuery: Codable, Equatable, Sendable {
@@ -245,16 +282,20 @@ struct StopLocation: Codable, Equatable, Identifiable, Sendable {
 
 /// Top-level response for Trafiklab Timetables departures.
 struct DeparturesResponse: Codable, Equatable, Sendable {
-    var timestamp: String
-    var query: TimetableQuery
+    /// Envelope metadata; optional because the app never reads it and error
+    /// or additive variants of the envelope must not fail decoding.
+    var timestamp: String?
+    var query: TimetableQuery?
     var stops: [TimetableStop]
     var departures: [CallAtLocation]
 }
 
 /// Top-level response for Trafiklab Timetables arrivals.
 struct ArrivalsResponse: Codable, Equatable, Sendable {
-    var timestamp: String
-    var query: TimetableQuery
+    /// Envelope metadata; optional because the app never reads it and error
+    /// or additive variants of the envelope must not fail decoding.
+    var timestamp: String?
+    var query: TimetableQuery?
     var stops: [TimetableStop]
     var arrivals: [CallAtLocation]
 }
@@ -370,12 +411,16 @@ struct Alert: Codable, Equatable, Sendable {
 /// Top-level response for Trafiklab Trips (beta): the trip's agency, route,
 /// and one call per stop along the journey.
 struct TripResponse: Codable, Equatable, Sendable {
-    var timestamp: String
+    /// Envelope metadata; optional because the app never reads it and the
+    /// beta Trips endpoint may change shape without notice.
+    var timestamp: String?
     var query: TripQuery?
     var agency: Agency?
     var route: Route?
     var trip: TripRef?
-    var calls: [TripCall]?
+    /// Required so a response that isn't a trips payload (e.g. an error body)
+    /// fails decoding rather than decoding as an empty trip.
+    var calls: [TripCall]
 
     struct TripQuery: Codable, Equatable, Sendable {
         var queryTime: String
