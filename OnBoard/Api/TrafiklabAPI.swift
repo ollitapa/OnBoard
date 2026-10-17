@@ -401,7 +401,9 @@ struct TripResponse: Codable, Equatable, Sendable {
     var agency: Agency?
     var route: Route?
     var trip: TripRef?
-    var calls: [TripCall]?
+    /// Required so a response that isn't a trips payload (e.g. an error body)
+    /// fails decoding rather than decoding as an empty trip.
+    var calls: [TripCall]
 
     struct TripQuery: Codable, Equatable, Sendable {
         var queryTime: String
