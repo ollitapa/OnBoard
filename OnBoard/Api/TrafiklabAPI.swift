@@ -151,17 +151,18 @@ struct Trafiklab {
     private static let decoder = JSONDecoder()
 
     /// Performs a request and decodes its JSON body. Transport problems are
-    /// reported as a `TrafiklabHTTPError` before decoding, so a server error
-    /// (e.g. a quota or key failure) surfaces as itself instead of a decoding
-    /// failure on its error body: `unexpectedStatus` for a non-2xx response,
-    /// `noHTTPResponse` when the response carries no HTTP status at all.
+    /// reported as dedicated errors before decoding, so a server error (e.g.
+    /// a quota or key failure) surfaces as itself instead of a decoding
+    /// failure on its error body: `TrafiklabUnexpectedStatusError` for a
+    /// non-2xx response, `TrafiklabNoHTTPResponseError` when the response
+    /// carries no HTTP status at all.
     private func decode<T: Decodable>(_ request: URLRequest) async throws -> T {
         let (data, response) = try await network.data(for: request)
         guard let http = response as? HTTPURLResponse else {
-            throw TrafiklabHTTPError.noHTTPResponse
+            throw TrafiklabNoHTTPResponseError()
         }
         guard (200..<300).contains(http.statusCode) else {
-            throw TrafiklabHTTPError.unexpectedStatus(statusCode: http.statusCode, body: data)
+            throw TrafiklabUnexpectedStatusError(statusCode: http.statusCode, body: data)
         }
         return try Self.decoder.decode(T.self, from: data)
     }
@@ -170,28 +171,28 @@ struct Trafiklab {
 /// Errors thrown by `Trafiklab`.
 struct TrafiklabInvalidURL: Error, Sendable { }
 
-/// An HTTP-level problem with a Trafiklab response, reported before any
-/// decoding is attempted.
-enum TrafiklabHTTPError: Error, Sendable, CustomStringConvertible {
-    /// A non-2xx response; carries the status code and raw body so the
-    /// failure message describes the server's answer (e.g. a quota or key
-    /// error) instead of a decoding error.
-    case unexpectedStatus(statusCode: Int, body: Data)
-    /// The response was not an `HTTPURLResponse`, so no status exists to
-    /// check — the request never reached an HTTP server or the transport
-    /// returned a bare response.
-    case noHTTPResponse
+/// A non-2xx HTTP response from a Trafiklab endpoint, reported before any
+/// decoding is attempted. Carries the status code and raw body so the
+/// failure message describes the server's answer (e.g. a quota or key
+/// error) instead of a decoding error.
+struct TrafiklabUnexpectedStatusError: Error, Sendable, CustomStringConvertible {
+    let statusCode: Int
+    let body: Data
 
     var description: String {
-        switch self {
-        case let .unexpectedStatus(statusCode, body):
-            let body = String(data: body, encoding: .utf8) ?? ""
-            return body.isEmpty
-                ? "Unexpected status \(statusCode)"
-                : "Unexpected status \(statusCode): \(body)"
-        case .noHTTPResponse:
-            return "No HTTP response (missing status)"
-        }
+        let body = String(data: body, encoding: .utf8) ?? ""
+        return body.isEmpty
+            ? "Unexpected status \(statusCode)"
+            : "Unexpected status \(statusCode): \(body)"
+    }
+}
+
+/// A response that was not an `HTTPURLResponse`, so no status exists to
+/// check — the request never reached an HTTP server or the transport
+/// returned a bare response. Reported before any decoding is attempted.
+struct TrafiklabNoHTTPResponseError: Error, Sendable, CustomStringConvertible {
+    var description: String {
+        "No HTTP response (missing status)"
     }
 }
 
