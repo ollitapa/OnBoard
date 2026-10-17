@@ -111,7 +111,8 @@ struct StopDetailsModelTests {
     @Test func loadDeparturesHTTPErrorSurfacesAsItselfNotDecodingError() async throws {
         // Given: an error response (e.g. quota exceeded or a bad key) whose
         // body has no `timestamp`, like the real API's error payloads. This
-        // must surface as the HTTP error, not a DecodingError about `timestamp`.
+        // must surface as the unexpected-status error, not a DecodingError
+        // about `timestamp`.
         var network = MockNetwork()
         network.registerHandler { request in
             if request.url?.path.contains("/departures/") == true {
@@ -128,9 +129,36 @@ struct StopDetailsModelTests {
         // Then
         #expect(model.departures == [])
         let failure = try #require(model.failure)
-        #expect(failure.contains("HTTP 429"))
+        #expect(failure.contains("Unexpected status 429"))
         #expect(!failure.contains("keyNotFound"))
         #expect(!failure.contains("timestamp"))
+    }
+
+    @Test func loadDeparturesWithoutHTTPStatusSurfacesNoHTTPResponseError() async throws {
+        // Given: a transport that returns a bare URLResponse with no HTTP
+        // status. This must surface as the no-status error, not a decoding
+        // failure on the body.
+        var network = MockNetwork()
+        network.registerHandler { request in
+            if request.url?.path.contains("/departures/") == true {
+                let response = URLResponse(
+                    url: request.url!,
+                    mimeType: "application/json",
+                    expectedContentLength: -1,
+                    textEncodingName: nil
+                )
+                return (Data(#"{"departures":[]}"#.utf8), response)
+            }
+            return nil
+        }
+        let model = StopDetailsModel()
+        // When
+        await model.loadDepartures(network: network, areaId: "740000001")
+        // Then
+        #expect(model.departures == [])
+        let failure = try #require(model.failure)
+        #expect(failure.contains("No HTTP response"))
+        #expect(!failure.contains("keyNotFound"))
     }
 
     // MARK: - Platform filtering
