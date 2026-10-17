@@ -108,6 +108,31 @@ struct StopDetailsModelTests {
         #expect(model.failure != nil)
     }
 
+    @Test func loadDeparturesHTTPErrorSurfacesAsItselfNotDecodingError() async throws {
+        // Given: an error response (e.g. quota exceeded or a bad key) whose
+        // body has no `timestamp`, like the real API's error payloads. This
+        // must surface as the HTTP error, not a DecodingError about `timestamp`.
+        var network = MockNetwork()
+        network.registerHandler { request in
+            if request.url?.path.contains("/departures/") == true {
+                return MockNetwork.makeResponse(
+                    json: #"{"error":"Too many requests"}"#,
+                    statusCode: 429
+                )
+            }
+            return nil
+        }
+        let model = StopDetailsModel()
+        // When
+        await model.loadDepartures(network: network, areaId: "740000001")
+        // Then
+        #expect(model.departures == [])
+        let failure = try #require(model.failure)
+        #expect(failure.contains("HTTP 429"))
+        #expect(!failure.contains("keyNotFound"))
+        #expect(!failure.contains("timestamp"))
+    }
+
     // MARK: - Platform filtering
 
     /// A full departures response envelope with two child stops, only one of
