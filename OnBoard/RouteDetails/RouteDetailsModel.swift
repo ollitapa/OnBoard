@@ -84,7 +84,7 @@ final class RouteDetailsModel {
             // No need to do any updates if task is cancelled.
             try Task.checkCancellation()
 
-            calls = response.calls ?? []
+            calls = response.calls
             rows = calls.stopRows(now: now)
             failure = nil
         } catch is CancellationError {

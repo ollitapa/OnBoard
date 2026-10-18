@@ -43,7 +43,7 @@ struct SLTransport {
         components.queryItems = [URLQueryItem(name: "transport_authority_id", value: "1")]
         guard let url = components.url else { throw TrafiklabInvalidURL() }
         let request = URLRequest(url: url)
-        let (data, _) = try await network.data(for: request)
+        let data = try await network.httpData(for: request)
         return try Self.decoder.decode(SLLinesResponse.self, from: data)
     }
 
