@@ -47,6 +47,14 @@ check "Rule 7: no singletons — inject through the environment" \
 check "Storage: never cache container.mainContext — pass it per call site" \
     'let [a-zA-Z]+ = .*\.mainContext'
 
+# Rule 15: decoding without a validated HTTP status. Flag the tuple-unpacking
+# `data(for:)` form in API clients — the body should come from httpData(for:).
+# Transport implementations/decorators (LoggingNetwork) and mocks must call
+# data(for:) themselves; they are excluded.
+check "Rule 15: no decode of unvalidated status — use httpData(for:)" \
+    'let \([^)]*data[^)]*\) = try await [a-zA-Z.]+\.data\(for:' \
+    'httpData|LoggingNetwork|MockNetwork'
+
 if [ "$STATUS" -eq 0 ]; then
     printf '✓ No architecture anti-patterns found in %s\n' "$DIR"
 else

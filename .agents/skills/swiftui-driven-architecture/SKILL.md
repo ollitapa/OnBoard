@@ -161,6 +161,14 @@ Each is backed by a real failure mode, stated in the reference files.
     key.
 14. **User-facing in-app text stays English** even when API data is another
     language (system permission prompts may localize).
+15. **Never decode an unvalidated HTTP status** — decode through a
+    `httpData(for:)`-style helper on the transport seam that throws on non-2xx
+    (`UnexpectedStatusError` with status + raw body) before any decoding, or a
+    server error surfaces as a misleading `DecodingError` on its error body.
+16. **Envelope metadata is optional; payloads are not** — mark response fields
+    the app never reads (e.g. `timestamp`, `query`) as optional so additive or
+    error variants still decode, but keep payload arrays required so an error
+    body fails decoding instead of decoding as "empty data".
 
 ## Procedures
 

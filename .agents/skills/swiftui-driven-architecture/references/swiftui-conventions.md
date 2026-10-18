@@ -144,6 +144,53 @@ missing or empty key throws when the request is built and surfaces through the
 model's `failure` handling — instead of silently sending an empty key and
 decoding an error page.
 
+## Validate the HTTP status before decoding
+
+A 429 quota/key failure returns an error body (e.g. `{"error": …}`) that carries
+none of the envelope fields the response types expect. Decoding it directly
+fails as `DecodingError.keyNotFound` for `timestamp` — a green-looking bug that
+masks the real server-side cause on screen.
+
+Put the check on the transport seam, so every client gets it by default:
+
+```swift
+extension NetworkProtocol {
+    func httpData(for request: URLRequest) async throws -> Data {
+        let (data, response) = try await data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw NoHTTPResponseError()
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw UnexpectedStatusError(statusCode: http.statusCode, body: data)
+        }
+        return data
+    }
+}
+```
+
+`UnexpectedStatusError` is a small `CustomStringConvertible` struct carrying
+the status code and raw body (`"Unexpected status 429: …"`), so it needs zero
+model-side handling to render as a useful `failure` message through the
+`String(describing: error)` convention.
+
+A client that still calls `data(for:)` and decodes directly re-introduces the
+bug — hence the anti-pattern scan flags `let (data, _) = try await …data(for:`.
+
+## Response optionality: envelope metadata optional, payloads required
+
+Make optional exactly the response fields whose absence is semantically
+harmless — and no more:
+
+- **Envelope metadata the app never reads** (`timestamp`, `query`): optional, so
+  additive variants of the envelope or a differently-shaped error body fail
+  decoding only when it matters.
+- **Payload arrays** (`calls`, `departures`): required. An optional payload lets
+  an error body decode as "empty data" (e.g. an empty trip) instead of failing
+  loudly.
+
+Blanket optionals are their own bug class; each `?` needs this justification in
+a doc comment.
+
 ## SwiftData details
 
 - The app entry point builds the `ModelContainer` once; views read
