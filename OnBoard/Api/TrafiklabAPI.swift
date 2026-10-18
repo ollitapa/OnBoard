@@ -150,9 +150,12 @@ struct Trafiklab {
 
     private static let decoder = JSONDecoder()
 
-    /// Performs a request and decodes its JSON body.
+    /// Performs a request and decodes its JSON body. `httpData(for:)`
+    /// validates the HTTP status first, so a server error (e.g. a quota or
+    /// key failure) surfaces as itself instead of a decoding failure on
+    /// its error body.
     private func decode<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, _) = try await network.data(for: request)
+        let data = try await network.httpData(for: request)
         return try Self.decoder.decode(T.self, from: data)
     }
 }
@@ -165,8 +168,10 @@ struct TrafiklabInvalidURL: Error, Sendable { }
 
 /// Top-level response for Stop Lookup (`NationalStopGroupResponse`).
 struct NationalStopGroupResponse: Codable, Equatable, Sendable {
-    var timestamp: String
-    var query: StopLookupQuery
+    /// Envelope metadata; optional because the app never reads it and error
+    /// or additive variants of the envelope must not fail decoding.
+    var timestamp: String?
+    var query: StopLookupQuery?
     var stop_groups: [StopGroup]
 
     struct StopLookupQuery: Codable, Equatable, Sendable {
@@ -245,16 +250,20 @@ struct StopLocation: Codable, Equatable, Identifiable, Sendable {
 
 /// Top-level response for Trafiklab Timetables departures.
 struct DeparturesResponse: Codable, Equatable, Sendable {
-    var timestamp: String
-    var query: TimetableQuery
+    /// Envelope metadata; optional because the app never reads it and error
+    /// or additive variants of the envelope must not fail decoding.
+    var timestamp: String?
+    var query: TimetableQuery?
     var stops: [TimetableStop]
     var departures: [CallAtLocation]
 }
 
 /// Top-level response for Trafiklab Timetables arrivals.
 struct ArrivalsResponse: Codable, Equatable, Sendable {
-    var timestamp: String
-    var query: TimetableQuery
+    /// Envelope metadata; optional because the app never reads it and error
+    /// or additive variants of the envelope must not fail decoding.
+    var timestamp: String?
+    var query: TimetableQuery?
     var stops: [TimetableStop]
     var arrivals: [CallAtLocation]
 }
@@ -370,12 +379,16 @@ struct Alert: Codable, Equatable, Sendable {
 /// Top-level response for Trafiklab Trips (beta): the trip's agency, route,
 /// and one call per stop along the journey.
 struct TripResponse: Codable, Equatable, Sendable {
-    var timestamp: String
+    /// Envelope metadata; optional because the app never reads it and the
+    /// beta Trips endpoint may change shape without notice.
+    var timestamp: String?
     var query: TripQuery?
     var agency: Agency?
     var route: Route?
     var trip: TripRef?
-    var calls: [TripCall]?
+    /// Required so a response that isn't a trips payload (e.g. an error body)
+    /// fails decoding rather than decoding as an empty trip.
+    var calls: [TripCall]
 
     struct TripQuery: Codable, Equatable, Sendable {
         var queryTime: String
