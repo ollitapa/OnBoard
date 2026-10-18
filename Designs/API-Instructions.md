@@ -270,9 +270,11 @@ No `Accept` or `Content-Type` request headers are needed — these are all unaut
 
 ## 7. Errors, rate limits, and caching behavior
 
-- **Client-side error contract** (`OnBoard/Api/TrafiklabAPI.swift`): HTTP-level problems are detected *before* any decoding, using two dedicated error structs so the failure shown on screen says what actually went wrong instead of a misleading `DecodingError`:
-  - `TrafiklabUnexpectedStatusError` — any non-2xx response. Carries the status code and the raw body, so a quota/key failure renders as e.g. `Unexpected status 429: {"error": ...}`.
-  - `TrafiklabNoHTTPResponseError` — the response was not an `HTTPURLResponse`, so there is no status at all (the request never reached an HTTP server, or the transport returned a bare response). Renders as `No HTTP response (missing status)`.
+- **Client-side error contract** (`OnBoard/Network/HTTPErrors.swift`, shared by every API client in the project): HTTP-level problems are detected *before* any decoding, using two dedicated error structs so the failure shown on screen says what actually went wrong instead of a misleading `DecodingError`:
+  - `UnexpectedStatusError` — any non-2xx response. Carries the status code and the raw body, so a quota/key failure renders as e.g. `Unexpected status 429: {"error": ...}`.
+  - `NoHTTPResponseError` — the response was not an `HTTPURLResponse`, so there is no status at all (the request never reached an HTTP server, or the transport returned a bare response). Renders as `No HTTP response (missing status)`.
+  - Clients get this by decoding via the `NetworkProtocol.httpData(for:)` helper, which validates the status before returning the body; any client still using `data(for:)` and decoding directly re-introduces the bug.
+  - Without this check, an error body (which carries no `timestamp`) decoded as a response envelope fails with `DecodingError.keyNotFound` for `timestamp`, masking the real server-side cause.
   - Without this check, an error body (which carries no `timestamp`) decoded as a response envelope fails with `DecodingError.keyNotFound` for `timestamp`, masking the real server-side cause.
 - Exceeding your quota returns an HTTP error response for too many requests (standard 429-style behavior); back off and retry with delay rather than hammering.
 - **Free/hobby tier ("bronze") is capped around 10,000 requests/month**, intended for small private projects (~5 people). A production app for real users will need a higher tier — talk to Trafiklab before launch.
