@@ -33,14 +33,12 @@ private `static` factory) and let SwiftUI own it. An `init` should configure onl
 
 ```swift
 struct MyModifier: ViewModifier {
-    @State private var model = Self.makeModel()
+    @State private var model = MyModel()
     var onManualSearch: () -> Void
 
     init(onManualSearch: @escaping () -> Void = {}) {
         self.onManualSearch = onManualSearch  // never touch `model` here
     }
-
-    private static func makeModel() -> Model { ... }
 }
 ```
 
@@ -49,9 +47,9 @@ update.
 
 ## Never launch a `Task` from a `static` factory
 
-A `static func makeModel() -> Model` constructs and returns — nothing else. A
-`Task { await model.load() }` fired from the factory escapes SwiftUI's
-lifecycle, can run before the view is on screen, and (when the factory is also
+A `MyModel()` initializes and returns — nothing else. A
+`Task { await model.load() }` fired from the init escapes SwiftUI's
+lifecycle, can run before the view is on screen, and (when the initializer is also
 used by a preview) leaves the load unowned. Trigger the initial load from the
 owning view's `.task`.
 
