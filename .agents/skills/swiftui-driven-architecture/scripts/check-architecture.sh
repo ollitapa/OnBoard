@@ -1,0 +1,71 @@
+#!/bin/sh
+# Greps a Swift source tree for architecture anti-patterns.
+# Usage: ./check-architecture.sh [source-dir]   (default: current directory)
+# Exits 1 if any violation is found.
+
+set -u
+DIR="${1:-.}"
+STATUS=0
+
+# check <rule> <pattern> [exclude-pattern]
+check() {
+    rule="$1"
+    pattern="$2"
+    exclude="${3:-}"
+    hits=$(grep -rnE --include='*.swift' "$pattern" "$DIR" 2>/dev/null || true)
+    if [ -n "$exclude" ]; then
+        hits=$(printf '%s\n' "$hits" | grep -vE "$exclude" || true)
+    fi
+    if [ -n "$hits" ]; then
+        printf '\n✗ %s\n%s\n' "$rule" "$hits"
+        STATUS=1
+    fi
+}
+
+check "Rule 1: no ObservableObject/@Published — use @Observable" \
+    ': *ObservableObject|@Published'
+
+check "Rule 3: never construct State manually — use an inline @State default" \
+    'State\(initialValue:|_[a-zA-Z]+ = State\('
+
+# Rule 5 needs lookahead: flag .onChange only when a Task is started inside it.
+onchange_hits=$(grep -rnE --include='*.swift' -A3 '\.onChange\(of:' "$DIR" 2>/dev/null \
+    | grep -E 'Task *\{' || true)
+if [ -n "$onchange_hits" ]; then
+    printf '\n✗ %s\n%s\n' \
+        "Rule 5: no .onChange + unstructured Task — use .task(id:)" "$onchange_hits"
+    STATUS=1
+fi
+
+check "Rule 6: no computed 'some View' properties — extract a View struct" \
+    'var [a-zA-Z]+: some View' \
+    'var body: some View'
+
+check "Rule 7: no singletons — inject through the environment" \
+    'static (let|var) shared'
+
+check "Storage: never cache container.mainContext — pass it per call site" \
+    'let [a-zA-Z]+ = .*\.mainContext'
+
+# Rule 15: decoding without a validated HTTP status. Flag the tuple-unpacking
+# `data(for:)` form in API clients — the body should come from httpData(for:).
+# Transport implementations/decorators (LoggingNetwork) and mocks must call
+# data(for:) themselves; they are excluded.
+check "Rule 15: no decode of unvalidated status — use httpData(for:)" \
+    'let \([^)]*data[^)]*\) = try await [a-zA-Z.]+\.data\(for:' \
+    'httpData|LoggingNetwork|MockNetwork'
+
+# Rule 17: no make*() factory methods — inline init or convenience init.
+# Excludes the legacy MyApp composition-root factories and mock fixture
+# builders (makeResponse/makeJSONResponse), which construct test values.
+check "Rule 17: no make*() factory methods — use an init or convenience init" \
+    'static func make[A-Z]' \
+    'MyApp\.swift|Mock[A-Za-z]*\.swift|makeResponse|makeJSONResponse'
+
+if [ "$STATUS" -eq 0 ]; then
+    printf '✓ No architecture anti-patterns found in %s\n' "$DIR"
+else
+    printf '\nReview each hit; a few are legitimate (e.g. a locally-scoped context).\n'
+fi
+
+exit "$STATUS"
