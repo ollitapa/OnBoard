@@ -165,10 +165,9 @@ Each is backed by a real failure mode, stated in the reference files.
     `httpData(for:)`-style helper on the transport seam that throws on non-2xx
     (`UnexpectedStatusError` with status + raw body) before any decoding, or a
     server error surfaces as a misleading `DecodingError` on its error body.
-16. **Envelope metadata is optional; payloads are not** — mark response fields
-    the app never reads (e.g. `timestamp`, `query`) as optional so additive or
-    error variants still decode, but keep payload arrays required so an error
-    body fails decoding instead of decoding as "empty data".
+17. **No `make*()` factory methods** — inline init calls, or a `convenience
+    init` when configuration is shared. Fixture builders on mocks
+    (`makeResponse`) are the only exception.
 
 ## Procedures
 

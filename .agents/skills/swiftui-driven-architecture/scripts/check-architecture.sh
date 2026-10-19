@@ -55,6 +55,13 @@ check "Rule 15: no decode of unvalidated status — use httpData(for:)" \
     'let \([^)]*data[^)]*\) = try await [a-zA-Z.]+\.data\(for:' \
     'httpData|LoggingNetwork|MockNetwork'
 
+# Rule 17: no make*() factory methods — inline init or convenience init.
+# Excludes the legacy MyApp composition-root factories and mock fixture
+# builders (makeResponse/makeJSONResponse), which construct test values.
+check "Rule 17: no make*() factory methods — use an init or convenience init" \
+    'static func make[A-Z]' \
+    'MyApp\.swift|Mock[A-Za-z]*\.swift|makeResponse|makeJSONResponse'
+
 if [ "$STATUS" -eq 0 ]; then
     printf '✓ No architecture anti-patterns found in %s\n' "$DIR"
 else

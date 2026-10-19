@@ -27,9 +27,10 @@ its `body`; reserve other computed properties for plain values (`String`, `Int`,
 ## Never create `State` manually
 
 Do not call `State(initialValue:)` or write `_state` inside an `init`. Declare
-the `@State` property with an inline default expression (optionally calling a
-private `static` factory) and let SwiftUI own it. An `init` should configure only
-**non**-`@State` stored properties.
+the `@State` property with an inline default expression and let SwiftUI own it. An
+`init` should configure only **non**-`@State` stored properties. If the default
+needs arguments, use an inline initializer call or a `convenience init` — not a
+`static func make…()` factory (see "No factory methods" below).
 
 ```swift
 struct MyModifier: ViewModifier {
@@ -45,13 +46,35 @@ struct MyModifier: ViewModifier {
 Manual `State` construction makes SwiftUI re-initialize the state on every view
 update.
 
-## Never launch a `Task` from a `static` factory
+## Never launch a `Task` from an initializer
 
 A `MyModel()` initializes and returns — nothing else. A
 `Task { await model.load() }` fired from the init escapes SwiftUI's
 lifecycle, can run before the view is on screen, and (when the initializer is also
 used by a preview) leaves the load unowned. Trigger the initial load from the
 owning view's `.task`.
+
+## No factory methods — inline initializer calls or `convenience init`
+
+Do not write `static func makeModel() -> Model` (or `makeNetwork()`,
+`makeContainer()`, …) factory methods. An init-shaped problem has an
+init-shaped answer:
+
+- **No configuration needed** — inline init call: `@State var model = MyModel()`.
+- **Configuration shared by call sites** — a `convenience init` (or just an `init`)
+  with default parameters, so call sites read `MyNetwork(baseURL: …)` and the
+  type still documents its own construction.
+
+Factories add a second name for the type's construction, hide the initializer
+from call-site readers, and — because the skill forbids doing anything in a
+constructor besides constructing — earn nothing in exchange. The same applies
+at the composition root: construct dependencies inline or via `convenience`
+inits, not `make*()` factories. The one legacy exception in the OnBoard repo is
+`MyApp.make*()`; new code should not copy it, and it may be migrated away.
+
+(`MockNetwork.makeResponse(json:statusCode:)` and similar **fixture builders on
+mocks** are fine — they build test values, not the type under test's
+construction path.)
 
 ## Previews inject with `@Previewable @State`, never a secondary init
 

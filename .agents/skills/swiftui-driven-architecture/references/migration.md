@@ -71,9 +71,11 @@ screen by screen using the reference screen's test as the pattern. See
 
 ## Phase 6 — Harness and composition root
 
-Move remaining dependency construction into the app entry point's `make*()`
-factories. Add `--mock-*` string launch arguments checked inline there (UI tests
-pass the literal strings, so these are deliberately not shared constants). Wire
+Move remaining dependency construction into the app entry point — inline init
+calls or `convenience init`s, not `make*()` factories (see
+[swiftui-conventions.md](./swiftui-conventions.md): "No factory methods"). Add
+`--mock-*` string launch arguments checked inline there (UI tests pass the
+literal strings, so these are deliberately not shared constants). Wire
 previews with `@Previewable @State`.
 
 At the end of this phase previews, unit tests, and UI tests all run the same
